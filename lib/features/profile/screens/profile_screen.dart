@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:heroicons/heroicons.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/theme_mode_provider.dart';
@@ -721,7 +722,8 @@ class _SupportSection extends ConsumerWidget {
         if (items.isEmpty) return const SizedBox.shrink();
         return _SettingsCard(
           rows: items.map((item) => _SettingsRow(
-            icon: _iconFor(item.icon),
+            heroIcon: _heroIconFor(item.icon),
+            icon: Icons.open_in_new_rounded,
             iconBg: _colorFor(item.color),
             label: item.title,
             subtitle: item.subtitle,
@@ -735,13 +737,8 @@ class _SupportSection extends ConsumerWidget {
     );
   }
 
-  static IconData _iconFor(String key) => switch (key) {
-    'zalo'      => Icons.chat_bubble_outline_rounded,
-    'phone'     => Icons.phone_in_talk_rounded,
-    'messenger' => Icons.messenger_outline_rounded,
-    'email'     => Icons.mail_outline_rounded,
-    _           => Icons.open_in_new_rounded,
-  };
+  static HeroIcons? _heroIconFor(String name) =>
+      HeroIcons.values.where((e) => e.name == name).firstOrNull;
 
   static Color _colorFor(String? hex) {
     if (hex == null || hex.length < 7) return const Color(0xFF6B7280);
@@ -752,17 +749,19 @@ class _SupportSection extends ConsumerWidget {
 // ─── Settings row ─────────────────────────────────────────────────────────────
 
 class _SettingsRow extends StatelessWidget {
-  final IconData  icon;
-  final Color     iconBg;
-  final String    label;
-  final String?   subtitle;
-  final Color?    labelColor;
-  final bool      showChevron;
-  final Widget?   trailing;
+  final IconData   icon;
+  final HeroIcons? heroIcon;
+  final Color      iconBg;
+  final String     label;
+  final String?    subtitle;
+  final Color?     labelColor;
+  final bool       showChevron;
+  final Widget?    trailing;
   final VoidCallback? onTap;
 
   const _SettingsRow({
     required this.icon,
+    this.heroIcon,
     required this.iconBg,
     required this.label,
     this.subtitle,
@@ -789,7 +788,10 @@ class _SettingsRow extends StatelessWidget {
                 color: iconBg,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, size: 16, color: Colors.white),
+              child: heroIcon != null
+                  ? HeroIcon(heroIcon!, size: 16, color: Colors.white,
+                      style: HeroIconStyle.outline)
+                  : Icon(icon, size: 16, color: Colors.white),
             ),
             const SizedBox(width: 14),
             Expanded(

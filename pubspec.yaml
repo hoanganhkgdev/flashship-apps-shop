@@ -45,6 +45,7 @@ dependencies:
   permission_handler: ^11.3.1
   url_launcher: ^6.3.1
   package_info_plus: ^8.1.2
+  heroicons: ^0.11.0
 
 dependency_overrides:
   path_provider_foundation: 2.4.0
