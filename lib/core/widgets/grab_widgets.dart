@@ -10,10 +10,10 @@ class GrabLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
+          color: context.colors.textPrimary,
         ),
       );
 }
@@ -29,6 +29,7 @@ class GrabField extends StatelessWidget {
   final void Function(String)? onFieldSubmitted;
   final void Function(String)? onChanged;
   final Widget? suffixIcon;
+  final Widget? prefixIcon;
   final Widget? prefix;
   final Widget? suffix;
   final String? Function(String?)? validator;
@@ -47,6 +48,7 @@ class GrabField extends StatelessWidget {
     this.onFieldSubmitted,
     this.onChanged,
     this.suffixIcon,
+    this.prefixIcon,
     this.prefix,
     this.suffix,
     this.validator,
@@ -57,65 +59,75 @@ class GrabField extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => TextFormField(
-        controller: controller,
-        obscureText: obscureText,
-        keyboardType: keyboardType,
-        textInputAction: textInputAction,
-        onFieldSubmitted: onFieldSubmitted,
-        onChanged: onChanged,
-        maxLines: maxLines,
-        readOnly: readOnly,
-        onTap: onTap,
-        focusNode: focusNode,
-        style: const TextStyle(
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return TextFormField(
+      controller: controller,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      onFieldSubmitted: onFieldSubmitted,
+      onChanged: onChanged,
+      maxLines: maxLines,
+      readOnly: readOnly,
+      onTap: onTap,
+      focusNode: focusNode,
+      style: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w500,
+        color: c.textPrimary,
+      ),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(
+          color: c.textTertiary,
           fontSize: 15,
-          fontWeight: FontWeight.w500,
-          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w400,
         ),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 15,
-            fontWeight: FontWeight.w400,
-          ),
-          prefix: prefix,
-          suffix: suffix,
-          suffixIcon: suffixIcon != null
-              ? Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: suffixIcon)
-              : null,
-          suffixIconConstraints:
-              const BoxConstraints(minWidth: 40, minHeight: 40),
-          filled: true,
-          fillColor: const Color(0xFFF5F5F5),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColors.danger),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
-          ),
+        prefix: prefix,
+        suffix: suffix,
+        prefixIcon: prefixIcon != null
+            ? Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: prefixIcon)
+            : null,
+        prefixIconConstraints:
+            const BoxConstraints(minWidth: 40, minHeight: 40),
+        suffixIcon: suffixIcon != null
+            ? Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: suffixIcon)
+            : null,
+        suffixIconConstraints:
+            const BoxConstraints(minWidth: 40, minHeight: 40),
+        filled: true,
+        fillColor: c.surfaceAlt,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderSide: BorderSide.none,
         ),
-        validator: validator,
-      );
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderSide: BorderSide(color: c.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderSide: BorderSide(color: c.danger),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderSide: BorderSide(color: c.danger, width: 1.5),
+        ),
+      ),
+      validator: validator,
+    );
+  }
 }
 
 // ─── Error box ────────────────────────────────────────────────────────────────
@@ -125,25 +137,27 @@ class GrabErrorBox extends StatelessWidget {
   const GrabErrorBox(this.message, {super.key});
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFEF2F2),
-          borderRadius: BorderRadius.circular(8),
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(
+        color: c.dangerSoft,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+      child: Row(children: [
+        Icon(Icons.error_outline_rounded, color: c.danger, size: 17),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(message,
+              style: TextStyle(
+                  fontSize: 13,
+                  color: c.danger,
+                  fontWeight: FontWeight.w500)),
         ),
-        child: Row(children: [
-          const Icon(Icons.error_outline_rounded,
-              color: AppColors.danger, size: 17),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(message,
-                style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.danger,
-                    fontWeight: FontWeight.w500)),
-          ),
-        ]),
-      );
+      ]),
+    );
+  }
 }
 
 // ─── Primary button ───────────────────────────────────────────────────────────
@@ -161,29 +175,33 @@ class GrabButton extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-        width: double.infinity,
-        height: 52,
-        child: FilledButton(
-          onPressed: isLoading ? null : onPressed,
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-          child: isLoading
-              ? const SizedBox(
-                  width: 22, height: 22,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2.5, color: Colors.white))
-              : Text(label,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  )),
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: FilledButton(
+        onPressed: isLoading ? null : onPressed,
+        style: FilledButton.styleFrom(
+          backgroundColor: c.primary,
+          disabledBackgroundColor: c.primary.withValues(alpha: 0.5),
+          foregroundColor: c.onPrimary,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md)),
         ),
-      );
+        child: isLoading
+            ? const SizedBox(
+                width: 22, height: 22,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2.5, color: Colors.white))
+            : Text(label,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                )),
+      ),
+    );
+  }
 }
 
 // ─── Logo box ─────────────────────────────────────────────────────────────────
@@ -196,7 +214,7 @@ class GrabLogoBox extends StatelessWidget {
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: AppColors.primary,
+          color: context.colors.primary,
           borderRadius: BorderRadius.circular(14),
         ),
         padding: const EdgeInsets.all(10),
@@ -220,28 +238,32 @@ class GrabSectionHeader extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(title,
-                style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary)),
-            if (action != null)
-              GestureDetector(
-                onTap: onAction,
-                child: Text(action!,
-                    style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary)),
-              ),
-          ],
-        ),
-      );
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpace.lg, vertical: AppSpace.md),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title,
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: c.textPrimary)),
+          if (action != null)
+            GestureDetector(
+              onTap: onAction,
+              child: Text(action!,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: c.primary)),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 // ─── Bottom Nav ───────────────────────────────────────────────────────────────
@@ -260,34 +282,42 @@ class GrabBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c      = context.colors;
     final bottom = MediaQuery.of(context).padding.bottom;
     return Container(
-      padding: EdgeInsets.fromLTRB(0, 10, 0, bottom + 6),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(
-            top: BorderSide(color: Color(0xFFEEEEEE), width: 1)),
+      padding: EdgeInsets.fromLTRB(0, 8, 0, bottom + 6),
+      decoration: BoxDecoration(
+        color: c.surface,
+        border: Border(top: BorderSide(color: c.divider, width: 1)),
       ),
       child: Row(
         children: List.generate(items.length, (i) {
           final item     = items[i];
           final selected = i == selectedIndex;
-          final color =
-              selected ? AppColors.primary : const Color(0xFF9E9E9E);
+          final color    = selected ? c.primary : c.textTertiary;
           return Expanded(
             child: GestureDetector(
               onTap: () => onTap(i),
               behavior: HitTestBehavior.opaque,
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(selected ? item.activeIcon : item.icon,
-                    size: 24, color: color),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: selected ? c.primarySoft : Colors.transparent,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(selected ? item.activeIcon : item.icon,
+                      size: 24, color: color),
+                ),
                 const SizedBox(height: 3),
                 Text(item.label,
                     style: TextStyle(
                         fontSize: 10,
-                        fontWeight: selected
-                            ? FontWeight.w700
-                            : FontWeight.w400,
+                        fontWeight:
+                            selected ? FontWeight.w700 : FontWeight.w400,
                         color: color)),
               ]),
             ),
@@ -308,33 +338,41 @@ class GrabNavItem {
       required this.label});
 }
 
-// ─── White Card ───────────────────────────────────────────────────────────────
+// ─── Surface Card ─────────────────────────────────────────────────────────────
 
 class GrabCard extends StatelessWidget {
   final Widget child;
   final EdgeInsets? padding;
+  final EdgeInsets? margin;
   final VoidCallback? onTap;
+  final bool elevated;
 
   const GrabCard({
     super.key,
     required this.child,
     this.padding,
+    this.margin,
     this.onTap,
+    this.elevated = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: padding ?? const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-        ),
-        child: child,
+    final c = context.colors;
+    final card = Container(
+      width: double.infinity,
+      margin: margin,
+      padding: padding ?? const EdgeInsets.all(AppSpace.lg),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius:
+            elevated ? BorderRadius.circular(AppRadius.card) : null,
+        boxShadow: elevated ? c.cardShadow : null,
       ),
+      child: child,
     );
+    if (onTap == null) return card;
+    return GestureDetector(onTap: onTap, child: card);
   }
 }
 
@@ -353,33 +391,33 @@ class GrabStatusBadge extends StatelessWidget {
     'cancelled':  'Đã huỷ',
   };
 
-  static Color _color(String s) {
+  static (Color, Color) _colorsFor(String s, Palette c) {
     switch (s) {
-      case 'pending':                          return const Color(0xFFF59E0B);
+      case 'pending':     return (c.warning, c.warningSoft);
       case 'assigned':
       case 'processing':
-      case 'on_the_way':                       return const Color(0xFF3B82F6);
-      case 'completed':                        return const Color(0xFF10B981);
-      case 'cancelled':                        return const Color(0xFFEF4444);
-      default:                                 return const Color(0xFF6B7280);
+      case 'on_the_way':  return (c.info, c.infoSoft);
+      case 'completed':   return (c.success, c.successSoft);
+      case 'cancelled':   return (c.danger, c.dangerSoft);
+      default:            return (c.textSecondary, c.surfaceAlt);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final color = _color(status);
+    final (fg, bg) = _colorsFor(status, context.colors);
     final label = _labels[status] ?? status;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
+        color: bg,
+        borderRadius: BorderRadius.circular(99),
       ),
       child: Text(label,
           style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: color)),
+              color: fg)),
     );
   }
 }

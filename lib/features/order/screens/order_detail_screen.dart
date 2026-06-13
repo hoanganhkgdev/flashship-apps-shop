@@ -189,17 +189,16 @@ class _State extends ConsumerState<OrderDetailScreen>
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Huỷ đơn hàng?',
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-        content: const Text('Bạn có chắc muốn huỷ đơn này không?',
-            style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+        content: Text('Bạn có chắc muốn huỷ đơn này không?',
+            style: TextStyle(fontSize: 14, color: ctx.colors.textSecondary)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Không')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            style: TextButton.styleFrom(foregroundColor: ctx.colors.danger),
             child: const Text('Huỷ đơn',
                 style: TextStyle(fontWeight: FontWeight.w600)),
           ),
@@ -234,53 +233,56 @@ class _State extends ConsumerState<OrderDetailScreen>
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Container(
-              width: 64, height: 64,
-              decoration: BoxDecoration(
-                color: AppColors.warning.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(18),
+      builder: (ctx) {
+        final c = ctx.colors;
+        return Dialog(
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                width: 64, height: 64,
+                decoration: BoxDecoration(
+                  color: c.warningSoft,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Icon(Icons.star_rounded, color: c.warning, size: 36),
               ),
-              child: const Icon(Icons.star_rounded,
-                  color: AppColors.warning, size: 36),
-            ),
-            const SizedBox(height: 16),
-            const Text('Đánh giá tài xế',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 8),
-            Text(
-              'Đơn hàng đã hoàn thành!\nĐánh giá giúp ${_order!.driver?.name ?? 'tài xế'} cải thiện chất lượng dịch vụ.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13,
-                  color: AppColors.textSecondary, height: 1.5),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.warning,
-                minimumSize: const Size(double.infinity, 48),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                elevation: 0,
+              const SizedBox(height: 16),
+              const Text('Đánh giá tài xế',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              Text(
+                'Đơn hàng đã hoàn thành!\nĐánh giá giúp ${_order!.driver?.name ?? 'tài xế'} cải thiện chất lượng dịch vụ.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13,
+                    color: c.textSecondary, height: 1.5),
               ),
-              onPressed: () { Navigator.pop(ctx); _showRating(); },
-              child: const Text('Đánh giá ngay',
-                  style: TextStyle(fontSize: 15,
-                      fontWeight: FontWeight.w700, color: Colors.white)),
-            ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Để sau',
-                  style: TextStyle(color: AppColors.textSecondary)),
-            ),
-          ]),
-        ),
-      ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: c.warning,
+                  minimumSize: const Size(double.infinity, 48),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+                onPressed: () { Navigator.pop(ctx); _showRating(); },
+                child: const Text('Đánh giá ngay',
+                    style: TextStyle(fontSize: 15,
+                        fontWeight: FontWeight.w700, color: Colors.white)),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('Để sau',
+                    style: TextStyle(color: c.textSecondary)),
+              ),
+            ]),
+          ),
+        );
+      },
     );
   }
 
@@ -345,7 +347,7 @@ class _State extends ConsumerState<OrderDetailScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       appBar: AppBar(
         title: Text('Đơn #${widget.orderCode}'),
         leading: IconButton(
@@ -363,8 +365,8 @@ class _State extends ConsumerState<OrderDetailScreen>
         ],
       ),
       body: _loading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary))
+          ? Center(
+              child: CircularProgressIndicator(color: context.colors.primary))
           : _error != null
               ? _ErrorView(onRetry: _fetchOrder)
               : _order == null
@@ -405,24 +407,25 @@ class _Body extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c         = context.colors;
     final driverLat = realtimeLat ?? order.driver?.latitude;
 
     return RefreshIndicator(
-      color: AppColors.primary,
+      color: c.primary,
       onRefresh: onRefresh,
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
 
           // ── Status ───────────────────────────────────────────────────
           _StatusCard(order: order),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
 
           // ── Driver ───────────────────────────────────────────────────
           if (order.driver != null) ...[
             _DriverCard(order: order),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
           ],
 
           // ── Map (driver location) ─────────────────────────────────────
@@ -432,7 +435,7 @@ class _Body extends StatelessWidget {
               realtimeLat: realtimeLat,
               realtimeLng: realtimeLng,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
           ],
 
           // ── Route ─────────────────────────────────────────────────────
@@ -441,38 +444,36 @@ class _Body extends StatelessWidget {
             _StopsCard(order: order),
           ] else
             _RouteCard(order: order),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
 
           // ── Order info ─────────────────────────────────────────────────
           _OrderInfoCard(order: order),
 
           // ── Note ───────────────────────────────────────────────────────
           if (order.orderNote?.isNotEmpty == true) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             _NoteCard(note: order.orderNote!),
           ],
 
           // ── Cancel button ──────────────────────────────────────────────
           if (order.canCancel) ...[
-            const SizedBox(height: 8),
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.all(16),
+            const SizedBox(height: 12),
+            _FlatCard(
               child: SizedBox(
                 width: double.infinity,
                 height: 48,
                 child: OutlinedButton(
                   onPressed: cancelling ? null : onCancel,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.danger,
-                    side: const BorderSide(color: AppColors.danger),
+                    foregroundColor: c.danger,
+                    side: BorderSide(color: c.danger),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
                   ),
                   child: cancelling
-                      ? const SizedBox(width: 18, height: 18,
+                      ? SizedBox(width: 18, height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2,
-                              color: AppColors.danger))
+                              color: c.danger))
                       : const Text('Huỷ đơn hàng',
                           style: TextStyle(fontSize: 15,
                               fontWeight: FontWeight.w700)),
@@ -483,17 +484,15 @@ class _Body extends StatelessWidget {
 
           // ── Rate button ────────────────────────────────────────────────
           if (order.canRate && !ratingDone) ...[
-            const SizedBox(height: 8),
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.all(16),
+            const SizedBox(height: 12),
+            _FlatCard(
               child: SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton.icon(
                   onPressed: onRate,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.warning,
+                    backgroundColor: c.warning,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -509,16 +508,14 @@ class _Body extends StatelessWidget {
           ],
 
           if (order.driverRating != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             _RatingDisplay(rating: order.driverRating!),
           ],
 
           // ── Đặt lại ──────────────────────────────────────────────────
           if (order.isCompleted || order.isCancelled) ...[
-            const SizedBox(height: 8),
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            const SizedBox(height: 12),
+            _FlatCard(
               child: SizedBox(
                 width: double.infinity,
                 height: 48,
@@ -528,8 +525,8 @@ class _Body extends StatelessWidget {
                     extra: _reorderExtra(order),
                   ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: AppColors.primary),
+                    foregroundColor: c.primary,
+                    side: BorderSide(color: c.primary),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
                   ),
@@ -575,22 +572,22 @@ class _StatusCard extends StatelessWidget {
   final OrderModel order;
   const _StatusCard({required this.order});
 
-  static (Color, IconData, String) _meta(String status) {
+  static (Color, IconData, String) _meta(String status, Palette c) {
     switch (status) {
-      case 'pending':    return (AppColors.warning,       Icons.access_time_rounded,     'Đang tìm tài xế phù hợp...');
-      case 'assigned':   return (AppColors.primary,       Icons.person_pin_rounded,       'Tài xế đang trên đường đến');
-      case 'processing': return (AppColors.primary,       Icons.inventory_2_outlined,     'Tài xế đang lấy hàng');
-      case 'completed':  return (AppColors.success,       Icons.check_circle_rounded,     'Giao hàng thành công!');
-      case 'cancelled':  return (AppColors.textSecondary, Icons.cancel_outlined,          'Đơn hàng đã bị huỷ');
-      default:           return (AppColors.textSecondary, Icons.info_outline_rounded,     status);
+      case 'pending':    return (c.warning,       Icons.access_time_rounded,   'Đang tìm tài xế phù hợp...');
+      case 'assigned':   return (c.primary,       Icons.person_pin_rounded,    'Tài xế đang trên đường đến');
+      case 'processing': return (c.primary,       Icons.inventory_2_outlined,  'Tài xế đang lấy hàng');
+      case 'completed':  return (c.success,       Icons.check_circle_rounded,  'Giao hàng thành công!');
+      case 'cancelled':  return (c.textSecondary, Icons.cancel_outlined,       'Đơn hàng đã bị huỷ');
+      default:           return (c.textSecondary, Icons.info_outline_rounded,  status);
     }
   }
 
   static const _steps = [
-    ('pending',    'Đang tìm tài xế', Icons.schedule_rounded),
-    ('assigned',   'Tài xế đã nhận',  Icons.person_pin_rounded),
-    ('processing', 'Đang lấy hàng',   Icons.inventory_2_outlined),
-    ('completed',  'Hoàn thành',      Icons.check_circle_rounded),
+    ('pending',    'Tìm tài xế', Icons.schedule_rounded),
+    ('assigned',   'Đã nhận',    Icons.person_pin_rounded),
+    ('processing', 'Lấy hàng',   Icons.inventory_2_outlined),
+    ('completed',  'Hoàn thành', Icons.check_circle_rounded),
   ];
 
   static const _statusOrder = [
@@ -599,124 +596,121 @@ class _StatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (color, icon, subtitle) = _meta(order.status);
+    final c = context.colors;
+    final (color, icon, subtitle) = _meta(order.status, c);
     final currentIdx  = _statusOrder.indexOf(order.status);
     final isCancelled = order.status == 'cancelled';
 
-    return Container(
-      width: double.infinity,
-      color: Colors.white,
+    return _FlatCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(height: 3, color: color),
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-            // Current status
-            Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-              Icon(icon, color: color, size: 28),
-              const SizedBox(width: 12),
-              Expanded(child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(Fmt.orderStatus(order.status),
-                      style: TextStyle(fontSize: 16,
-                          fontWeight: FontWeight.w800, color: color)),
-                  const SizedBox(height: 2),
-                  Text(subtitle,
-                      style: TextStyle(fontSize: 12,
-                          color: color.withValues(alpha: 0.85))),
-                  if (order.status == 'pending') ...[
-                    const SizedBox(height: 8),
-                    _PendingDots(color: color),
-                  ],
-                ],
-              )),
-            ]),
+        // Current status
+        Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          Container(
+            width: 48, height: 48,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: context.isDark ? 0.18 : 0.1),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(Fmt.orderStatus(order.status),
+                  style: TextStyle(fontSize: 16,
+                      fontWeight: FontWeight.w800, color: color)),
+              const SizedBox(height: 2),
+              Text(subtitle,
+                  style: TextStyle(fontSize: 12,
+                      color: color.withValues(alpha: 0.85))),
+              if (order.status == 'pending') ...[
+                const SizedBox(height: 8),
+                _PendingDots(color: color),
+              ],
+            ],
+          )),
+        ]),
 
-            // Timeline
-            if (!isCancelled) ...[
-              const SizedBox(height: 14),
-              const Divider(height: 1, color: AppColors.divider),
-              const SizedBox(height: 12),
-              ..._steps.asMap().entries.map((entry) {
-                final i = entry.key;
-                final (key, label, stepIcon) = entry.value;
+        // Horizontal stepper
+        if (!isCancelled) ...[
+          const SizedBox(height: 18),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: List.generate(_steps.length * 2 - 1, (i) {
+              if (i.isEven) {
+                final (key, label, stepIcon) = _steps[i ~/ 2];
                 final stepIdx = _statusOrder.indexOf(key);
                 final isDone  = currentIdx >= stepIdx && currentIdx != -1;
-                final isLast  = i == _steps.length - 1;
-
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: 22,
-                      child: Column(children: [
-                        Container(
-                          width: 22, height: 22,
-                          decoration: BoxDecoration(
-                            color: isDone ? color : AppColors.background,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isDone ? color : AppColors.divider,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Icon(stepIcon, size: 11,
-                              color: isDone ? Colors.white
-                                  : AppColors.textSecondary),
+                return SizedBox(
+                  width: 60,
+                  child: Column(children: [
+                    Container(
+                      width: 26, height: 26,
+                      decoration: BoxDecoration(
+                        color: isDone ? color : c.background,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isDone ? color : c.divider,
+                          width: 1.5,
                         ),
-                        if (!isLast)
-                          Container(
-                            width: 1.5, height: 16,
-                            color: isDone
-                                ? color.withValues(alpha: 0.25)
-                                : AppColors.divider,
-                          ),
-                      ]),
+                      ),
+                      child: Icon(stepIcon, size: 13,
+                          color: isDone ? Colors.white : c.textSecondary),
                     ),
-                    const SizedBox(width: 10),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(label,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: isDone
-                                ? FontWeight.w600 : FontWeight.w400,
-                            color: isDone
-                                ? AppColors.textPrimary
-                                : AppColors.textSecondary,
-                          )),
-                    ),
-                  ],
+                    const SizedBox(height: 4),
+                    Text(label,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: isDone
+                              ? FontWeight.w700 : FontWeight.w400,
+                          color: isDone
+                              ? c.textPrimary
+                              : c.textSecondary,
+                        )),
+                  ]),
                 );
-              }),
-            ],
+              } else {
+                final leftStepIdx = (i - 1) ~/ 2 + 1;
+                final lineDone = currentIdx >= leftStepIdx && currentIdx != -1;
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Container(height: 2,
+                        color: lineDone
+                            ? color.withValues(alpha: 0.4)
+                            : c.divider),
+                  ),
+                );
+              }
+            }),
+          ),
+        ],
 
-            // Cancel reason
-            if (isCancelled && order.cancelReason != null) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: AppColors.danger.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                      color: AppColors.danger.withValues(alpha: 0.2)),
-                ),
-                child: Row(children: [
-                  const Icon(Icons.info_outline_rounded,
-                      size: 14, color: AppColors.danger),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(order.cancelReason!,
-                      style: const TextStyle(
-                          fontSize: 12, color: AppColors.danger))),
-                ]),
-              ),
-            ],
-          ]),
-        ),
+        // Cancel reason
+        if (isCancelled && order.cancelReason != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: c.dangerSoft,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                  color: c.danger.withValues(alpha: 0.2)),
+            ),
+            child: Row(children: [
+              Icon(Icons.info_outline_rounded,
+                  size: 14, color: c.danger),
+              const SizedBox(width: 8),
+              Expanded(child: Text(order.cancelReason!,
+                  style: TextStyle(
+                      fontSize: 12, color: c.danger))),
+            ]),
+          ),
+        ],
       ]),
     );
   }
@@ -752,7 +746,7 @@ class _PendingDotsState extends State<_PendingDots>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _ctrl,
-      builder: (_, __) => Row(
+      builder: (_, child) => Row(
         mainAxisSize: MainAxisSize.min,
         children: List.generate(3, (i) {
           final phase = ((_ctrl.value * 3) - i).clamp(0.0, 1.0);
@@ -803,11 +797,12 @@ class _DriverCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c      = context.colors;
     final driver = order.driver!;
     return _FlatCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         _CardHeader(icon: Icons.person_pin_rounded,
-            label: 'Tài xế của bạn', iconColor: AppColors.primary),
+            label: 'Tài xế của bạn', iconColor: c.primary),
         const SizedBox(height: 14),
 
         Row(children: [
@@ -815,19 +810,19 @@ class _DriverCard extends StatelessWidget {
             width: 52, height: 52,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.primary.withValues(alpha: 0.1),
+              color: c.primarySoft,
               border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.3),
+                  color: c.primary.withValues(alpha: 0.3),
                   width: 1.5),
             ),
             child: ClipOval(
               child: driver.avatarUrl != null
                   ? Image.network(driver.avatarUrl!, fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(
+                      errorBuilder: (_, error, stack) => Icon(
                           Icons.person_rounded,
-                          size: 26, color: AppColors.primary))
-                  : const Icon(Icons.person_rounded,
-                      size: 26, color: AppColors.primary),
+                          size: 26, color: c.primary))
+                  : Icon(Icons.person_rounded,
+                      size: 26, color: c.primary),
             ),
           ),
           const SizedBox(width: 14),
@@ -835,46 +830,46 @@ class _DriverCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(driver.name,
-                  style: const TextStyle(fontWeight: FontWeight.w700,
-                      fontSize: 16, color: AppColors.textPrimary)),
+                  style: TextStyle(fontWeight: FontWeight.w700,
+                      fontSize: 16, color: c.textPrimary)),
               const SizedBox(height: 2),
               Text(driver.phone,
-                  style: const TextStyle(fontSize: 13,
-                      color: AppColors.textSecondary)),
+                  style: TextStyle(fontSize: 13,
+                      color: c.textSecondary)),
             ],
           )),
-          _ActionBtn(icon: Icons.message_rounded, color: AppColors.primary,
+          _ActionBtn(icon: Icons.message_rounded, color: c.primary,
               onTap: () => _sms(driver.phone)),
           const SizedBox(width: 8),
-          _ActionBtn(icon: Icons.call_rounded, color: AppColors.success,
+          _ActionBtn(icon: Icons.call_rounded, color: c.success,
               onTap: () => _call(driver.phone)),
         ]),
 
         const SizedBox(height: 12),
-        const Divider(height: 1, color: AppColors.divider),
+        Divider(height: 1, color: c.divider),
         const SizedBox(height: 12),
 
         Row(children: [
-          const Icon(Icons.confirmation_number_rounded,
-              size: 14, color: AppColors.textSecondary),
+          Icon(Icons.confirmation_number_rounded,
+              size: 14, color: c.textSecondary),
           const SizedBox(width: 6),
-          const Text('Mã đơn',
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+          Text('Mã đơn',
+              style: TextStyle(fontSize: 13, color: c.textSecondary)),
           const SizedBox(width: 8),
           Text('#${order.code}',
-              style: const TextStyle(fontSize: 13,
-                  fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+              style: TextStyle(fontSize: 13,
+                  fontWeight: FontWeight.w700, color: c.textPrimary)),
           const Spacer(),
           GestureDetector(
             onTap: () => _copyCode(context),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.08),
+                color: c.primarySoft,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text('Sao chép',
-                  style: TextStyle(fontSize: 12, color: AppColors.primary,
+              child: Text('Sao chép',
+                  style: TextStyle(fontSize: 12, color: c.primary,
                       fontWeight: FontWeight.w600)),
             ),
           ),
@@ -897,7 +892,7 @@ class _ActionBtn extends StatelessWidget {
         child: Container(
           width: 40, height: 40,
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
+            color: color.withValues(alpha: context.isDark ? 0.18 : 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, color: color, size: 20),
@@ -1049,13 +1044,14 @@ class _DriverMapCardState extends State<_DriverMapCard> {
 
   @override
   Widget build(BuildContext context) {
+    final c    = context.colors;
     final dLat = widget.realtimeLat ?? widget.order.driver?.latitude ?? 10.0452;
     final dLng = widget.realtimeLng ?? widget.order.driver?.longitude ?? 105.7469;
 
     return _FlatCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         _CardHeader(icon: Icons.location_on_rounded,
-            label: 'Vị trí tài xế', iconColor: AppColors.primary),
+            label: 'Vị trí tài xế', iconColor: c.primary),
         const SizedBox(height: 12),
 
         ClipRRect(
@@ -1067,7 +1063,7 @@ class _DriverMapCardState extends State<_DriverMapCard> {
                 target: gm.LatLng(dLat, dLng),
                 zoom: 15,
               ),
-              onMapCreated: (c) => setState(() => _ctrl = c),
+              onMapCreated: (mapCtrl) => setState(() => _ctrl = mapCtrl),
               markers: _markers,
               myLocationButtonEnabled: false,
               zoomControlsEnabled: false,
@@ -1087,20 +1083,20 @@ class _DriverMapCardState extends State<_DriverMapCard> {
         const SizedBox(height: 10),
         Row(children: [
           Container(width: 8, height: 8,
-              decoration: const BoxDecoration(
-                  color: AppColors.primary, shape: BoxShape.circle)),
+              decoration: BoxDecoration(
+                  color: c.primary, shape: BoxShape.circle)),
           const SizedBox(width: 6),
           Text(widget.order.driver?.name ?? 'Tài xế',
-              style: const TextStyle(fontSize: 13,
+              style: TextStyle(fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary)),
+                  color: c.textPrimary)),
           const Spacer(),
-          const Icon(Icons.sync_rounded, size: 14,
-              color: AppColors.textSecondary),
+          Icon(Icons.sync_rounded, size: 14,
+              color: c.textSecondary),
           const SizedBox(width: 4),
-          const Text('Tự động cập nhật',
+          Text('Tự động cập nhật',
               style: TextStyle(fontSize: 11,
-                  color: AppColors.textSecondary)),
+                  color: c.textSecondary)),
         ]),
       ]),
     );
@@ -1115,6 +1111,7 @@ class _StopsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c         = context.colors;
     final stops     = order.stops;
     final delivered = stops.where((s) => s['delivered_at'] != null).length;
 
@@ -1123,7 +1120,7 @@ class _StopsCard extends StatelessWidget {
         _CardHeader(
           icon: Icons.route_rounded,
           label: 'Đơn gộp — $delivered/${stops.length} điểm đã giao',
-          iconColor: AppColors.success,
+          iconColor: c.success,
         ),
         const SizedBox(height: 12),
 
@@ -1138,16 +1135,14 @@ class _StopsCard extends StatelessWidget {
 
           return Column(children: [
             if (i > 0)
-              const Divider(height: 16, color: Color(0xFFF5F5F5)),
+              Divider(height: 16, color: c.divider),
 
             Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               // Sequence badge
               Container(
                 width: 24, height: 24,
                 decoration: BoxDecoration(
-                  color: isDone
-                      ? AppColors.success
-                      : AppColors.primary.withValues(alpha: 0.1),
+                  color: isDone ? c.success : c.primarySoft,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Center(
@@ -1157,7 +1152,7 @@ class _StopsCard extends StatelessWidget {
                       : Text('${stop['seq']}',
                           style: TextStyle(
                               fontSize: 11, fontWeight: FontWeight.w800,
-                              color: isDone ? Colors.white : AppColors.primary)),
+                              color: isDone ? Colors.white : c.primary)),
                 ),
               ),
               const SizedBox(width: 10),
@@ -1171,8 +1166,8 @@ class _StopsCard extends StatelessWidget {
                       style: TextStyle(
                           fontSize: 13, fontWeight: FontWeight.w700,
                           color: isDone
-                              ? AppColors.textSecondary
-                              : AppColors.textPrimary,
+                              ? c.textSecondary
+                              : c.textPrimary,
                           decoration: isDone
                               ? TextDecoration.lineThrough : null),
                     )),
@@ -1181,14 +1176,14 @@ class _StopsCard extends StatelessWidget {
                           style: TextStyle(
                               fontSize: 12, fontWeight: FontWeight.w700,
                               color: isDone
-                                  ? AppColors.textSecondary
-                                  : AppColors.primary)),
+                                  ? c.textSecondary
+                                  : c.primary)),
                   ]),
                   const SizedBox(height: 2),
                   Text(addr,
                       maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 12, color: AppColors.textSecondary)),
+                      style: TextStyle(
+                          fontSize: 12, color: c.textSecondary)),
                   if (phone.isNotEmpty) ...[
                     const SizedBox(height: 3),
                     GestureDetector(
@@ -1197,12 +1192,12 @@ class _StopsCard extends StatelessWidget {
                         if (await canLaunchUrl(uri)) { launchUrl(uri); }
                       },
                       child: Row(children: [
-                        const Icon(Icons.phone_outlined,
-                            size: 12, color: AppColors.primary),
+                        Icon(Icons.phone_outlined,
+                            size: 12, color: c.primary),
                         const SizedBox(width: 4),
                         Text(phone,
-                            style: const TextStyle(
-                                fontSize: 12, color: AppColors.primary,
+                            style: TextStyle(
+                                fontSize: 12, color: c.primary,
                                 fontWeight: FontWeight.w500)),
                       ]),
                     ),
@@ -1211,8 +1206,8 @@ class _StopsCard extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       'Đã giao lúc ${_fmtTime(stop['delivered_at'] as String)}',
-                      style: const TextStyle(
-                          fontSize: 11, color: AppColors.success),
+                      style: TextStyle(
+                          fontSize: 11, color: c.success),
                     ),
                   ],
                 ],
@@ -1227,15 +1222,15 @@ class _StopsCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(3),
           child: LinearProgressIndicator(
             value: stops.isEmpty ? 0 : delivered / stops.length,
-            backgroundColor: const Color(0xFFF0F0F0),
-            color: AppColors.success,
+            backgroundColor: c.surfaceAlt,
+            color: c.success,
             minHeight: 4,
           ),
         ),
         const SizedBox(height: 6),
         Text('$delivered/${stops.length} điểm đã giao',
-            style: const TextStyle(
-                fontSize: 11, color: AppColors.textSecondary)),
+            style: TextStyle(
+                fontSize: 11, color: c.textSecondary)),
       ]),
     );
   }
@@ -1257,28 +1252,27 @@ class _RouteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.all(20),
+    final c = context.colors;
+    return _FlatCard(
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Column(mainAxisAlignment: MainAxisAlignment.start, children: [
               Container(width: 12, height: 12,
-                  decoration: const BoxDecoration(
-                      color: AppColors.primary, shape: BoxShape.circle)),
+                  decoration: BoxDecoration(
+                      color: c.primary, shape: BoxShape.circle)),
               Expanded(child: Container(
                 width: 2,
                 margin: const EdgeInsets.symmetric(vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.divider,
+                  color: c.divider,
                   borderRadius: BorderRadius.circular(1),
                 ),
               )),
               Container(width: 12, height: 12,
                   decoration: BoxDecoration(
-                      color: AppColors.success,
+                      color: c.success,
                       borderRadius: BorderRadius.circular(3))),
             ]),
             const SizedBox(width: 14),
@@ -1288,7 +1282,6 @@ class _RouteCard extends StatelessWidget {
                 children: [
                   _RouteStop(
                     label: 'Lấy hàng',
-                    // Giao đơn: senderName = shop. Lấy hộ: senderName = contact ngoài (hoặc trống)
                     title:   order.senderName?.isNotEmpty == true
                         ? order.senderName
                         : null,
@@ -1329,21 +1322,22 @@ class _RouteStop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(label,
-          style: const TextStyle(fontSize: 11,
+          style: TextStyle(fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary)),
+              color: c.textSecondary)),
       const SizedBox(height: 3),
       if (title != null && title!.isNotEmpty) ...[
         Text(title!,
-            style: const TextStyle(fontSize: 14,
+            style: TextStyle(fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary)),
+                color: c.textPrimary)),
         const SizedBox(height: 1),
       ],
       Text(address,
-          style: const TextStyle(fontSize: 14, color: AppColors.textPrimary)),
+          style: TextStyle(fontSize: 14, color: c.textPrimary)),
       if (phone != null && phone!.isNotEmpty) ...[
         const SizedBox(height: 4),
         GestureDetector(
@@ -1352,12 +1346,12 @@ class _RouteStop extends StatelessWidget {
             if (await canLaunchUrl(uri)) { launchUrl(uri); }
           },
           child: Row(children: [
-            const Icon(Icons.phone_outlined,
-                size: 13, color: AppColors.primary),
+            Icon(Icons.phone_outlined,
+                size: 13, color: c.primary),
             const SizedBox(width: 4),
             Text(phone!,
-                style: const TextStyle(fontSize: 13,
-                    color: AppColors.primary,
+                style: TextStyle(fontSize: 13,
+                    color: c.primary,
                     fontWeight: FontWeight.w500)),
           ]),
         ),
@@ -1380,13 +1374,14 @@ class _OrderInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c     = context.colors;
     final cargo = _cargoInfo[order.cargoType] ??
         (Icons.inventory_2_rounded, 'Bưu kiện', const Color(0xFF6B7280));
 
     return _FlatCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         _CardHeader(icon: Icons.receipt_long_outlined,
-            label: 'Thông tin đơn hàng', iconColor: AppColors.primary),
+            label: 'Thông tin đơn hàng', iconColor: c.primary),
         const SizedBox(height: 12),
 
         // Cargo badge + code
@@ -1394,7 +1389,8 @@ class _OrderInfoCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: cargo.$3.withValues(alpha: 0.1),
+              color: cargo.$3.withValues(
+                  alpha: context.isDark ? 0.18 : 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -1412,13 +1408,13 @@ class _OrderInfoCard extends StatelessWidget {
           ),
           const Spacer(),
           Text('#${order.code}',
-              style: const TextStyle(fontSize: 13,
+              style: TextStyle(fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary)),
+                  color: c.textSecondary)),
         ]),
 
         const SizedBox(height: 12),
-        const Divider(height: 1, color: AppColors.divider),
+        Divider(height: 1, color: c.divider),
         const SizedBox(height: 12),
 
         if (order.distanceKm != null) ...[
@@ -1430,7 +1426,7 @@ class _OrderInfoCard extends StatelessWidget {
         if (order.nightSurcharge > 0) ...[
           _InfoRow(Icons.nightlight_round, 'Phụ thu đêm',
               '+ ${Fmt.currency(order.nightSurcharge)}',
-              valueColor: AppColors.warning),
+              valueColor: c.warning),
           const SizedBox(height: 8),
         ],
 
@@ -1438,24 +1434,24 @@ class _OrderInfoCard extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.06),
+            color: c.primarySoft,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.18)),
+                color: c.primary.withValues(alpha: 0.18)),
           ),
           child: Row(children: [
-            const Icon(Icons.payments_outlined,
-                size: 18, color: AppColors.primary),
+            Icon(Icons.payments_outlined,
+                size: 18, color: c.primary),
             const SizedBox(width: 10),
-            const Text('Phí vận chuyển',
+            Text('Phí vận chuyển',
                 style: TextStyle(fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary)),
+                    color: c.textPrimary)),
             const Spacer(),
             Text(Fmt.currency(order.shippingFee),
-                style: const TextStyle(fontSize: 16,
+                style: TextStyle(fontSize: 16,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.primary)),
+                    color: c.primary)),
           ]),
         ),
 
@@ -1463,11 +1459,11 @@ class _OrderInfoCard extends StatelessWidget {
           const SizedBox(height: 8),
           _InfoRow(Icons.account_balance_wallet_outlined,
               'Thu hộ COD', Fmt.currency(order.codAmount!),
-              valueColor: AppColors.info),
+              valueColor: c.info),
         ],
 
         const SizedBox(height: 12),
-        const Divider(height: 1, color: AppColors.divider),
+        Divider(height: 1, color: c.divider),
         const SizedBox(height: 12),
 
         _InfoRow(Icons.credit_card_outlined, 'Thanh toán', 'Tiền mặt'),
@@ -1486,16 +1482,19 @@ class _InfoRow extends StatelessWidget {
   const _InfoRow(this.icon, this.label, this.value, {this.valueColor});
 
   @override
-  Widget build(BuildContext context) => Row(children: [
-    Icon(icon, size: 15, color: AppColors.textSecondary),
-    const SizedBox(width: 8),
-    Text(label,
-        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-    const Spacer(),
-    Text(value,
-        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
-            color: valueColor ?? AppColors.textPrimary)),
-  ]);
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Row(children: [
+      Icon(icon, size: 15, color: c.textSecondary),
+      const SizedBox(width: 8),
+      Text(label,
+          style: TextStyle(fontSize: 13, color: c.textSecondary)),
+      const Spacer(),
+      Text(value,
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+              color: valueColor ?? c.textPrimary)),
+    ]);
+  }
 }
 
 // ─── Note Card ────────────────────────────────────────────────────────────────
@@ -1505,16 +1504,19 @@ class _NoteCard extends StatelessWidget {
   const _NoteCard({required this.note});
 
   @override
-  Widget build(BuildContext context) => _FlatCard(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const _CardHeader(icon: Icons.notes_outlined,
-              label: 'Ghi chú', iconColor: AppColors.textSecondary),
-          const SizedBox(height: 10),
-          Text(note,
-              style: const TextStyle(fontSize: 13,
-                  color: AppColors.textPrimary, height: 1.5)),
-        ]),
-      );
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return _FlatCard(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _CardHeader(icon: Icons.notes_outlined,
+            label: 'Ghi chú', iconColor: c.textSecondary),
+        const SizedBox(height: 10),
+        Text(note,
+            style: TextStyle(fontSize: 13,
+                color: c.textPrimary, height: 1.5)),
+      ]),
+    );
+  }
 }
 
 // ─── Rating Display ───────────────────────────────────────────────────────────
@@ -1524,17 +1526,20 @@ class _RatingDisplay extends StatelessWidget {
   const _RatingDisplay({required this.rating});
 
   @override
-  Widget build(BuildContext context) => _FlatCard(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const _CardHeader(icon: Icons.star_rounded,
-              label: 'Đánh giá của bạn', iconColor: AppColors.warning),
-          const SizedBox(height: 10),
-          Row(children: List.generate(5, (i) => Icon(
-            i < rating ? Icons.star_rounded : Icons.star_border_rounded,
-            color: AppColors.warning, size: 28,
-          ))),
-        ]),
-      );
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return _FlatCard(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _CardHeader(icon: Icons.star_rounded,
+            label: 'Đánh giá của bạn', iconColor: c.warning),
+        const SizedBox(height: 10),
+        Row(children: List.generate(5, (i) => Icon(
+          i < rating ? Icons.star_rounded : Icons.star_border_rounded,
+          color: c.warning, size: 28,
+        ))),
+      ]),
+    );
+  }
 }
 
 // ─── Rating Sheet ─────────────────────────────────────────────────────────────
@@ -1571,33 +1576,34 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(width: 40, height: 4,
-            decoration: BoxDecoration(color: const Color(0xFFE0E0E0),
+            decoration: BoxDecoration(color: c.divider,
                 borderRadius: BorderRadius.circular(2))),
         const SizedBox(height: 24),
         Container(
           width: 60, height: 60,
           decoration: BoxDecoration(
-            color: AppColors.warning.withValues(alpha: 0.1),
+            color: c.warningSoft,
             borderRadius: BorderRadius.circular(16),
           ),
-          child: const Icon(Icons.star_rounded,
-              color: AppColors.warning, size: 32),
+          child: Icon(Icons.star_rounded,
+              color: c.warning, size: 32),
         ),
         const SizedBox(height: 16),
         const Text('Đánh giá tài xế',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
         const SizedBox(height: 4),
         Text(widget.driverName,
-            style: const TextStyle(fontSize: 14,
-                color: AppColors.textSecondary)),
+            style: TextStyle(fontSize: 14,
+                color: c.textSecondary)),
         const SizedBox(height: 24),
 
         Row(
@@ -1608,7 +1614,7 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 6),
               child: Icon(
                 i < _rating ? Icons.star_rounded : Icons.star_border_rounded,
-                color: AppColors.warning, size: 40,
+                color: c.warning, size: 40,
               ),
             ),
           )),
@@ -1621,7 +1627,7 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
           child: ElevatedButton(
             onPressed: _submitting ? null : _submit,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.warning,
+              backgroundColor: c.warning,
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -1650,8 +1656,13 @@ class _FlatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         width: double.infinity,
-        color: Colors.white,
+        margin: const EdgeInsets.symmetric(horizontal: 16),
         padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          boxShadow: context.colors.cardShadow,
+        ),
         child: child,
       );
 }
@@ -1671,16 +1682,16 @@ class _CardHeader extends StatelessWidget {
     Container(
       width: 28, height: 28,
       decoration: BoxDecoration(
-        color: iconColor.withValues(alpha: 0.1),
+        color: iconColor.withValues(alpha: context.isDark ? 0.18 : 0.1),
         borderRadius: BorderRadius.circular(7),
       ),
       child: Icon(icon, size: 15, color: iconColor),
     ),
     const SizedBox(width: 10),
     Text(label,
-        style: const TextStyle(fontSize: 14,
+        style: TextStyle(fontSize: 14,
             fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary)),
+            color: context.colors.textPrimary)),
   ]);
 }
 
@@ -1689,16 +1700,19 @@ class _ErrorView extends StatelessWidget {
   const _ErrorView({required this.onRetry});
 
   @override
-  Widget build(BuildContext context) => Center(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.wifi_off_rounded,
-              size: 48, color: AppColors.textSecondary),
-          const SizedBox(height: 12),
-          const Text('Không thể tải đơn hàng',
-              style: TextStyle(fontSize: 14,
-                  color: AppColors.textSecondary)),
-          const SizedBox(height: 12),
-          TextButton(onPressed: onRetry, child: const Text('Thử lại')),
-        ]),
-      );
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Center(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.wifi_off_rounded,
+            size: 48, color: c.textSecondary),
+        const SizedBox(height: 12),
+        Text('Không thể tải đơn hàng',
+            style: TextStyle(fontSize: 14,
+                color: c.textSecondary)),
+        const SizedBox(height: 12),
+        TextButton(onPressed: onRetry, child: const Text('Thử lại')),
+      ]),
+    );
+  }
 }

@@ -143,16 +143,6 @@ class _AddressPickerScreenState extends State<AddressPickerScreen> {
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary)),
-        actions: [
-          TextButton(
-            onPressed: _openMap,
-            child: const Text('Từ bản đồ',
-                style: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14)),
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -217,6 +207,42 @@ class _AddressPickerScreenState extends State<AddressPickerScreen> {
             ),
           ),
 
+          // ── Chọn trên bản đồ ─────────────────────────────────────────
+          if (_showHistory)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: InkWell(
+                onTap: _openMap,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7F7F8),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(children: [
+                    Container(
+                      width: 36, height: 36,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.map_rounded,
+                          color: AppColors.primary, size: 18),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text('Chọn vị trí trên bản đồ',
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary)),
+                    const Spacer(),
+                    const Icon(Icons.chevron_right_rounded,
+                        color: AppColors.textSecondary, size: 20),
+                  ]),
+                ),
+              ),
+            ),
+
           if (_selecting)
             const LinearProgressIndicator(
                 minHeight: 2, color: AppColors.primary),
@@ -266,13 +292,16 @@ class _HistoryList extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: Row(children: [
+            const Icon(Icons.history_rounded,
+                size: 16, color: AppColors.textSecondary),
+            const SizedBox(width: 6),
             const Expanded(
               child: Text('Đã tìm kiếm gần đây',
                   style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
                       color: AppColors.textSecondary)),
             ),
             TextButton(
@@ -288,10 +317,9 @@ class _HistoryList extends StatelessWidget {
         ),
         Expanded(
           child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             itemCount: history.length,
-            separatorBuilder: (_, __) => const Divider(
-                height: 1, indent: 48, color: Color(0xFFF0F0F5)),
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (_, i) {
               final item = history[i];
               return Dismissible(
@@ -300,22 +328,28 @@ class _HistoryList extends StatelessWidget {
                 background: Container(
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: 16),
-                  color: AppColors.danger.withValues(alpha: 0.08),
+                  decoration: BoxDecoration(
+                    color: AppColors.danger.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: const Icon(Icons.delete_outline_rounded,
                       color: AppColors.danger, size: 20),
                 ),
                 onDismissed: (_) => onRemove(item),
                 child: InkWell(
                   onTap: () => onSelect(item),
-                  borderRadius: BorderRadius.circular(8),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 4, vertical: 10),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF7F7F8),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: Row(children: [
                       Container(
                         width: 36, height: 36,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF0F0F5),
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(Icons.history_rounded,
@@ -355,17 +389,20 @@ class _SearchResultList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       itemCount: suggestions.length,
-      separatorBuilder: (_, __) =>
-          const Divider(height: 1, indent: 48, color: Color(0xFFF0F0F5)),
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (_, i) {
         final s = suggestions[i];
         return InkWell(
           onTap: () => onSelect(s),
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7F7F8),
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Row(children: [
               Container(
                 width: 36, height: 36,

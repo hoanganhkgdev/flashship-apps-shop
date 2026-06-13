@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'core/router/app_router.dart';
 import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_mode_provider.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/order/providers/order_provider.dart';
 import 'features/version/providers/app_version_provider.dart';
@@ -77,43 +78,45 @@ class _FlashShipShopAppState extends ConsumerState<FlashShipShopApp>
     showDialog(
       context: ctx,
       barrierDismissible: false,
-      builder: (_) => PopScope(
-        canPop: false,
-        child: AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(children: [
-            Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              padding: const EdgeInsets.all(7),
-              child: Image.asset('assets/images/logo.png', color: Colors.white, fit: BoxFit.contain),
-            ),
-            const SizedBox(width: 10),
-            const Text('Cập nhật bắt buộc',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
-          ]),
-          content: Text(v.message,
-              style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.5)),
-          actions: [
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: () => _openStore(v.storeUrl),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      builder: (dialogCtx) {
+        final c = dialogCtx.colors;
+        return PopScope(
+          canPop: false,
+          child: AlertDialog(
+            backgroundColor: c.surface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+            title: Row(children: [
+              Container(
+                width: 36, height: 36,
+                decoration: BoxDecoration(
+                  color: c.primary,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Text('Cập nhật ngay',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+                padding: const EdgeInsets.all(7),
+                child: Image.asset('assets/images/logo.png', color: Colors.white, fit: BoxFit.contain),
               ),
-            ),
-          ],
-        ),
-      ),
+              const SizedBox(width: 10),
+              Text('Cập nhật bắt buộc',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: c.textPrimary)),
+            ]),
+            content: Text(v.message,
+                style: TextStyle(fontSize: 14, color: c.textSecondary, height: 1.5)),
+            actions: [
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => _openStore(v.storeUrl),
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
+                  ),
+                  child: const Text('Cập nhật ngay',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -138,6 +141,8 @@ class _FlashShipShopAppState extends ConsumerState<FlashShipShopApp>
     return MaterialApp.router(
       title: 'Flash Shop',
       theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: ref.watch(themeModeProvider),
       routerConfig: router,
       debugShowCheckedModeBanner: false,
       builder: (context, child) => GestureDetector(

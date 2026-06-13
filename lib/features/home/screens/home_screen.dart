@@ -86,7 +86,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final tab = ref.watch(_tabProvider);
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       body: IndexedStack(index: tab, children: _pages),
       bottomNavigationBar: GrabBottomNav(
         selectedIndex: tab,
@@ -108,11 +108,12 @@ class _DashboardTab extends ConsumerWidget {
     final orders      = ref.watch(orderListProvider);
     final active      = orders.active;
     final todayAsync  = ref.watch(todayStatsProvider);
+    final c           = context.colors;
 
     return ColoredBox(
-      color: AppColors.background,
+      color: c.background,
       child: RefreshIndicator(
-        color: AppColors.primary,
+        color: c.primary,
         onRefresh: () async {
           ref.read(orderListProvider.notifier).fetch(refresh: true);
           ref.invalidate(todayStatsProvider);
@@ -138,21 +139,21 @@ class _DashboardTab extends ConsumerWidget {
                   Expanded(child: _ServiceCard(
                     icon: Icons.arrow_outward_rounded,
                     title: 'Giao đơn', sub: 'Shop → Khách',
-                    color: AppColors.primary,
+                    color: c.primary,
                     onTap: () => context.push('/create-order', extra: true),
                   )),
                   const SizedBox(width: 10),
                   Expanded(child: _ServiceCard(
                     icon: Icons.move_to_inbox_rounded,
                     title: 'Lấy hộ', sub: 'Ngoài → Shop',
-                    color: AppColors.info,
+                    color: c.info,
                     onTap: () => context.push('/create-order', extra: false),
                   )),
                   const SizedBox(width: 10),
                   Expanded(child: _ServiceCard(
                     icon: Icons.route_rounded,
                     title: 'Đơn gộp', sub: 'Nhiều điểm giao',
-                    color: AppColors.success,
+                    color: c.success,
                     onTap: () => context.push('/create-batch'),
                   )),
                 ]),
@@ -166,15 +167,21 @@ class _DashboardTab extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
                   child: Row(children: [
                     Text('Đang chạy (${active.length})',
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 17, fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary)),
+                            color: c.textPrimary)),
                   ]),
                 ),
               ),
               SliverToBoxAdapter(
                 child: Container(
-                  color: Colors.white,
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: c.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.card),
+                    boxShadow: c.cardShadow,
+                  ),
+                  clipBehavior: Clip.antiAlias,
                   child: Column(
                     children: [
                       ...active.take(5).toList().asMap().entries.map((e) {
@@ -182,12 +189,11 @@ class _DashboardTab extends ConsumerWidget {
                         return Column(children: [
                           _OrderCard(order: e.value),
                           if (i < active.take(5).length - 1)
-                            const Divider(height: 1, indent: 60,
-                                color: Color(0xFFF5F5F5)),
+                            Divider(height: 1, indent: 60, color: c.divider),
                         ]);
                       }),
                       if (active.length > 5) ...[
-                        const Divider(height: 1, color: Color(0xFFF0F0F0)),
+                        Divider(height: 1, color: c.divider),
                         InkWell(
                           onTap: () =>
                               ref.read(_tabProvider.notifier).state = 1,
@@ -198,14 +204,14 @@ class _DashboardTab extends ConsumerWidget {
                               children: [
                                 Text(
                                   'Xem tất cả ${active.length} đơn đang chạy',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
-                                      color: AppColors.primary),
+                                      color: c.primary),
                                 ),
                                 const SizedBox(width: 4),
-                                const Icon(Icons.arrow_forward_rounded,
-                                    size: 14, color: AppColors.primary),
+                                Icon(Icons.arrow_forward_rounded,
+                                    size: 14, color: c.primary),
                               ],
                             ),
                           ),
@@ -227,7 +233,7 @@ class _DashboardTab extends ConsumerWidget {
   }
 }
 
-// ─── Header (flat) ────────────────────────────────────────────────────────────
+// ─── Header ───────────────────────────────────────────────────────────────────
 
 class _Header extends ConsumerWidget {
   final String      shopName;
@@ -243,9 +249,16 @@ class _Header extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unread = ref.watch(unreadCountProvider);
+    final c      = context.colors;
 
     return Container(
-      color: AppColors.primary,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [c.primary, AppColors.primaryDark],
+        ),
+      ),
       child: SafeArea(
         bottom: false,
         child: Padding(
@@ -299,7 +312,7 @@ class _Header extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 5, vertical: 1),
                         decoration: BoxDecoration(
-                          color: AppColors.danger,
+                          color: c.danger,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(unread > 99 ? '99+' : '$unread',
@@ -379,40 +392,44 @@ class _ServiceCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Container(
-                width: 40, height: 40,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                alignment: Alignment.center,
-                child: Icon(icon, color: color, size: 22),
-              ),
-              Icon(Icons.arrow_forward_rounded, color: color, size: 16),
-            ]),
-            const SizedBox(height: 10),
-            Text(title,
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800,
-                    color: color)),
-            const SizedBox(height: 2),
-            Text(sub,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    fontSize: 10, color: AppColors.textSecondary)),
-          ]),
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: c.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          boxShadow: c.cardShadow,
         ),
-      );
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: context.isDark ? 0.18 : 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              alignment: Alignment.center,
+              child: Icon(icon, color: color, size: 22),
+            ),
+            Icon(Icons.arrow_forward_rounded, color: color, size: 16),
+          ]),
+          const SizedBox(height: 10),
+          Text(title,
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800,
+                  color: color)),
+          const SizedBox(height: 2),
+          Text(sub,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontSize: 10, color: c.textSecondary)),
+        ]),
+      ),
+    );
+  }
 }
 
 // ─── Order Card (Grab style = customer pattern) ───────────────────────────────
@@ -422,23 +439,24 @@ class _OrderCard extends StatelessWidget {
   const _OrderCard({required this.order});
 
   static const _cargoLabels = {
-    'food':    (Icons.lunch_dining_rounded,   'Đồ ăn',          Color(0xFFF59E0B)),
-    'flowers': (Icons.local_florist_rounded,  'Hoa / Trái cây', Color(0xFFEC4899)),
-    'parcel':  (Icons.inventory_2_rounded,    'Bưu kiện',       Color(0xFF6B7280)),
+    'food':    (Icons.lunch_dining_rounded,   'Đồ ăn'),
+    'flowers': (Icons.local_florist_rounded,  'Hoa / Trái cây'),
+    'parcel':  (Icons.inventory_2_rounded,    'Bưu kiện'),
   };
 
-  Color _statusColor() {
-    if (order.isCompleted) return AppColors.success;
-    if (order.isCancelled) return AppColors.danger;
-    if (order.status == 'pending') return const Color(0xFFF59E0B);
-    return AppColors.primary;
+  Color _statusColor(Palette c) {
+    if (order.isCompleted) return c.success;
+    if (order.isCancelled) return c.danger;
+    if (order.status == 'pending') return c.warning;
+    return c.primary;
   }
 
   @override
   Widget build(BuildContext context) {
+    final c           = context.colors;
     final cargo       = _cargoLabels[order.cargoType]
-        ?? (Icons.inventory_2_rounded, 'Bưu kiện', const Color(0xFF6B7280));
-    final statusColor = _statusColor();
+        ?? (Icons.inventory_2_rounded, 'Bưu kiện');
+    final statusColor = _statusColor(c);
 
     return InkWell(
       onTap: () => context.push('/order/${order.code}'),
@@ -464,27 +482,28 @@ class _OrderCard extends StatelessWidget {
                 Row(children: [
                   Expanded(
                     child: Text(cargo.$2,
-                        style: const TextStyle(fontSize: 15,
+                        style: TextStyle(fontSize: 15,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary)),
+                            color: c.textPrimary)),
                   ),
                   Text(Fmt.currency(order.shippingFee),
-                      style: const TextStyle(fontSize: 15,
+                      style: TextStyle(fontSize: 15,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary)),
+                          color: c.textPrimary)),
                 ]),
                 const SizedBox(height: 3),
                 Text(order.deliveryAddress,
                     maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 13, color: AppColors.textSecondary)),
+                    style: TextStyle(
+                        fontSize: 13, color: c.textSecondary)),
                 const SizedBox(height: 6),
                 Row(children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.1),
+                      color: statusColor.withValues(
+                          alpha: context.isDark ? 0.18 : 0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(Fmt.orderStatus(order.status),
@@ -493,8 +512,8 @@ class _OrderCard extends StatelessWidget {
                   ),
                   const Spacer(),
                   Text(Fmt.timeAgo(order.createdAt),
-                      style: const TextStyle(
-                          fontSize: 12, color: AppColors.textSecondary)),
+                      style: TextStyle(
+                          fontSize: 12, color: c.textSecondary)),
                 ]),
               ],
             ),
@@ -510,25 +529,30 @@ class _OrderCard extends StatelessWidget {
 
 class _EmptyOrders extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            color: Colors.white, borderRadius: BorderRadius.circular(12)),
-          child: Column(children: [
-            Icon(Icons.inventory_2_outlined, size: 48,
-                color: AppColors.textSecondary.withValues(alpha: 0.25)),
-            const SizedBox(height: 10),
-            const Text('Chưa có đơn nào đang chạy',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary)),
-            const SizedBox(height: 4),
-            const Text('Chọn dịch vụ bên trên để tạo đơn mới',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                textAlign: TextAlign.center),
-          ]),
-        ),
-      );
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+            color: c.surface,
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            boxShadow: c.cardShadow),
+        child: Column(children: [
+          Icon(Icons.inventory_2_outlined, size: 48,
+              color: c.textTertiary.withValues(alpha: 0.5)),
+          const SizedBox(height: 10),
+          Text('Chưa có đơn nào đang chạy',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
+                  color: c.textSecondary)),
+          const SizedBox(height: 4),
+          Text('Chọn dịch vụ bên trên để tạo đơn mới',
+              style: TextStyle(fontSize: 12, color: c.textSecondary),
+              textAlign: TextAlign.center),
+        ]),
+      ),
+    );
+  }
 }
