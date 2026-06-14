@@ -60,6 +60,8 @@ class OrderModel {
   final String deliveryPhone;
   final String? receiverName;
   final int shippingFee;
+  final String? voucherCode;
+  final int discountAmount;
   final double? distanceKm;
   final String? orderNote;
   final String cargoType;
@@ -93,6 +95,8 @@ class OrderModel {
     required this.deliveryPhone,
     this.receiverName,
     required this.shippingFee,
+    this.voucherCode,
+    this.discountAmount = 0,
     this.distanceKm,
     this.orderNote,
     this.cargoType = 'food',
@@ -126,8 +130,10 @@ class OrderModel {
     deliveryLng:     (j['delivery_lng'] as num?)?.toDouble(),
     deliveryPhone:   j['delivery_phone'] as String? ?? '',
     receiverName:    j['receiver_name'] as String?,
-    shippingFee:     (j['shipping_fee'] as num?)?.toInt() ?? 0,
-    distanceKm:      (j['distance_km']  as num?)?.toDouble(),
+    shippingFee:     (j['shipping_fee']   as num?)?.toInt() ?? 0,
+    voucherCode:     j['voucher_code']    as String?,
+    discountAmount:  (j['discount_amount'] as num?)?.toInt() ?? 0,
+    distanceKm:      (j['distance_km']    as num?)?.toDouble(),
     orderNote:       j['order_note']    as String?,
     cargoType:       j['cargo_type']    as String? ?? 'food',
     cargoNote:       j['cargo_note']    as String?,
@@ -170,7 +176,7 @@ class OrderModel {
     pickupPhone: pickupPhone, senderName: senderName, storeName: storeName,
     deliveryAddress: deliveryAddress, deliveryLat: deliveryLat, deliveryLng: deliveryLng,
     deliveryPhone: deliveryPhone, receiverName: receiverName,
-    shippingFee: shippingFee, distanceKm: distanceKm,
+    shippingFee: shippingFee, voucherCode: voucherCode, discountAmount: discountAmount, distanceKm: distanceKm,
     orderNote: orderNote, cargoType: cargoType, cargoNote: cargoNote,
     cargoWeight: cargoWeight, codAmount: codAmount,
     nightSurcharge: nightSurcharge,
