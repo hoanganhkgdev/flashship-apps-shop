@@ -54,7 +54,9 @@ class OrderModel {
   final String? pickupPhone;
   final String? senderName;
   final String? storeName;
+  final String? pickupPlaceName;
   final String deliveryAddress;
+  final String? deliveryPlaceName;
   final double? deliveryLat;
   final double? deliveryLng;
   final String deliveryPhone;
@@ -89,7 +91,9 @@ class OrderModel {
     this.pickupPhone,
     this.senderName,
     this.storeName,
+    this.pickupPlaceName,
     required this.deliveryAddress,
+    this.deliveryPlaceName,
     this.deliveryLat,
     this.deliveryLng,
     required this.deliveryPhone,
@@ -123,10 +127,12 @@ class OrderModel {
     pickupLat:       (j['pickup_lat']  as num?)?.toDouble(),
     pickupLng:       (j['pickup_lng']  as num?)?.toDouble(),
     pickupPhone:     j['pickup_phone'] as String?,
-    senderName:      j['sender_name']  as String?,
-    storeName:       j['store_name']   as String?,
-    deliveryAddress: j['delivery_address'] as String? ?? '',
-    deliveryLat:     (j['delivery_lat'] as num?)?.toDouble(),
+    senderName:        j['sender_name']        as String?,
+    storeName:         j['store_name']         as String?,
+    pickupPlaceName:   j['pickup_place_name']  as String?,
+    deliveryAddress:   j['delivery_address']   as String? ?? '',
+    deliveryPlaceName: j['delivery_place_name'] as String?,
+    deliveryLat:       (j['delivery_lat'] as num?)?.toDouble(),
     deliveryLng:     (j['delivery_lng'] as num?)?.toDouble(),
     deliveryPhone:   j['delivery_phone'] as String? ?? '',
     receiverName:    j['receiver_name'] as String?,
@@ -174,7 +180,9 @@ class OrderModel {
     cancelReason: cancelReason,
     pickupAddress: pickupAddress, pickupLat: pickupLat, pickupLng: pickupLng,
     pickupPhone: pickupPhone, senderName: senderName, storeName: storeName,
-    deliveryAddress: deliveryAddress, deliveryLat: deliveryLat, deliveryLng: deliveryLng,
+    pickupPlaceName: pickupPlaceName,
+    deliveryAddress: deliveryAddress, deliveryPlaceName: deliveryPlaceName,
+    deliveryLat: deliveryLat, deliveryLng: deliveryLng,
     deliveryPhone: deliveryPhone, receiverName: receiverName,
     shippingFee: shippingFee, voucherCode: voucherCode, discountAmount: discountAmount, distanceKm: distanceKm,
     orderNote: orderNote, cargoType: cargoType, cargoNote: cargoNote,

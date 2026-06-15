@@ -4,14 +4,20 @@ import '../services/location_service.dart';
 import '../theme/app_theme.dart';
 
 class MapPickResult {
-  final String address;
-  final double lat;
-  final double lng;
+  final String  address;
+  final double  lat;
+  final double  lng;
+  final String? placeName;
+  final String? contactName;
+  final String? contactPhone;
 
   const MapPickResult({
     required this.address,
     required this.lat,
     required this.lng,
+    this.placeName,
+    this.contactName,
+    this.contactPhone,
   });
 }
 

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:heroicons/heroicons.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/theme_mode_provider.dart';
@@ -722,27 +721,15 @@ class _SupportSection extends ConsumerWidget {
         if (items.isEmpty) return const SizedBox.shrink();
         return _SettingsCard(
           rows: items.map((item) => _SettingsRow(
-            heroIcon: _heroIconFor(item.icon),
-            icon: Icons.open_in_new_rounded,
-            iconBg: _colorFor(item.color),
-            label: item.title,
-            subtitle: item.subtitle,
-            onTap: () => launchUrl(
-              Uri.parse(item.value),
-              mode: LaunchMode.externalApplication,
-            ),
+            icon:      item.materialIcon ?? Icons.link_rounded,
+            assetIcon: item.assetIcon,
+            iconBg:    item.displayColor,
+            label:     item.title,
+            onTap: () => launchUrl(item.uri, mode: LaunchMode.externalApplication),
           )).toList(),
         );
       },
     );
-  }
-
-  static HeroIcons? _heroIconFor(String name) =>
-      HeroIcons.values.where((e) => e.name == name).firstOrNull;
-
-  static Color _colorFor(String? hex) {
-    if (hex == null || hex.length < 7) return const Color(0xFF6B7280);
-    return Color(int.parse('FF${hex.replaceFirst('#', '')}', radix: 16));
   }
 }
 
@@ -750,10 +737,9 @@ class _SupportSection extends ConsumerWidget {
 
 class _SettingsRow extends StatelessWidget {
   final IconData   icon;
-  final HeroIcons? heroIcon;
+  final String?    assetIcon;
   final Color      iconBg;
   final String     label;
-  final String?    subtitle;
   final Color?     labelColor;
   final bool       showChevron;
   final Widget?    trailing;
@@ -761,10 +747,9 @@ class _SettingsRow extends StatelessWidget {
 
   const _SettingsRow({
     required this.icon,
-    this.heroIcon,
+    this.assetIcon,
     required this.iconBg,
     required this.label,
-    this.subtitle,
     this.labelColor,
     this.showChevron = true,
     this.trailing,
@@ -785,32 +770,23 @@ class _SettingsRow extends StatelessWidget {
             Container(
               width: 30, height: 30,
               decoration: BoxDecoration(
-                color: iconBg,
+                color: assetIcon != null ? const Color(0xFFFFF0E6) : iconBg,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: heroIcon != null
-                  ? HeroIcon(heroIcon!, size: 16, color: Colors.white,
-                      style: HeroIconStyle.outline)
+              child: assetIcon != null
+                  ? Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Image.asset(assetIcon!),
+                    )
                   : Icon(icon, size: 16, color: Colors.white),
             ),
             const SizedBox(width: 14),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label,
-                      style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: labelColor ?? c.textPrimary)),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 1),
-                    Text(subtitle!,
-                        style: TextStyle(
-                            fontSize: 11, color: c.textTertiary)),
-                  ],
-                ],
-              ),
+              child: Text(label,
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: labelColor ?? c.textPrimary)),
             ),
             if (trailing != null) ...[
               trailing!,

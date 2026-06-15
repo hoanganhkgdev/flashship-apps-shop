@@ -2,23 +2,31 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AddressHistoryItem {
-  final String address;
-  final double lat;
-  final double lng;
+  final String  address;
+  final double  lat;
+  final double  lng;
+  final String? placeName;
 
   const AddressHistoryItem({
     required this.address,
     required this.lat,
     required this.lng,
+    this.placeName,
   });
 
-  Map<String, dynamic> toJson() => {'address': address, 'lat': lat, 'lng': lng};
+  Map<String, dynamic> toJson() => {
+    'address':   address,
+    'lat':       lat,
+    'lng':       lng,
+    if (placeName != null) 'place_name': placeName,
+  };
 
   factory AddressHistoryItem.fromJson(Map<String, dynamic> json) =>
       AddressHistoryItem(
-        address: json['address'] as String,
-        lat: (json['lat'] as num).toDouble(),
-        lng: (json['lng'] as num).toDouble(),
+        address:   json['address']    as String,
+        lat:       (json['lat']   as num).toDouble(),
+        lng:       (json['lng']   as num).toDouble(),
+        placeName: json['place_name'] as String?,
       );
 }
 

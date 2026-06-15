@@ -7,206 +7,161 @@ import '../models/order_model.dart';
 import '../providers/order_provider.dart';
 
 final _filterProvider = StateProvider<String>((ref) => 'all');
-final _searchProvider = StateProvider<String>((ref) => '');
 
-class OrderListScreen extends ConsumerStatefulWidget {
+class OrderListScreen extends ConsumerWidget {
   const OrderListScreen({super.key});
 
-  @override
-  ConsumerState<OrderListScreen> createState() => _OrderListScreenState();
-}
-
-class _OrderListScreenState extends ConsumerState<OrderListScreen> {
   static const _filters = [
     ('all',       'Tất cả'),
     ('active',    'Đang chạy'),
-    ('food',      'Đồ ăn'),
-    ('flowers',   'Hoa'),
-    ('parcel',    'Bưu kiện'),
     ('completed', 'Hoàn thành'),
     ('cancelled', 'Đã huỷ'),
   ];
 
   static const _activeStatuses = ['pending', 'assigned', 'processing', 'on_the_way'];
 
-  final _searchCtrl = TextEditingController();
-
   @override
-  void dispose() {
-    _searchCtrl.dispose();
-    super.dispose();
-  }
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state  = ref.watch(orderListProvider);
+    final filter = ref.watch(_filterProvider);
+    final all    = state.orders;
+    final c      = context.colors;
 
-  @override
-  Widget build(BuildContext context) {
-    final state   = ref.watch(orderListProvider);
-    final loading = state.isLoading;
-    final filter  = ref.watch(_filterProvider);
-    final search  = ref.watch(_searchProvider);
-    final all     = state.orders;
-    final c       = context.colors;
-
-    final filtered = switch (filter) {
-      'all'       => all,
+    final displayed = switch (filter) {
       'active'    => all.where((o) => _activeStatuses.contains(o.status)).toList(),
       'completed' => all.where((o) => o.isCompleted).toList(),
       'cancelled' => all.where((o) => o.isCancelled).toList(),
-      _           => all.where((o) => o.cargoType == filter).toList(),
+      _           => all,
     };
 
-    final q = search.trim().toLowerCase();
-    final displayed = q.isEmpty ? filtered : filtered.where((o) =>
-      o.code.toLowerCase().contains(q) ||
-      o.deliveryPhone.contains(q) ||
-      (o.receiverName?.toLowerCase().contains(q) ?? false) ||
-      o.deliveryAddress.toLowerCase().contains(q) ||
-      (o.pickupPhone?.contains(q) ?? false) ||
-      (o.senderName?.toLowerCase().contains(q) ?? false)
-    ).toList();
+    final counts = {
+      'all':       all.length,
+      'active':    all.where((o) => _activeStatuses.contains(o.status)).length,
+      'completed': all.where((o) => o.isCompleted).length,
+      'cancelled': all.where((o) => o.isCancelled).length,
+    };
 
     return ColoredBox(
       color: c.background,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header ─────────────────────────────────────────────────
+          // ── Header ────────────────────────────────────────────────────
           Container(
             color: c.surface,
             padding: EdgeInsets.fromLTRB(
-                20, MediaQuery.of(context).padding.top + 16, 20, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title + loader
-                  Row(children: [
+                16, MediaQuery.of(context).padding.top + 16, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Row(children: [
                     Text('Đơn hàng',
                         style: TextStyle(fontSize: 26,
                             fontWeight: FontWeight.w800,
                             color: c.textPrimary)),
                     const Spacer(),
-                    if (loading)
+                    if (state.isLoading)
                       SizedBox(width: 18, height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2,
-                              color: c.primary)),
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: c.primary)),
                   ]),
-                  const SizedBox(height: 14),
+                ),
+                const SizedBox(height: 12),
 
-                  // Search bar
-                  Container(
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: c.surfaceAlt,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: TextField(
-                      controller: _searchCtrl,
-                      onChanged: (v) =>
-                          ref.read(_searchProvider.notifier).state = v,
-                      style: TextStyle(fontSize: 14, color: c.textPrimary),
-                      decoration: InputDecoration(
-                        hintText: 'Tìm SĐT, tên, mã đơn...',
-                        hintStyle: TextStyle(fontSize: 13, color: c.textTertiary),
-                        prefixIcon: Icon(Icons.search_rounded,
-                            size: 18, color: c.textSecondary),
-                        suffixIcon: search.isNotEmpty
-                            ? IconButton(
-                                icon: Icon(Icons.cancel_rounded,
-                                    size: 16, color: c.textSecondary),
-                                onPressed: () {
-                                  _searchCtrl.clear();
-                                  ref.read(_searchProvider.notifier).state = '';
-                                },
-                              )
-                            : null,
-                        filled: false,
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
+                // Segmented filter tabs
+                Container(
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: c.surfaceAlt,
+                    borderRadius: BorderRadius.circular(11),
                   ),
-                  const SizedBox(height: 12),
-
-                  // Filter chips
-                  SizedBox(
-                    height: 34,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _filters.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 6),
-                      itemBuilder: (_, i) {
-                        final (key, label) = _filters[i];
-                        final selected = filter == key;
-                        return GestureDetector(
+                  padding: const EdgeInsets.all(3),
+                  child: Row(
+                    children: _filters.map((f) {
+                      final selected = filter == f.$1;
+                      final count   = counts[f.$1] ?? 0;
+                      return Expanded(
+                        child: GestureDetector(
                           onTap: () =>
-                              ref.read(_filterProvider.notifier).state = key,
+                              ref.read(_filterProvider.notifier).state = f.$1,
                           child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            duration: const Duration(milliseconds: 180),
                             decoration: BoxDecoration(
-                              color: selected ? c.primary : c.background,
-                              borderRadius: BorderRadius.circular(20),
-                              border: selected
-                                  ? null
-                                  : Border.all(color: c.divider),
+                              color: selected ? c.surface : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: selected
+                                  ? [BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.06),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 1))]
+                                  : null,
                             ),
-                            child: Center(
-                              child: Text(label,
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: selected
-                                          ? FontWeight.w700
-                                          : FontWeight.w500,
-                                      color: selected
-                                          ? c.onPrimary
-                                          : c.textSecondary)),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(f.$2,
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: selected
+                                            ? FontWeight.w700
+                                            : FontWeight.w500,
+                                        color: selected
+                                            ? c.primary
+                                            : c.textSecondary)),
+                                const SizedBox(height: 1),
+                                Text('$count',
+                                    style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: selected
+                                            ? c.primary
+                                            : c.textTertiary)),
+                              ],
                             ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // ── Content ────────────────────────────────────────────────
-            Expanded(
-              child: loading && all.isEmpty
-                  ? Center(child: CircularProgressIndicator(
-                      color: c.primary, strokeWidth: 2))
-                  : displayed.isEmpty
-                      ? _EmptyState(filter: filter, hasSearch: q.isNotEmpty)
-                      : RefreshIndicator(
-                          color: c.primary,
-                          onRefresh: () => ref
-                              .read(orderListProvider.notifier)
-                              .fetch(refresh: true),
-                          child: ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-                            itemCount: displayed.length +
-                                (filter == 'active' && filtered.isNotEmpty ? 1 : 0),
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 10),
-                            itemBuilder: (_, i) {
-                              // Active summary as first item
-                              if (filter == 'active' &&
-                                  filtered.isNotEmpty &&
-                                  i == 0) {
-                                return _ActiveSummary(orders: filtered);
-                              }
-                              final orderIdx = filter == 'active' &&
-                                      filtered.isNotEmpty
-                                  ? i - 1
-                                  : i;
-                              return _OrderCard(order: displayed[orderIdx]);
-                            },
                           ),
                         ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 1),
+              ],
             ),
-          ],
-        ),
+          ),
+
+          // ── Content ──────────────────────────────────────────────────
+          Expanded(
+            child: state.isLoading && all.isEmpty
+                ? Center(child: CircularProgressIndicator(
+                    color: c.primary, strokeWidth: 2))
+                : displayed.isEmpty
+                    ? _EmptyState(filter: filter)
+                    : RefreshIndicator(
+                        color: c.primary,
+                        onRefresh: () => ref
+                            .read(orderListProvider.notifier)
+                            .fetch(refresh: true),
+                        child: ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
+                          itemCount: displayed.length +
+                              (filter == 'active' && displayed.isNotEmpty ? 1 : 0),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 10),
+                          itemBuilder: (_, i) {
+                            if (filter == 'active' && displayed.isNotEmpty && i == 0) {
+                              return _ActiveSummary(orders: displayed);
+                            }
+                            final idx = filter == 'active' && displayed.isNotEmpty
+                                ? i - 1
+                                : i;
+                            return _OrderCard(order: displayed[idx]);
+                          },
+                        ),
+                      ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -226,8 +181,8 @@ class _ActiveSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c     = context.colors;
-    final steps = _steps(c);
+    final c      = context.colors;
+    final steps  = _steps(c);
     final counts = {for (final (s, _, _) in steps)
       s: orders.where((o) => o.status == s).length
     };
@@ -235,10 +190,10 @@ class _ActiveSummary extends StatelessWidget {
     if (nonZero.isEmpty) return const SizedBox.shrink();
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: BorderRadius.circular(AppRadius.card),
+        borderRadius: BorderRadius.circular(14),
         boxShadow: c.cardShadow,
       ),
       child: Row(
@@ -248,21 +203,20 @@ class _ActiveSummary extends StatelessWidget {
           return Expanded(
             child: Column(children: [
               Container(
-                width: 42, height: 42,
+                width: 44, height: 44,
                 decoration: BoxDecoration(
-                  color: color.withValues(
-                      alpha: context.isDark ? 0.18 : 0.1),
+                  color: color.withValues(alpha: context.isDark ? 0.16 : 0.10),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
                   child: Text('$count',
-                      style: TextStyle(fontSize: 18,
+                      style: TextStyle(fontSize: 20,
                           fontWeight: FontWeight.w800, color: color)),
                 ),
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 6),
               Text(label,
-                  style: TextStyle(fontSize: 10,
+                  style: TextStyle(fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: c.textSecondary)),
             ]),
@@ -280,143 +234,167 @@ class _OrderCard extends StatelessWidget {
   const _OrderCard({required this.order});
 
   static const _cargoMeta = {
-    'food':    (Icons.lunch_dining_rounded,  'Đồ ăn',          Color(0xFFF59E0B)),
-    'flowers': (Icons.local_florist_rounded, 'Hoa / Trái cây', Color(0xFFEC4899)),
-    'parcel':  (Icons.inventory_2_rounded,   'Bưu kiện',       Color(0xFF6B7280)),
+    'food':    ('Đồ ăn',          Color(0xFFF59E0B)),
+    'flowers': ('Hoa / Trái cây', Color(0xFFEC4899)),
+    'parcel':  ('Bưu kiện',       Color(0xFF6B7280)),
   };
 
-  Color _statusColor(Palette c) {
+  static const _serviceMeta = {
+    'shop_delivery': ('Giao đến',   Color(0xFF3B82F6)),
+    'shop_pickup':   ('Nhận về',    Color(0xFF8B5CF6)),
+    'shop_batch':    ('Giao nhiều', Color(0xFF10B981)),
+  };
+
+  Color _accentColor(Palette c) {
     if (order.isCompleted) return c.success;
     if (order.isCancelled) return c.danger;
     if (order.status == 'pending') return c.warning;
+    if (order.status == 'processing') return const Color(0xFF8B5CF6);
     return c.primary;
   }
 
   @override
   Widget build(BuildContext context) {
-    final c           = context.colors;
-    final cargo       = _cargoMeta[order.cargoType]
-        ?? (Icons.inventory_2_rounded, 'Bưu kiện', const Color(0xFF6B7280));
-    final statusColor = _statusColor(c);
-    final address     = order.isBatch && order.stops.isNotEmpty
+    final c       = context.colors;
+    final accent  = _accentColor(c);
+    final isDark  = context.isDark;
+    final address = order.isBatch && order.stops.isNotEmpty
         ? '${order.stops.length} điểm · ${order.stops.first['address'] ?? ''}'
         : order.deliveryAddress;
+    final cargo   = _cargoMeta[order.cargoType]
+        ?? ('Bưu kiện', const Color(0xFF6B7280));
+    final service = _serviceMeta[order.shopServiceType]
+        ?? ('Giao đến', const Color(0xFF3B82F6));
+    final dimmed  = order.isCancelled;
+
+    final receiver = [
+      if (order.receiverName?.isNotEmpty == true) order.receiverName!,
+      order.deliveryPhone,
+    ].join(' · ');
 
     return Material(
-      color: c.surface,
-      borderRadius: BorderRadius.circular(AppRadius.card),
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: () => context.push('/order/${order.code}'),
-        borderRadius: BorderRadius.circular(AppRadius.card),
+        borderRadius: BorderRadius.circular(14),
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.card),
+            color: order.isCancelled
+                ? c.danger.withValues(alpha: isDark ? 0.07 : 0.04)
+                : order.isCompleted
+                    ? c.success.withValues(alpha: isDark ? 0.07 : 0.04)
+                    : c.surface,
+            borderRadius: BorderRadius.circular(14),
             boxShadow: c.cardShadow,
           ),
           padding: const EdgeInsets.all(14),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // Cargo icon
-            Container(
-              width: 42, height: 42,
-              decoration: BoxDecoration(
-                color: cargo.$3.withValues(
-                    alpha: context.isDark ? 0.18 : 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(cargo.$1, color: cargo.$3, size: 20),
-            ),
-            const SizedBox(width: 12),
-
-            // Content
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Row 1: cargo label + batch badge + fee
-                  Row(children: [
-                    Text(cargo.$2,
-                        style: TextStyle(fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: c.textPrimary)),
-                    if (order.isBatch) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: c.successSoft,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text('${order.stops.length} điểm',
-                            style: TextStyle(fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: c.success)),
-                      ),
-                    ],
-                    const Spacer(),
-                    Text(Fmt.currency(order.shippingFee),
-                        style: TextStyle(fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: c.primary)),
-                  ]),
-                  const SizedBox(height: 4),
-
-                  // Row 2: receiver name + phone
-                  Row(children: [
-                    if (order.receiverName?.isNotEmpty == true) ...[
-                      Flexible(
-                        child: Text(order.receiverName!,
-                            maxLines: 1, overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: c.textPrimary)),
-                      ),
-                      Text(' · ',
-                          style: TextStyle(fontSize: 13,
-                              color: c.textTertiary)),
-                    ],
-                    Text(order.deliveryPhone,
-                        style: TextStyle(fontSize: 13,
-                            color: c.textSecondary)),
-                  ]),
-                  const SizedBox(height: 3),
-
-                  // Row 3: address
-                  Text(address,
-                      maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12,
-                          color: c.textSecondary)),
-                  const SizedBox(height: 8),
-
-                  // Row 4: status badge + time
-                  Row(children: [
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Row 1: status dot + label · fee
+              Row(children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: isDark ? 0.18 : 0.10),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
+                      width: 6, height: 6,
                       decoration: BoxDecoration(
-                        color: statusColor.withValues(
-                            alpha: context.isDark ? 0.18 : 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(Fmt.orderStatus(order.status),
-                          style: TextStyle(fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: statusColor)),
+                          color: accent, shape: BoxShape.circle),
                     ),
-                    const Spacer(),
-                    Icon(Icons.access_time_rounded,
-                        size: 12, color: c.textTertiary),
-                    const SizedBox(width: 3),
-                    Text(Fmt.timeAgo(order.createdAt),
-                        style: TextStyle(fontSize: 12,
-                            color: c.textSecondary)),
+                    const SizedBox(width: 5),
+                    Text(Fmt.orderStatus(order.status),
+                        style: TextStyle(fontSize: 11,
+                            fontWeight: FontWeight.w700, color: accent)),
                   ]),
+                ),
+                const Spacer(),
+                Text(Fmt.currency(order.shippingFee),
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: dimmed ? c.textTertiary : c.primary,
+                        decoration: dimmed ? TextDecoration.lineThrough : null)),
+              ]),
+              const SizedBox(height: 10),
+
+              // Row 2: receiver + phone
+              Row(children: [
+                Icon(Icons.person_outline_rounded, size: 14, color: c.textTertiary),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(receiver,
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: dimmed ? c.textTertiary : c.textPrimary)),
+                ),
+              ]),
+              const SizedBox(height: 5),
+
+              // Row 3: address
+              Row(children: [
+                Icon(Icons.location_on_outlined, size: 14, color: c.textTertiary),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(address,
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12, color: c.textSecondary)),
+                ),
+              ]),
+              const SizedBox(height: 10),
+
+              Divider(height: 1, color: c.divider),
+              const SizedBox(height: 10),
+
+              // Row 4: chips + time
+              Row(children: [
+                _Chip(label: service.$1, color: service.$2, dimmed: dimmed),
+                const SizedBox(width: 6),
+                _Chip(label: cargo.$1, color: cargo.$2, dimmed: dimmed),
+                if (order.isBatch) ...[
+                  const SizedBox(width: 6),
+                  _Chip(label: '${order.stops.length} điểm',
+                      color: c.success, dimmed: dimmed),
                 ],
-              ),
-            ),
-          ]),
+                const Spacer(),
+                Icon(Icons.access_time_rounded, size: 12, color: c.textTertiary),
+                const SizedBox(width: 3),
+                Text(Fmt.timeAgo(order.createdAt),
+                    style: TextStyle(fontSize: 12, color: c.textSecondary)),
+              ]),
+            ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+// ─── Chip ─────────────────────────────────────────────────────────────────────
+
+class _Chip extends StatelessWidget {
+  final String label;
+  final Color  color;
+  final bool   dimmed;
+  const _Chip({required this.label, required this.color, this.dimmed = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveColor = dimmed ? context.colors.textTertiary : color;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: effectiveColor.withValues(alpha: context.isDark ? 0.16 : 0.09),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Text(label,
+          style: TextStyle(fontSize: 11,
+              fontWeight: FontWeight.w600, color: effectiveColor)),
     );
   }
 }
@@ -425,8 +403,7 @@ class _OrderCard extends StatelessWidget {
 
 class _EmptyState extends StatelessWidget {
   final String filter;
-  final bool   hasSearch;
-  const _EmptyState({required this.filter, this.hasSearch = false});
+  const _EmptyState({required this.filter});
 
   @override
   Widget build(BuildContext context) {
@@ -439,27 +416,18 @@ class _EmptyState extends StatelessWidget {
             color: c.surfaceAlt,
             borderRadius: BorderRadius.circular(20),
           ),
-          child: Icon(
-            hasSearch ? Icons.search_off_rounded : Icons.receipt_long_outlined,
-            size: 34, color: c.textTertiary),
+          child: Icon(Icons.receipt_long_outlined, size: 34, color: c.textTertiary),
         ),
         const SizedBox(height: 14),
         Text(
-          hasSearch
-              ? 'Không tìm thấy đơn phù hợp'
-              : filter == 'active'
-                  ? 'Không có đơn đang chạy'
-                  : filter == 'all'
-                      ? 'Chưa có đơn hàng nào'
-                      : 'Không có đơn phù hợp',
+          filter == 'active'
+              ? 'Không có đơn đang chạy'
+              : filter == 'all'
+                  ? 'Chưa có đơn hàng nào'
+                  : 'Không có đơn phù hợp',
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600,
               color: c.textSecondary),
         ),
-        if (hasSearch) ...[
-          const SizedBox(height: 6),
-          Text('Thử tìm theo SĐT, tên hoặc mã đơn',
-              style: TextStyle(fontSize: 13, color: c.textTertiary)),
-        ],
       ]),
     );
   }

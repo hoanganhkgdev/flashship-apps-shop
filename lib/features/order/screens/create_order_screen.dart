@@ -15,7 +15,6 @@ import '../../../core/services/address_search_service.dart';
 import '../../../core/widgets/address_picker_screen.dart';
 import '../../../core/widgets/map_picker_screen.dart';
 import '../../address/providers/address_provider.dart';
-import '../../address/widgets/address_book_sheet.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/order_model.dart';
 import '../providers/order_provider.dart';
@@ -54,6 +53,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
   // Addresses
   String? _pickupAddr, _deliveryAddr;
+  String? _pickupPlaceName, _deliveryPlaceName;
   double? _pickupLat, _pickupLng, _deliveryLat, _deliveryLng;
 
   // Cargo
@@ -181,7 +181,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       _senderPhone = user.phone;
       final addr = user.address;
       if (addr != null && addr.isNotEmpty) {
-        _pickupAddr = addr;
+        _pickupAddr      = addr;
+        _pickupPlaceName = user.name.isNotEmpty ? user.name : null;
         _geocodeShopAddress(addr, isPickup: true);
       }
     } else {
@@ -190,7 +191,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       _receiverPhone = user.phone;
       final addr = user.address;
       if (addr != null && addr.isNotEmpty) {
-        _deliveryAddr = addr;
+        _deliveryAddr      = addr;
+        _deliveryPlaceName = user.name.isNotEmpty ? user.name : null;
         _geocodeShopAddress(addr, isPickup: false);
       }
     }
@@ -205,6 +207,10 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         ),
       );
       if (!mounted || result == null) return;
+      // Bỏ qua nếu user đã chọn địa chỉ khác trong lúc geocode đang chạy
+      if (isPickup && _pickupAddr != address) return;
+      if (!isPickup && _deliveryAddr != address) return;
+
       if (isPickup) {
         setState(() { _pickupLat = result.lat; _pickupLng = result.lng; });
         if (result.lat != null && result.lng != null) {
@@ -217,7 +223,6 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         if (result.lat != null && result.lng != null) {
           _mapCtrl?.animateCamera(gm.CameraUpdate.newLatLngZoom(
               gm.LatLng(result.lat!, result.lng!), 15));
-          // Lấy hộ: hiện tài xế gần shop khi chưa chọn điểm lấy
           _fetchNearbyDrivers();
         }
       }
@@ -245,13 +250,19 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     if (result == null || !mounted) return;
     setState(() {
       if (isPickup) {
-        _pickupAddr = result.address;
-        _pickupLat  = result.lat;
-        _pickupLng  = result.lng;
+        _pickupAddr      = result.address;
+        _pickupPlaceName = result.placeName;
+        _pickupLat       = result.lat;
+        _pickupLng       = result.lng;
+        if (result.contactName?.isNotEmpty  == true) _senderName  = result.contactName!;
+        if (result.contactPhone?.isNotEmpty == true) _senderPhone = result.contactPhone!;
       } else {
-        _deliveryAddr = result.address;
-        _deliveryLat  = result.lat;
-        _deliveryLng  = result.lng;
+        _deliveryAddr      = result.address;
+        _deliveryPlaceName = result.placeName;
+        _deliveryLat       = result.lat;
+        _deliveryLng       = result.lng;
+        if (result.contactName?.isNotEmpty  == true) _receiverName  = result.contactName!;
+        if (result.contactPhone?.isNotEmpty == true) _receiverPhone = result.contactPhone!;
       }
       _error = null;
     });
@@ -263,37 +274,13 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     }
   }
 
-  Future<void> _selectFromAddressBook() async {
-    final entry = await showAddressBookSheet(context);
-    if (entry == null || !mounted) return;
-    setState(() {
-      if (_isOutbound) {
-        _deliveryAddr  = entry.address;
-        _deliveryLat   = entry.lat;
-        _deliveryLng   = entry.lng;
-        _receiverName  = entry.name;
-        _receiverPhone = entry.phone;
-      } else {
-        _pickupAddr  = entry.address;
-        _pickupLat   = entry.lat;
-        _pickupLng   = entry.lng;
-        _senderName  = entry.name;
-        _senderPhone = entry.phone;
-      }
-      _error = null;
-    });
-    await _estimate();
-    if (_pickupLat != null && _deliveryLat != null) {
-      _fitCamera();
-      _fetchRoute();
-    }
-  }
 
   void _swapAddresses() {
     setState(() {
-      final tA = _pickupAddr;     _pickupAddr     = _deliveryAddr;   _deliveryAddr   = tA;
-      final tLa = _pickupLat;     _pickupLat      = _deliveryLat;    _deliveryLat    = tLa;
-      final tLo = _pickupLng;     _pickupLng      = _deliveryLng;    _deliveryLng    = tLo;
+      final tA  = _pickupAddr;      _pickupAddr      = _deliveryAddr;      _deliveryAddr      = tA;
+      final tPN = _pickupPlaceName; _pickupPlaceName = _deliveryPlaceName; _deliveryPlaceName = tPN;
+      final tLa = _pickupLat;       _pickupLat       = _deliveryLat;       _deliveryLat       = tLa;
+      final tLo = _pickupLng;       _pickupLng       = _deliveryLng;       _deliveryLng       = tLo;
     });
     _estimate();
     _fitCamera();
@@ -481,6 +468,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         if (_note.isNotEmpty)          'cargo_note':    _note,
         if (_cargoWeight != null)      'cargo_weight':  _cargoWeight,
         if (_codAmount != null)        'cod_amount':    _codAmount,
+        if (_pickupPlaceName != null)   'pickup_place_name':   _pickupPlaceName,
+        if (_deliveryPlaceName != null) 'delivery_place_name': _deliveryPlaceName,
         if (_pickupLat != null)        'pickup_lat':    _pickupLat,
         if (_pickupLng != null)        'pickup_lng':    _pickupLng,
         if (_deliveryLat != null)      'delivery_lat':  _deliveryLat,
@@ -496,22 +485,61 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         final alreadySaved = existing.any((e) => e.phone == _receiverPhone.trim());
         if (!alreadySaved) {
           final addressNotifier = ref.read(addressProvider.notifier);
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-            content: Text('Lưu "${_receiverName.isNotEmpty ? _receiverName : _receiverPhone}" vào sổ địa chỉ?'),
-            action: SnackBarAction(
-              label: 'Lưu',
-              onPressed: () => addressNotifier.add(
-                name:    _receiverName.isNotEmpty ? _receiverName : _receiverPhone,
-                phone:   _receiverPhone.trim(),
-                address: _deliveryAddr!,
-                lat:     _deliveryLat,
-                lng:     _deliveryLng,
+          final displayName = _receiverName.isNotEmpty
+              ? _receiverName
+              : _receiverPhone;
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              title: const Row(children: [
+                Icon(Icons.bookmark_add_outlined,
+                    color: AppColors.primary, size: 22),
+                SizedBox(width: 8),
+                Text('Lưu địa chỉ?',
+                    style: TextStyle(fontSize: 17,
+                        fontWeight: FontWeight.w700)),
+              ]),
+              content: Text(
+                'Lưu "$displayName" vào sổ địa chỉ để dùng lại lần sau.',
+                style: const TextStyle(fontSize: 14, height: 1.5),
               ),
+              actionsPadding:
+                  const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              actions: [
+                OutlinedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.textSecondary,
+                    side: const BorderSide(
+                        color: Color(0xFFE5E7EB)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('Huỷ'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    addressNotifier.add(
+                      name:    displayName,
+                      phone:   _receiverPhone.trim(),
+                      address: _deliveryAddr!,
+                      lat:     _deliveryLat,
+                      lng:     _deliveryLng,
+                    );
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('Lưu'),
+                ),
+              ],
             ),
-            duration: const Duration(seconds: 5),
-          ));
+          );
         }
       }
       if (mounted) context.pushReplacement('/order/${order.code}');
@@ -570,7 +598,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     final s = <gm.Marker>{};
     if (_pickupLat != null) {
       s.add(gm.Marker(
-        markerId: const gm.MarkerId('pickup'),
+        markerId: gm.MarkerId('pickup_${_pickupLat}_${_pickupLng}'),
         position: gm.LatLng(_pickupLat!, _pickupLng!),
         icon: _pickupMarkerIcon ??
             gm.BitmapDescriptor.defaultMarkerWithHue(
@@ -579,7 +607,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     }
     if (_deliveryLat != null) {
       s.add(gm.Marker(
-        markerId: const gm.MarkerId('delivery'),
+        markerId: gm.MarkerId('delivery_${_deliveryLat}_${_deliveryLng}'),
         position: gm.LatLng(_deliveryLat!, _deliveryLng!),
         icon: _deliveryMarkerIcon ??
             gm.BitmapDescriptor.defaultMarkerWithHue(
@@ -687,40 +715,47 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                                         size: 18, color: AppColors.primary),
                                     const SizedBox(width: 10),
                                     Expanded(
-                                      child: Text(
-                                        _pickupAddr ?? (_isOutbound
-                                            ? 'Chọn cửa hàng / điểm lấy'
-                                            : 'Chọn địa điểm lấy hàng'),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: _pickupAddr != null
-                                              ? FontWeight.w600 : FontWeight.w400,
-                                          color: _pickupAddr != null
-                                              ? AppColors.textPrimary
-                                              : AppColors.textSecondary,
-                                        ),
-                                      ),
+                                      child: _pickupAddr != null
+                                          ? Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  _pickupPlaceName ?? _pickupAddr!,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: AppColors.textPrimary,
+                                                  ),
+                                                ),
+                                                if (_pickupPlaceName != null) ...[
+                                                  const SizedBox(height: 1),
+                                                  Text(
+                                                    _pickupAddr!,
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                      color: AppColors.textSecondary,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
+                                            )
+                                          : Text(
+                                              _isOutbound ? 'Chọn cửa hàng / điểm lấy' : 'Chọn địa điểm lấy hàng',
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w400,
+                                                color: AppColors.textSecondary,
+                                              ),
+                                            ),
                                     ),
                                   ]),
                                 ),
                               ),
                             ),
-                            if (!_isOutbound)
-                              GestureDetector(
-                                onTap: _selectFromAddressBook,
-                                child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(4, 4, 0, 4),
-                                  child: Tooltip(
-                                    message: 'Sổ địa chỉ',
-                                    child: Icon(Icons.contacts_outlined,
-                                        size: 20,
-                                        color: AppColors.primary.withValues(alpha: 0.8)),
-                                  ),
-                                ),
-                              ),
-                            if (!_isOutbound) const SizedBox(width: 4),
                           ]),
 
                           const Divider(height: 1, color: Color(0xFFF0F0F0)),
@@ -738,41 +773,47 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                                         size: 18, color: AppColors.danger),
                                     const SizedBox(width: 10),
                                     Expanded(
-                                      child: Text(
-                                        _deliveryAddr ?? (_isOutbound
-                                            ? 'Chọn địa chỉ giao hàng'
-                                            : 'Chọn địa chỉ cửa hàng / giao về'),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: _deliveryAddr != null
-                                              ? FontWeight.w600 : FontWeight.w400,
-                                          color: _deliveryAddr != null
-                                              ? AppColors.textPrimary
-                                              : AppColors.textSecondary,
-                                        ),
-                                      ),
+                                      child: _deliveryAddr != null
+                                          ? Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  _deliveryPlaceName ?? _deliveryAddr!,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: AppColors.textPrimary,
+                                                  ),
+                                                ),
+                                                if (_deliveryPlaceName != null) ...[
+                                                  const SizedBox(height: 1),
+                                                  Text(
+                                                    _deliveryAddr!,
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                      color: AppColors.textSecondary,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
+                                            )
+                                          : Text(
+                                              _isOutbound ? 'Chọn địa chỉ giao hàng' : 'Chọn địa chỉ cửa hàng / giao về',
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w400,
+                                                color: AppColors.textSecondary,
+                                              ),
+                                            ),
                                     ),
                                   ]),
                                 ),
                               ),
                             ),
-                            // Sổ địa chỉ (chỉ giao đơn)
-                            if (_isOutbound)
-                              GestureDetector(
-                                onTap: _selectFromAddressBook,
-                                child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(4, 4, 0, 4),
-                                  child: Tooltip(
-                                    message: 'Sổ địa chỉ',
-                                    child: Icon(Icons.contacts_outlined,
-                                        size: 20,
-                                        color: AppColors.primary.withValues(alpha: 0.8)),
-                                  ),
-                                ),
-                              ),
-                            const SizedBox(width: 4),
                           ]),
                         ],
                       ),
