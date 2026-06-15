@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/services/notification_service.dart';
@@ -14,6 +15,8 @@ import '../../order/screens/order_list_screen.dart';
 import '../../profile/screens/profile_screen.dart';
 import '../../stats/stats_screen.dart';
 import '../providers/today_stats_provider.dart';
+import '../../voucher/voucher_model.dart';
+import '../../voucher/voucher_provider.dart';
 
 final _tabProvider = StateProvider<int>((ref) => 0);
 
@@ -134,7 +137,28 @@ class _DashboardTab extends ConsumerWidget {
             // ── Service cards ────────────────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                child: Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: context.colors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.apps_rounded,
+                        size: 15, color: context.colors.primary),
+                  ),
+                  const SizedBox(width: 8),
+                  Text('Dịch vụ',
+                      style: TextStyle(fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: context.colors.textPrimary)),
+                ]),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
                 child: Row(children: [
                   Expanded(child: _ServiceCard(
                     icon: Icons.arrow_outward_rounded,
@@ -159,6 +183,9 @@ class _DashboardTab extends ConsumerWidget {
                 ]),
               ),
             ),
+
+            // ── Voucher section ──────────────────────────────────────────
+            const SliverToBoxAdapter(child: _VoucherSection()),
 
             // ── Active orders ────────────────────────────────────────────
             if (active.isNotEmpty) ...[
@@ -520,6 +547,206 @@ class _OrderCard extends StatelessWidget {
           ),
         ]),
         ),
+      ),
+    );
+  }
+}
+
+// ─── Voucher Section ─────────────────────────────────────────────────────────
+
+class _VoucherSection extends ConsumerWidget {
+  const _VoucherSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(voucherProvider);
+    final c     = context.colors;
+
+    return async.when(
+      loading: () => const SizedBox.shrink(),
+      error:   (_, __) => const SizedBox.shrink(),
+      data: (vouchers) {
+        if (vouchers.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+              child: Row(children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: c.success.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.local_offer_rounded,
+                      size: 15, color: c.success),
+                ),
+                const SizedBox(width: 8),
+                Text('Mã giảm giá',
+                    style: TextStyle(fontSize: 17,
+                        fontWeight: FontWeight.w800, color: c.textPrimary)),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: c.success,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text('${vouchers.length}',
+                      style: const TextStyle(fontSize: 11,
+                          fontWeight: FontWeight.w700, color: Colors.white)),
+                ),
+              ]),
+            ),
+            SizedBox(
+              height: 88,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                itemCount: vouchers.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                itemBuilder: (_, i) => _VoucherCard(voucher: vouchers[i]),
+              ),
+            ),
+          ]),
+        );
+      },
+    );
+  }
+}
+
+class _VoucherCard extends StatelessWidget {
+  final VoucherModel voucher;
+  const _VoucherCard({required this.voucher});
+
+  String get _discountText => voucher.type == 'percent'
+      ? '-${voucher.value}%'
+      : '-${voucher.value}đ';
+
+  String get _expiry {
+    if (voucher.expiresAt == null) return '';
+    final d = voucher.expiresAt!;
+    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c       = context.colors;
+    final expired = voucher.isExpired || voucher.isFull;
+    final accent  = expired ? c.textTertiary : c.success;
+
+    return GestureDetector(
+      onTap: () {
+        Clipboard.setData(ClipboardData(text: voucher.code));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Đã sao chép: ${voucher.code}'),
+          duration: const Duration(seconds: 2),
+          backgroundColor: c.success,
+        ));
+      },
+      child: Container(
+        width: 200,
+        decoration: BoxDecoration(
+          color: c.surface,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: c.cardShadow,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+
+          // ── Left accent strip ──
+          Container(
+            width: 56,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: expired
+                    ? [c.surfaceAlt, c.surfaceAlt]
+                    : [c.success, c.success.withValues(alpha: 0.75)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(_discountText,
+                    style: TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w900,
+                        color: expired ? c.textTertiary : Colors.white,
+                        height: 1)),
+                const SizedBox(height: 2),
+                Text('OFF',
+                    style: TextStyle(
+                        fontSize: 8, fontWeight: FontWeight.w700,
+                        letterSpacing: 1.5,
+                        color: expired
+                            ? c.textTertiary
+                            : Colors.white.withValues(alpha: 0.8))),
+              ],
+            ),
+          ),
+
+          // ── Right content ──
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Code
+                  Row(children: [
+                    Text(voucher.code,
+                        style: TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w800,
+                            color: accent, letterSpacing: 0.5)),
+                    const SizedBox(width: 5),
+                    Icon(Icons.copy_rounded, size: 12, color: accent),
+                  ]),
+                  const SizedBox(height: 4),
+                  // Mô tả hoặc min order
+                  Text(
+                    voucher.description?.isNotEmpty == true
+                        ? voucher.description!
+                        : voucher.minOrderValue != null
+                            ? 'Đơn từ ${voucher.minOrderValue}đ'
+                            : 'Không giới hạn đơn tối thiểu',
+                    style: TextStyle(fontSize: 10, color: c.textSecondary),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 5),
+                  // HSD + usage
+                  Row(children: [
+                    if (voucher.expiresAt != null) ...[
+                      Icon(Icons.access_time_rounded,
+                          size: 10,
+                          color: expired ? c.danger : c.textTertiary),
+                      const SizedBox(width: 3),
+                      Text(
+                        expired ? 'Hết hạn' : _expiry,
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: expired ? c.danger : c.textTertiary),
+                      ),
+                    ],
+                    if (voucher.usageLimit != null) ...[
+                      const Spacer(),
+                      Text(
+                        '${voucher.usageCount ?? 0}/${voucher.usageLimit}',
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: c.textTertiary),
+                      ),
+                    ],
+                  ]),
+                ],
+              ),
+            ),
+          ),
+        ]),
       ),
     );
   }

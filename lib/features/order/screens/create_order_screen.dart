@@ -598,7 +598,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     final s = <gm.Marker>{};
     if (_pickupLat != null) {
       s.add(gm.Marker(
-        markerId: gm.MarkerId('pickup_${_pickupLat}_${_pickupLng}'),
+        markerId: gm.MarkerId('pickup:$_pickupLat:$_pickupLng'),
         position: gm.LatLng(_pickupLat!, _pickupLng!),
         icon: _pickupMarkerIcon ??
             gm.BitmapDescriptor.defaultMarkerWithHue(
@@ -607,7 +607,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     }
     if (_deliveryLat != null) {
       s.add(gm.Marker(
-        markerId: gm.MarkerId('delivery_${_deliveryLat}_${_deliveryLng}'),
+        markerId: gm.MarkerId('delivery:$_deliveryLat:$_deliveryLng'),
         position: gm.LatLng(_deliveryLat!, _deliveryLng!),
         icon: _deliveryMarkerIcon ??
             gm.BitmapDescriptor.defaultMarkerWithHue(

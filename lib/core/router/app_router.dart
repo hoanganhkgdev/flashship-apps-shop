@@ -5,6 +5,7 @@ import '../../features/auth/providers/auth_provider.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/otp_screen.dart';
 import '../../features/auth/screens/register_screen.dart';
+import '../../features/auth/screens/forgot_password_screen.dart';
 import '../../features/home/screens/home_screen.dart';
 import '../../features/address/screens/address_book_screen.dart';
 import '../../features/notification/screens/notification_inbox_screen.dart';
@@ -18,10 +19,14 @@ import '../../features/version/providers/app_version_provider.dart';
 
 final appNavigatorKey = GlobalKey<NavigatorState>();
 
+// Đảm bảo splash hiện tối thiểu 2 giây
+final splashReadyProvider = StateProvider<bool>((ref) => false);
+
 class _AuthListenable extends ChangeNotifier {
   _AuthListenable(Ref ref) {
     ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
     ref.listen<AppVersionState>(appVersionProvider, (_, __) => notifyListeners());
+    ref.listen<bool>(splashReadyProvider, (_, __) => notifyListeners());
   }
 }
 
@@ -38,12 +43,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       final version  = ref.read(appVersionProvider);
       final location = state.matchedLocation;
 
-      if (!auth.isInitialized) return location == '/splash' ? null : '/splash';
+      final splashReady = ref.read(splashReadyProvider);
+      if (!auth.isInitialized || !splashReady) return location == '/splash' ? null : '/splash';
       if (version.needsForceUpdate) return '/splash';
 
       final isAuth  = auth.isAuthenticated;
       final onSplash = location == '/splash';
-      final onAuth   = location == '/login' || location == '/register';
+      final onAuth   = location == '/login' || location == '/register' || location == '/forgot-password';
 
       if (onSplash) return isAuth ? '/home' : '/login';
       if (isAuth && onAuth) return '/home';
@@ -53,7 +59,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/splash',   builder: (_, __) => const SplashScreen()),
       GoRoute(path: '/login',    builder: (_, __) => const LoginScreen()),
-      GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
+      GoRoute(path: '/register',        builder: (_, __) => const RegisterScreen()),
+      GoRoute(path: '/forgot-password', builder: (_, __) => const ForgotPasswordScreen()),
       GoRoute(
         path: '/otp',
         builder: (_, state) => OtpScreen(regData: state.extra as Map<String, dynamic>),

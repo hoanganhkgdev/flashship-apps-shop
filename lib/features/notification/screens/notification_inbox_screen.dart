@@ -6,191 +6,466 @@ import '../../../core/utils/formatters.dart';
 import '../models/notification_item.dart';
 import '../providers/notification_provider.dart';
 
-class NotificationInboxScreen extends ConsumerWidget {
+// ── Group model ───────────────────────────────────────────────────────────────
+
+class _NotifGroup {
+  final String?              orderCode;
+  final List<NotificationItem> items; // newest first
+
+  const _NotifGroup({required this.orderCode, required this.items});
+
+  NotificationItem get latest => items.first;
+  bool get hasUnread => items.any((n) => !n.isRead);
+  bool get isGrouped => items.length > 1;
+}
+
+List<_NotifGroup> _groupItems(List<NotificationItem> items) {
+  // preserve insertion order by orderCode; no-order items stay individual
+  final Map<String, List<NotificationItem>> byOrder = {};
+  final List<_NotifGroup> result = [];
+
+  for (final item in items) {
+    if (item.orderCode == null) {
+      result.add(_NotifGroup(orderCode: null, items: [item]));
+    } else {
+      byOrder.putIfAbsent(item.orderCode!, () => []).add(item);
+    }
+  }
+
+  // Insert grouped order notifications at position of their first occurrence
+  final seen = <String>{};
+  final List<_NotifGroup> merged = [];
+  for (final item in items) {
+    if (item.orderCode == null) {
+      merged.add(_NotifGroup(orderCode: null, items: [item]));
+    } else if (!seen.contains(item.orderCode)) {
+      seen.add(item.orderCode!);
+      merged.add(_NotifGroup(
+        orderCode: item.orderCode,
+        items: byOrder[item.orderCode!]!,
+      ));
+    }
+  }
+  return merged;
+}
+
+// ── Screen ────────────────────────────────────────────────────────────────────
+
+class NotificationInboxScreen extends ConsumerStatefulWidget {
   const NotificationInboxScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NotificationInboxScreen> createState() =>
+      _NotificationInboxScreenState();
+}
+
+class _NotificationInboxScreenState
+    extends ConsumerState<NotificationInboxScreen> {
+  static const _pageSize = 15;
+  int _limit = _pageSize;
+
+  @override
+  Widget build(BuildContext context) {
     final items       = ref.watch(notificationProvider);
     final unreadCount = items.where((n) => !n.isRead).length;
+    final groups      = _groupItems(items);
+    final visible     = groups.take(_limit).toList();
+    final hasMore     = groups.length > _limit;
+    final c           = context.colors;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: false,
-        title: Row(children: [
-          const Text('Thông báo',
-              style: TextStyle(
-                  fontSize: 17, fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary)),
-          if (unreadCount > 0) ...[
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text('$unreadCount',
-                  style: const TextStyle(
-                      fontSize: 11, fontWeight: FontWeight.w700,
-                      color: Colors.white)),
-            ),
-          ],
-        ]),
-        actions: [
-          if (unreadCount > 0)
-            TextButton(
-              onPressed: () => ref.read(notificationProvider.notifier).markAllRead(),
-              child: const Text('Đọc tất cả',
-                  style: TextStyle(
-                      fontSize: 13, color: AppColors.primary,
-                      fontWeight: FontWeight.w600)),
-            ),
-        ],
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: Color(0xFFF0F0F0)),
-        ),
-      ),
-      body: items.isEmpty
-          ? const _EmptyState()
-          : ListView(
-              padding: const EdgeInsets.only(top: 8, bottom: 32),
+      backgroundColor: c.background,
+      body: Column(
+        children: [
+          // ── Header ────────────────────────────────────────────────────
+          Container(
+            color: c.surface,
+            padding: EdgeInsets.fromLTRB(
+                16, MediaQuery.of(context).padding.top + 8, 16, 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Container(
-                  color: Colors.white,
-                  child: Column(
-                    children: items.asMap().entries.map((e) {
-                      final i    = e.key;
-                      final item = e.value;
-                      return Column(children: [
-                        _NotifRow(
-                          item: item,
-                          onTap: () {
-                            ref.read(notificationProvider.notifier).markRead(item.id);
-                            if (item.orderCode != null) {
-                              context.push('/order/${item.orderCode}');
-                            }
-                          },
-                          onDismiss: () =>
-                              ref.read(notificationProvider.notifier).delete(item.id),
-                        ),
-                        if (i < items.length - 1)
-                          const Divider(height: 1, indent: 70,
-                              color: Color(0xFFF5F5F5)),
-                      ]);
-                    }).toList(),
+                GestureDetector(
+                  onTap: () => context.pop(),
+                  child: Container(
+                    width: 36, height: 36,
+                    decoration: BoxDecoration(
+                      color: c.surfaceAlt,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.arrow_back_ios_new_rounded,
+                        size: 16, color: c.textPrimary),
                   ),
                 ),
+                const SizedBox(width: 12),
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Text('Thông báo',
+                        style: TextStyle(
+                            fontSize: 26, fontWeight: FontWeight.w800,
+                            color: c.textPrimary)),
+                    if (unreadCount > 0) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: c.primary,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text('$unreadCount',
+                            style: const TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.w700,
+                                color: Colors.white)),
+                      ),
+                    ],
+                  ]),
+                  if (unreadCount > 0) ...[
+                    const SizedBox(height: 2),
+                    Text('$unreadCount thông báo chưa đọc',
+                        style: TextStyle(
+                            fontSize: 12, color: c.textSecondary)),
+                  ],
+                ]),
+                const Spacer(),
+                if (unreadCount > 0)
+                  GestureDetector(
+                    onTap: () =>
+                        ref.read(notificationProvider.notifier).markAllRead(),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: c.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text('Đọc tất cả',
+                          style: TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w700,
+                              color: c.primary)),
+                    ),
+                  ),
               ],
             ),
+          ),
+
+          // ── List ──────────────────────────────────────────────────────
+          Expanded(
+            child: groups.isEmpty
+                ? const _EmptyState()
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
+                    itemCount: visible.length + (hasMore ? 1 : 0),
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (_, i) {
+                      if (i == visible.length) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                setState(() => _limit += _pageSize),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: c.primary,
+                              side: BorderSide(
+                                  color: c.primary.withValues(alpha: 0.4)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                              minimumSize: const Size(double.infinity, 46),
+                            ),
+                            child: Text('Xem thêm',
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: c.primary)),
+                          ),
+                        );
+                      }
+                      final g = visible[i];
+                      return _GroupCard(
+                        group: g,
+                        onTap: () {
+                          for (final n in g.items) {
+                            ref
+                                .read(notificationProvider.notifier)
+                                .markRead(n.id);
+                          }
+                          if (g.orderCode != null) {
+                            context.push('/order/${g.orderCode}');
+                          }
+                        },
+                        onDismiss: () {
+                          for (final n in g.items) {
+                            ref
+                                .read(notificationProvider.notifier)
+                                .delete(n.id);
+                          }
+                        },
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-// ── Notification row ──────────────────────────────────────────────────────────
+// ── Group card ────────────────────────────────────────────────────────────────
 
-class _NotifRow extends StatelessWidget {
-  final NotificationItem item;
+class _GroupCard extends StatefulWidget {
+  final _NotifGroup  group;
   final VoidCallback onTap;
   final VoidCallback onDismiss;
-  const _NotifRow({
-    required this.item,
+
+  const _GroupCard({
+    required this.group,
     required this.onTap,
     required this.onDismiss,
   });
 
-  IconData get _icon  => item.orderCode != null
-      ? Icons.local_shipping_outlined
-      : Icons.campaign_outlined;
-  Color    get _color => item.orderCode != null
-      ? AppColors.primary
-      : const Color(0xFF8B5CF6);
+  @override
+  State<_GroupCard> createState() => _GroupCardState();
+}
+
+class _GroupCardState extends State<_GroupCard> {
+  bool _expanded = false;
+
+  _NotifGroup get g => widget.group;
+
+  Color _accentColor(Palette c) =>
+      g.orderCode != null ? c.primary : const Color(0xFF8B5CF6);
 
   @override
   Widget build(BuildContext context) {
+    final c      = context.colors;
+    final color  = _accentColor(c);
+    final unread = g.hasUnread;
+
     return Dismissible(
-      key: ValueKey(item.id),
+      key: ValueKey(g.orderCode ?? g.latest.id),
       direction: DismissDirection.endToStart,
-      onDismissed: (_) => onDismiss(),
+      onDismissed: (_) => widget.onDismiss(),
       background: Container(
-        color: AppColors.danger.withValues(alpha: 0.08),
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        child: const Icon(Icons.delete_outline_rounded,
-            color: AppColors.danger, size: 22),
+        decoration: BoxDecoration(
+          color: c.danger.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Icon(Icons.delete_outline_rounded, color: c.danger, size: 22),
       ),
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          color: item.isRead
-              ? Colors.white
-              : AppColors.primary.withValues(alpha: 0.04),
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Container(
-              width: 42, height: 42,
-              decoration: BoxDecoration(
-                color:  _color.withValues(alpha: 0.1),
-                shape:  BoxShape.circle,
-              ),
-              child: Icon(_icon, size: 20, color: _color),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: widget.onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            decoration: BoxDecoration(
+              color: unread
+                  ? c.primary.withValues(alpha: context.isDark ? 0.08 : 0.04)
+                  : c.surface,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: c.cardShadow,
+              border: unread
+                  ? Border.all(color: c.primary.withValues(alpha: 0.12))
+                  : null,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Expanded(
-                    child: Text(item.title,
-                        style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: item.isRead
-                                ? FontWeight.w500 : FontWeight.w700,
-                            color: AppColors.textPrimary,
-                            height: 1.3)),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(Fmt.timeAgo(item.createdAt),
-                      style: const TextStyle(
-                          fontSize: 11, color: AppColors.textSecondary)),
-                ]),
-                const SizedBox(height: 4),
-                Text(item.body,
-                    style: const TextStyle(
-                        fontSize: 13, color: AppColors.textSecondary,
-                        height: 1.4),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis),
-                if (item.orderCode != null) ...[
-                  const SizedBox(height: 6),
-                  Row(children: [
-                    const Icon(Icons.arrow_forward_ios_rounded,
-                        size: 10, color: AppColors.primary),
-                    const SizedBox(width: 4),
-                    Text('Xem đơn #${item.orderCode}',
-                        style: const TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.w600,
-                            color: AppColors.primary)),
+            child: Column(children: [
+              // ── Main row ──
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  // Accent block
+                  Stack(clipBehavior: Clip.none, children: [
+                    Container(
+                      width: 44, height: 44,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            color,
+                            color.withValues(alpha: 0.65),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: const BorderRadius.only(
+                          topLeft:     Radius.circular(14),
+                          topRight:    Radius.circular(6),
+                          bottomLeft:  Radius.circular(6),
+                          bottomRight: Radius.circular(14),
+                        ),
+                      ),
+                      child: const Icon(Icons.notifications_rounded,
+                          size: 22, color: Colors.white),
+                    ),
+                    if (g.isGrouped)
+                      Positioned(
+                        right: -4, top: -4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: c.primary,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: c.surface, width: 1.5),
+                          ),
+                          child: Text('${g.items.length}',
+                              style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white)),
+                        ),
+                      ),
                   ]),
-                ],
-              ]),
-            ),
-            if (!item.isRead) ...[
-              const SizedBox(width: 8),
-              Container(
-                width: 8, height: 8,
-                margin: const EdgeInsets.only(top: 5),
-                decoration: const BoxDecoration(
-                    color: AppColors.primary, shape: BoxShape.circle),
+                  const SizedBox(width: 12),
+
+                  // Content
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Expanded(
+                            child: Text(g.latest.title,
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: unread
+                                        ? FontWeight.w700
+                                        : FontWeight.w600,
+                                    color: c.textPrimary,
+                                    height: 1.3)),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(Fmt.timeAgo(g.latest.createdAt),
+                              style: TextStyle(
+                                  fontSize: 11, color: c.textSecondary)),
+                        ]),
+                        const SizedBox(height: 5),
+                        Text(g.latest.body,
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: c.textSecondary,
+                                height: 1.45),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis),
+                        if (g.orderCode != null) ...[
+                          const SizedBox(height: 8),
+                          Row(children: [
+                            GestureDetector(
+                              onTap: widget.onTap,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: color.withValues(
+                                      alpha: context.isDark ? 0.18 : 0.10),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                  Icon(Icons.receipt_long_outlined,
+                                      size: 12, color: color),
+                                  const SizedBox(width: 5),
+                                  Text('Đơn #${g.orderCode}',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: color)),
+                                ]),
+                              ),
+                            ),
+                            const Spacer(),
+                            if (g.isGrouped)
+                              GestureDetector(
+                                onTap: () => setState(() => _expanded = !_expanded),
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  child: Icon(
+                                    _expanded
+                                        ? Icons.keyboard_arrow_up_rounded
+                                        : Icons.keyboard_arrow_down_rounded,
+                                    size: 20,
+                                    color: c.textSecondary,
+                                  ),
+                                ),
+                              )
+                            else
+                              Icon(Icons.chevron_right_rounded,
+                                  size: 16, color: c.textTertiary),
+                          ]),
+                        ],
+                      ],
+                    ),
+                  ),
+
+                  // Unread dot
+                  if (unread) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 8, height: 8,
+                      margin: const EdgeInsets.only(top: 4),
+                      decoration: BoxDecoration(
+                          color: c.primary, shape: BoxShape.circle),
+                    ),
+                  ],
+                ]),
               ),
-            ],
-          ]),
+
+              // ── Expanded messages ──
+              if (_expanded && g.isGrouped) ...[
+                Divider(height: 1, color: c.divider, indent: 16, endIndent: 16),
+                ...g.items.map((n) => _SubRow(item: n)),
+              ],
+            ]),
+          ),
         ),
       ),
+    );
+  }
+}
+
+// ── Sub-row (expanded messages) ───────────────────────────────────────────────
+
+class _SubRow extends StatelessWidget {
+  final NotificationItem item;
+  const _SubRow({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final c      = context.colors;
+    final unread = !item.isRead;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          width: 6, height: 6,
+          margin: const EdgeInsets.only(top: 5),
+          decoration: BoxDecoration(
+            color: unread ? c.primary : c.textTertiary,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(item.title,
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: unread ? FontWeight.w700 : FontWeight.w500,
+                    color: c.textPrimary)),
+            const SizedBox(height: 2),
+            Text(item.body,
+                style: TextStyle(fontSize: 12, color: c.textSecondary, height: 1.4),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis),
+          ]),
+        ),
+        const SizedBox(width: 8),
+        Text(Fmt.timeAgo(item.createdAt),
+            style: TextStyle(fontSize: 10, color: c.textTertiary)),
+      ]),
     );
   }
 }
@@ -201,24 +476,27 @@ class _EmptyState extends StatelessWidget {
   const _EmptyState();
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Container(
-        width: 80, height: 80,
-        decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.08),
-          shape: BoxShape.circle,
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Center(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 80, height: 80,
+          decoration: BoxDecoration(
+            color: c.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Icon(Icons.notifications_none_rounded,
+              size: 40, color: c.primary),
         ),
-        child: const Icon(Icons.notifications_none_rounded,
-            size: 40, color: AppColors.primary),
-      ),
-      const SizedBox(height: 16),
-      const Text('Chưa có thông báo nào',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary)),
-      const SizedBox(height: 6),
-      const Text('Thông báo mới sẽ xuất hiện tại đây',
-          style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-    ]),
-  );
+        const SizedBox(height: 18),
+        Text('Chưa có thông báo nào',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700,
+                color: c.textPrimary)),
+        const SizedBox(height: 6),
+        Text('Thông báo đơn hàng sẽ xuất hiện tại đây',
+            style: TextStyle(fontSize: 13, color: c.textSecondary)),
+      ]),
+    );
+  }
 }

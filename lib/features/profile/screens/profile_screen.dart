@@ -12,6 +12,8 @@ import '../../auth/providers/auth_provider.dart';
 import '../../auth/providers/cities_provider.dart';
 import '../providers/support_config_provider.dart';
 import '../../order/providers/order_provider.dart';
+import '../../../core/widgets/address_picker_screen.dart';
+import '../../../core/widgets/map_picker_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -348,8 +350,49 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(height: 14),
               const GrabLabel('Địa chỉ'),
               const SizedBox(height: 8),
-              GrabField(
-                  controller: addrCtrl, hint: 'Địa chỉ', maxLines: 2),
+              GestureDetector(
+                onTap: () async {
+                  final result = await Navigator.of(ctx).push<MapPickResult>(
+                    MaterialPageRoute(
+                      builder: (_) => const AddressPickerScreen(
+                          title: 'Địa chỉ cửa hàng'),
+                    ),
+                  );
+                  if (result != null) {
+                    setSt(() {
+                      addrCtrl.text = result.address;
+                    });
+                  }
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: c.surfaceAlt,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                  child: Row(children: [
+                    Expanded(
+                      child: Text(
+                        addrCtrl.text.isNotEmpty
+                            ? addrCtrl.text
+                            : 'Chọn địa chỉ...',
+                        style: TextStyle(
+                            fontSize: 15,
+                            color: addrCtrl.text.isNotEmpty
+                                ? c.textPrimary
+                                : c.textSecondary),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(Icons.location_on_outlined,
+                        size: 18, color: c.primary),
+                  ]),
+                ),
+              ),
               const SizedBox(height: 14),
               Consumer(builder: (_, cRef, __) {
                 final citiesAsync = cRef.watch(citiesProvider);

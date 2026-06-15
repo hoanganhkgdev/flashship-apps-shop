@@ -178,7 +178,7 @@ class AppTheme {
       error: p.danger,
     );
 
-    final textTheme = GoogleFonts.beVietnamProTextTheme(
+    final textTheme = GoogleFonts.plusJakartaSansTextTheme(
       ThemeData(colorScheme: colorScheme).textTheme,
     ).apply(
       bodyColor: p.textPrimary,
