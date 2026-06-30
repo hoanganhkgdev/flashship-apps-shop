@@ -3,6 +3,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'core/api/api_client.dart';
 import 'core/router/app_router.dart';
 import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
@@ -59,6 +60,10 @@ class _FlashShipShopAppState extends ConsumerState<FlashShipShopApp>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      // Đóng socket cũ trước — tránh request bị treo do tái dùng connection
+      // mà OS đã đóng băng trong lúc app ở nền lâu.
+      ref.read(apiClientProvider).resetConnection();
+
       final auth = ref.read(authProvider);
       if (auth.isAuthenticated) {
         ref.read(authProvider.notifier).refreshUser();
