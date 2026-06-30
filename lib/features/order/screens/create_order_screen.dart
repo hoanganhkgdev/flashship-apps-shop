@@ -436,6 +436,10 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       setState(() => _error = 'Vui lòng chọn điểm lấy và điểm giao');
       return;
     }
+    if (_pickupLat == null || _pickupLng == null || _deliveryLat == null || _deliveryLng == null) {
+      setState(() => _error = 'Đang xác định toạ độ, vui lòng đợi vài giây rồi thử lại.');
+      return;
+    }
     if (_receiverPhone.trim().isEmpty) {
       await _openDetailSheet();
       if (_receiverPhone.trim().isEmpty) {

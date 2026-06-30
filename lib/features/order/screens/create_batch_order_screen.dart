@@ -143,9 +143,9 @@ class _CreateBatchOrderScreenState
   // ── Estimate ────────────────────────────────────────────────────────────
 
   Future<void> _estimateAll() async {
-    for (var i = 0; i < _stops.length; i++) {
-      await _estimateStop(i);
-    }
+    await Future.wait([
+      for (var i = 0; i < _stops.length; i++) _estimateStop(i),
+    ]);
   }
 
   Future<void> _estimateStop(int index) async {
@@ -208,11 +208,23 @@ class _CreateBatchOrderScreenState
       );
       return;
     }
+    if (_pickupLat == null || _pickupLng == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng chọn địa chỉ cửa hàng từ gợi ý hoặc bản đồ')),
+      );
+      return;
+    }
     for (var i = 0; i < _stops.length; i++) {
       final s = _stops[i];
       if (s.addressCtrl.text.trim().isEmpty || s.phoneCtrl.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Điểm ${i + 1}: cần nhập địa chỉ và SĐT')),
+        );
+        return;
+      }
+      if (s.lat == null || s.lng == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Điểm ${i + 1}: vui lòng chọn địa chỉ từ gợi ý hoặc bản đồ')),
         );
         return;
       }
