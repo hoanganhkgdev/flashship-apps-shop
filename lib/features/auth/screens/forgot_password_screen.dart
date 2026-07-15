@@ -44,11 +44,11 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       await ref.read(apiClientProvider).post('/shop/auth/forgot-password', data: {
         'phone': _phoneCtrl.text.trim(),
       });
-      setState(() { _step2 = true; });
+      if (mounted) setState(() { _step2 = true; });
     } catch (e) {
-      setState(() { _error = _parseError(e); });
+      if (mounted) setState(() { _error = _parseError(e); });
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -70,9 +70,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         context.go('/login');
       }
     } catch (e) {
-      setState(() { _error = _parseError(e); });
+      if (mounted) setState(() { _error = _parseError(e); });
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 

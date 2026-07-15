@@ -181,7 +181,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await prefs.setString(AppConstants.userKey, jsonEncode(user.toJson()));
       state = state.copyWith(user: user, isInitialized: true);
     } catch (e) {
-      final statusCode = (e as dynamic).response?.statusCode as int?;
+      // Chỉ đọc statusCode khi đúng là lỗi HTTP (DioException) — lỗi khác
+      // (vd parse JSON thất bại) mà ép kiểu dynamic ném NoSuchMethodError
+      // ngay trong catch, thoát khỏi refreshUser() không kiểm soát được.
+      final statusCode = e is DioException ? e.response?.statusCode : null;
       if (statusCode == 401 || statusCode == 403) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.remove(AppConstants.tokenKey);
