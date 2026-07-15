@@ -113,6 +113,11 @@ class _DashboardTab extends ConsumerWidget {
     final todayAsync  = ref.watch(todayStatsProvider);
     final c           = context.colors;
 
+    // Số đang chạy THẬT lấy từ server (không giới hạn theo trang đã tải) —
+    // active.length chỉ đếm được trong số đơn đã load về máy, thiếu nếu còn
+    // đơn active nằm ở trang chưa tải. Cùng nguồn với badge trên header.
+    final trueActiveCount = todayAsync.valueOrNull?.active ?? active.length;
+
     return ColoredBox(
       color: c.background,
       child: RefreshIndicator(
@@ -188,12 +193,12 @@ class _DashboardTab extends ConsumerWidget {
             const SliverToBoxAdapter(child: _VoucherSection()),
 
             // ── Active orders ────────────────────────────────────────────
-            if (active.isNotEmpty) ...[
+            if (trueActiveCount > 0) ...[
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
                   child: Row(children: [
-                    Text('Đang chạy (${active.length})',
+                    Text('Đang chạy ($trueActiveCount)',
                         style: TextStyle(
                             fontSize: 17, fontWeight: FontWeight.w800,
                             color: c.textPrimary)),
@@ -219,7 +224,7 @@ class _DashboardTab extends ConsumerWidget {
                             Divider(height: 1, indent: 60, color: c.divider),
                         ]);
                       }),
-                      if (active.length > 5) ...[
+                      if (trueActiveCount > 5) ...[
                         Divider(height: 1, color: c.divider),
                         InkWell(
                           onTap: () =>
@@ -230,7 +235,7 @@ class _DashboardTab extends ConsumerWidget {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  'Xem tất cả ${active.length} đơn đang chạy',
+                                  'Xem tất cả $trueActiveCount đơn đang chạy',
                                   style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,

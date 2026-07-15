@@ -9,11 +9,20 @@ class TodayStats {
     this.revenue = 0,
   });
 
-  factory TodayStats.fromJson(Map<String, dynamic> j) => TodayStats(
-    orders:  _n(j['orders']),
-    active:  _n(j['active']),
-    revenue: _n(j['revenue']),
-  );
+  // "active" lấy từ tổng toàn thời gian (data['active']), KHÔNG phải
+  // data['today']['active'] — trước đây header trang chủ và mục "Đang
+  // chạy" bên dưới lệch số nhau vì header chỉ đếm đơn tạo trong ngày, còn
+  // đơn từ hôm trước vẫn đang giao thì bị bỏ sót. "Đang chạy" bản chất là
+  // trạng thái hiện tại, không phải hoạt động trong ngày, nên dùng số thật
+  // toàn thời gian cho cả 2 nơi.
+  factory TodayStats.fromJson(Map<String, dynamic> data) {
+    final today = data['today'] as Map<String, dynamic>? ?? {};
+    return TodayStats(
+      orders:  _n(today['orders']),
+      active:  _n(data['active']),
+      revenue: _n(today['revenue']),
+    );
+  }
 }
 
 int _n(dynamic v) =>
@@ -23,6 +32,5 @@ final todayStatsProvider =
     FutureProvider.autoDispose<TodayStats>((ref) async {
   final res  = await ref.read(apiClientProvider).get('/shop/orders/stats');
   final data = (res.data['data'] ?? res.data) as Map<String, dynamic>;
-  final today = data['today'] as Map<String, dynamic>? ?? {};
-  return TodayStats.fromJson(today);
+  return TodayStats.fromJson(data);
 });
