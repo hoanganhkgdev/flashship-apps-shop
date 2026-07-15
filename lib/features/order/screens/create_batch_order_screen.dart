@@ -266,7 +266,11 @@ class _CreateBatchOrderScreenState
         context.push('/order/${order.code}');
       }
     } on DioException catch (e) {
-      final msg = (e.response?.data?['message'] as String?) ?? 'Có lỗi xảy ra';
+      // data có thể là String (HTML lỗi 502/503) chứ không phải Map — index
+      // thẳng ['message'] sẽ ném NoSuchMethodError, làm mất luôn SnackBar
+      // báo lỗi dù nút bấm vẫn được mở lại nhờ finally.
+      final data = e.response?.data;
+      final msg = (data is Map ? data['message'] as String? : null) ?? 'Có lỗi xảy ra';
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(msg), backgroundColor: AppColors.danger),
