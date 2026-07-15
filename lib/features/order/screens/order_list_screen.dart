@@ -8,9 +8,14 @@ import '../providers/order_provider.dart';
 
 final _filterProvider = StateProvider<String>((ref) => 'all');
 
-class OrderListScreen extends ConsumerWidget {
+class OrderListScreen extends ConsumerStatefulWidget {
   const OrderListScreen({super.key});
 
+  @override
+  ConsumerState<OrderListScreen> createState() => _OrderListScreenState();
+}
+
+class _OrderListScreenState extends ConsumerState<OrderListScreen> {
   static const _filters = [
     ('all',       'Tất cả'),
     ('active',    'Đang chạy'),
@@ -20,8 +25,30 @@ class OrderListScreen extends ConsumerWidget {
 
   static const _activeStatuses = ['pending', 'assigned', 'processing', 'on_the_way'];
 
+  final _scrollCtrl = ScrollController();
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void initState() {
+    super.initState();
+    // Backend trả 20 đơn/trang — không có cuộn vô hạn thì shop có trên 20
+    // đơn sẽ không bao giờ thấy được đơn cũ hơn (không có ô tìm kiếm nào
+    // khác để tra lại). Tải thêm khi cuộn gần cuối danh sách.
+    _scrollCtrl.addListener(() {
+      if (_scrollCtrl.position.pixels >=
+          _scrollCtrl.position.maxScrollExtent - 300) {
+        ref.read(orderListProvider.notifier).fetch();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state  = ref.watch(orderListProvider);
     final filter = ref.watch(_filterProvider);
     final all    = state.orders;
@@ -142,22 +169,41 @@ class OrderListScreen extends ConsumerWidget {
                         onRefresh: () => ref
                             .read(orderListProvider.notifier)
                             .fetch(refresh: true),
-                        child: ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
-                          itemCount: displayed.length +
-                              (filter == 'active' && displayed.isNotEmpty ? 1 : 0),
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 10),
-                          itemBuilder: (_, i) {
-                            if (filter == 'active' && displayed.isNotEmpty && i == 0) {
-                              return _ActiveSummary(orders: displayed);
-                            }
-                            final idx = filter == 'active' && displayed.isNotEmpty
-                                ? i - 1
-                                : i;
-                            return _OrderCard(order: displayed[idx]);
-                          },
-                        ),
+                        child: Builder(builder: (_) {
+                          final showSummary = filter == 'active' && displayed.isNotEmpty;
+                          // Chỉ hiện khi "Tất cả" — các tab khác lọc phía app
+                          // nên tổng số trang backend không khớp số dòng hiện ra.
+                          final showFooter = filter == 'all' &&
+                              state.hasMore && state.isLoading && all.isNotEmpty;
+                          final extraTop = showSummary ? 1 : 0;
+
+                          return ListView.separated(
+                            controller: _scrollCtrl,
+                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
+                            itemCount: displayed.length + extraTop + (showFooter ? 1 : 0),
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 10),
+                            itemBuilder: (_, i) {
+                              if (showSummary && i == 0) {
+                                return _ActiveSummary(orders: displayed);
+                              }
+                              final idx = i - extraTop;
+                              if (idx >= displayed.length) {
+                                return Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    child: SizedBox(
+                                      width: 20, height: 20,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2, color: c.primary),
+                                    ),
+                                  ),
+                                );
+                              }
+                              return _OrderCard(order: displayed[idx]);
+                            },
+                          );
+                        }),
                       ),
           ),
         ],
