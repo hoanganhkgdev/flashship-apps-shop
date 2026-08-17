@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_form_widgets.dart';
@@ -8,7 +9,16 @@ import '../models/cargo_type.dart';
 import '../models/order_model.dart';
 import '../providers/order_provider.dart';
 
-final _filterProvider = StateProvider<String>((ref) => 'all');
+final _filterProvider      = StateProvider<String>((ref) => 'all');
+final _searchQueryProvider = StateProvider<String>((ref) => '');
+
+bool _matchesSearch(OrderModel o, String query) {
+  if (query.isEmpty) return true;
+  if (o.code.toLowerCase().contains(query)) return true;
+  if (o.deliveryPhone.toLowerCase().contains(query)) return true;
+  if (o.receiverName?.toLowerCase().contains(query) == true) return true;
+  return false;
+}
 
 class OrderListScreen extends ConsumerStatefulWidget {
   const OrderListScreen({super.key});
@@ -28,6 +38,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
   static const _activeStatuses = ['pending', 'assigned', 'processing', 'on_the_way'];
 
   final _scrollCtrl = ScrollController();
+  final _searchCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -35,6 +46,8 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
     // Backend trả 20 đơn/trang — không có cuộn vô hạn thì shop có trên 20
     // đơn sẽ không bao giờ thấy được đơn cũ hơn (không có ô tìm kiếm nào
     // khác để tra lại). Tải thêm khi cuộn gần cuối danh sách.
+    // Tìm kiếm chỉ lọc trên dữ liệu đã tải nên vẫn tải thêm bình thường khi
+    // đang có searchQuery — càng tải nhiều càng tìm được nhiều.
     _scrollCtrl.addListener(() {
       if (_scrollCtrl.position.pixels >=
           _scrollCtrl.position.maxScrollExtent - 300) {
@@ -46,6 +59,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
   @override
   void dispose() {
     _scrollCtrl.dispose();
+    _searchCtrl.dispose();
     super.dispose();
   }
 
@@ -53,6 +67,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
   Widget build(BuildContext context) {
     final state  = ref.watch(orderListProvider);
     final filter = ref.watch(_filterProvider);
+    final query  = ref.watch(_searchQueryProvider).trim().toLowerCase();
     final all    = state.orders;
     final c      = context.colors;
 
@@ -61,7 +76,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
       'completed' => all.where((o) => o.isCompleted).toList(),
       'cancelled' => all.where((o) => o.isCancelled).toList(),
       _           => all,
-    };
+    }.where((o) => _matchesSearch(o, query)).toList();
 
     final counts = {
       'all':       all.length,
@@ -98,6 +113,17 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                 ),
                 const SizedBox(height: 12),
 
+                // Thanh tìm kiếm
+                AppField(
+                  controller: _searchCtrl,
+                  hint: 'Tìm mã đơn, SĐT người nhận...',
+                  prefixIcon:
+                      Icon(Icons.search_rounded, size: 20, color: c.textTertiary),
+                  onChanged: (v) =>
+                      ref.read(_searchQueryProvider.notifier).state = v,
+                ),
+                const SizedBox(height: 12),
+
                 // Segmented filter tabs
                 Container(
                   height: 42,
@@ -126,27 +152,16 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                                       offset: const Offset(0, 1))]
                                   : null,
                             ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(f.$2,
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: selected
-                                            ? FontWeight.w700
-                                            : FontWeight.w500,
-                                        color: selected
-                                            ? c.primary
-                                            : c.textSecondary)),
-                                const SizedBox(height: 1),
-                                Text('$count',
-                                    style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w600,
-                                        color: selected
-                                            ? c.primary
-                                            : c.textTertiary)),
-                              ],
+                            child: Center(
+                              child: Text('${f.$2} $count',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: selected
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                      color: selected
+                                          ? c.primary
+                                          : c.textSecondary)),
                             ),
                           ),
                         ),
@@ -165,7 +180,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                 ? Center(child: CircularProgressIndicator(
                     color: c.primary, strokeWidth: 2))
                 : displayed.isEmpty
-                    ? _EmptyState(filter: filter)
+                    ? _EmptyState(filter: filter, searching: query.isNotEmpty)
                     : RefreshIndicator(
                         color: c.primary,
                         onRefresh: () => ref
@@ -202,7 +217,9 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                                   ),
                                 );
                               }
-                              return _OrderCard(order: displayed[idx]);
+                              return _OrderCard(
+                                  key: ValueKey(displayed[idx].code),
+                                  order: displayed[idx]);
                             },
                           );
                         }),
@@ -279,7 +296,7 @@ class _ActiveSummary extends StatelessWidget {
 
 class _OrderCard extends StatelessWidget {
   final OrderModel order;
-  const _OrderCard({required this.order});
+  const _OrderCard({super.key, required this.order});
 
   static const _serviceMeta = {
     'shop_delivery': ('Giao đến',   Color(0xFF3B82F6)),
@@ -295,11 +312,15 @@ class _OrderCard extends StatelessWidget {
     return c.primary;
   }
 
+  Future<void> _call(String phone) async {
+    final uri = Uri(scheme: 'tel', path: phone);
+    if (await canLaunchUrl(uri)) await launchUrl(uri);
+  }
+
   @override
   Widget build(BuildContext context) {
     final c       = context.colors;
     final accent  = _accentColor(c);
-    final isDark  = context.isDark;
     final address = order.isBatch && order.stops.isNotEmpty
         ? '${order.stops.length} điểm · ${order.stops.first['address'] ?? ''}'
         : order.deliveryAddress;
@@ -308,6 +329,7 @@ class _OrderCard extends StatelessWidget {
     final service = _serviceMeta[order.shopServiceType]
         ?? ('Giao đến', const Color(0xFF3B82F6));
     final dimmed  = order.isCancelled;
+    final isDark  = context.isDark;
 
     final receiver = [
       if (order.receiverName?.isNotEmpty == true) order.receiverName!,
@@ -322,93 +344,140 @@ class _OrderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         child: Container(
           decoration: BoxDecoration(
-            color: order.isCancelled
-                ? c.danger.withValues(alpha: isDark ? 0.07 : 0.04)
-                : order.isCompleted
-                    ? c.success.withValues(alpha: isDark ? 0.07 : 0.04)
-                    : c.surface,
+            color: c.surface,
             borderRadius: BorderRadius.circular(14),
             boxShadow: c.cardShadow,
           ),
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          clipBehavior: Clip.antiAlias,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Row 1: status dot + label · fee
-              Row(children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: isDark ? 0.18 : 0.10),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Container(
-                      width: 6, height: 6,
-                      decoration: BoxDecoration(
-                          color: accent, shape: BoxShape.circle),
+              // ── Dải accent trạng thái ─────────────────────────────────
+              Container(width: 4, color: accent),
+              Expanded(
+                // RepaintBoundary: Opacity đổi giữa 1.0/<1.0 trong danh sách
+                // cuộn có thể gây lỗi framework "!semantics.parentDataDirty"
+                // (bug Flutter đã biết) — cô lập layer để tránh semantics tree
+                // của thẻ này ảnh hưởng thẻ khác khi rebuild.
+                child: RepaintBoundary(
+                  child: Opacity(
+                    opacity: order.isCancelled ? 0.5 : 1,
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Row 1: status dot + label · fee
+                          Row(children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 9, vertical: 4),
+                              decoration: BoxDecoration(
+                                color:
+                                    accent.withValues(alpha: isDark ? 0.18 : 0.10),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child:
+                                  Row(mainAxisSize: MainAxisSize.min, children: [
+                                Container(
+                                  width: 6, height: 6,
+                                  decoration: BoxDecoration(
+                                      color: accent, shape: BoxShape.circle),
+                                ),
+                                const SizedBox(width: 5),
+                                Text(Fmt.orderStatus(order.status),
+                                    style: TextStyle(fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: accent)),
+                              ]),
+                            ),
+                            const Spacer(),
+                            Text(Fmt.currency(order.shippingFee),
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    color: dimmed ? c.textTertiary : c.primary,
+                                    decoration: dimmed
+                                        ? TextDecoration.lineThrough
+                                        : null)),
+                          ]),
+                          const SizedBox(height: 10),
+
+                          // Row 2: receiver + phone
+                          Row(children: [
+                            Icon(Icons.person_outline_rounded,
+                                size: 14, color: c.textTertiary),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Text(receiver,
+                                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: dimmed
+                                          ? c.textTertiary
+                                          : c.textPrimary)),
+                            ),
+                            if (order.deliveryPhone.isNotEmpty &&
+                                !order.isCancelled) ...[
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () => _call(order.deliveryPhone),
+                                child: Container(
+                                  width: 22, height: 22,
+                                  decoration: BoxDecoration(
+                                    color: c.primarySoft,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(Icons.call_rounded,
+                                      size: 12, color: c.primary),
+                                ),
+                              ),
+                            ],
+                          ]),
+                          const SizedBox(height: 5),
+
+                          // Row 3: address
+                          Row(children: [
+                            Icon(Icons.location_on_outlined,
+                                size: 14, color: c.textTertiary),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Text(address,
+                                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontSize: 12, color: c.textSecondary)),
+                            ),
+                          ]),
+                          const SizedBox(height: 10),
+
+                          Divider(height: 1, color: c.divider),
+                          const SizedBox(height: 10),
+
+                          // Row 4: chips + time
+                          Row(children: [
+                            _Chip(
+                                label: service.$1, color: service.$2, dimmed: dimmed),
+                            const SizedBox(width: 6),
+                            _Chip(label: cargo.$1, color: cargo.$2, dimmed: dimmed),
+                            if (order.isBatch) ...[
+                              const SizedBox(width: 6),
+                              _Chip(label: '${order.stops.length} điểm',
+                                  color: c.success, dimmed: dimmed),
+                            ],
+                            const Spacer(),
+                            Icon(Icons.access_time_rounded,
+                                size: 12, color: c.textTertiary),
+                            const SizedBox(width: 3),
+                            Text(Fmt.timeAgo(order.createdAt),
+                                style:
+                                    TextStyle(fontSize: 12, color: c.textSecondary)),
+                          ]),
+                        ],
+                      ),
                     ),
-                    const SizedBox(width: 5),
-                    Text(Fmt.orderStatus(order.status),
-                        style: TextStyle(fontSize: 11,
-                            fontWeight: FontWeight.w700, color: accent)),
-                  ]),
+                  ),
                 ),
-                const Spacer(),
-                Text(Fmt.currency(order.shippingFee),
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: dimmed ? c.textTertiary : c.primary,
-                        decoration: dimmed ? TextDecoration.lineThrough : null)),
-              ]),
-              const SizedBox(height: 10),
-
-              // Row 2: receiver + phone
-              Row(children: [
-                Icon(Icons.person_outline_rounded, size: 14, color: c.textTertiary),
-                const SizedBox(width: 5),
-                Expanded(
-                  child: Text(receiver,
-                      maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: dimmed ? c.textTertiary : c.textPrimary)),
-                ),
-              ]),
-              const SizedBox(height: 5),
-
-              // Row 3: address
-              Row(children: [
-                Icon(Icons.location_on_outlined, size: 14, color: c.textTertiary),
-                const SizedBox(width: 5),
-                Expanded(
-                  child: Text(address,
-                      maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12, color: c.textSecondary)),
-                ),
-              ]),
-              const SizedBox(height: 10),
-
-              Divider(height: 1, color: c.divider),
-              const SizedBox(height: 10),
-
-              // Row 4: chips + time
-              Row(children: [
-                _Chip(label: service.$1, color: service.$2, dimmed: dimmed),
-                const SizedBox(width: 6),
-                _Chip(label: cargo.$1, color: cargo.$2, dimmed: dimmed),
-                if (order.isBatch) ...[
-                  const SizedBox(width: 6),
-                  _Chip(label: '${order.stops.length} điểm',
-                      color: c.success, dimmed: dimmed),
-                ],
-                const Spacer(),
-                Icon(Icons.access_time_rounded, size: 12, color: c.textTertiary),
-                const SizedBox(width: 3),
-                Text(Fmt.timeAgo(order.createdAt),
-                    style: TextStyle(fontSize: 12, color: c.textSecondary)),
-              ]),
+              ),
             ],
           ),
         ),
@@ -445,18 +514,21 @@ class _Chip extends StatelessWidget {
 
 class _EmptyState extends StatelessWidget {
   final String filter;
-  const _EmptyState({required this.filter});
+  final bool   searching;
+  const _EmptyState({required this.filter, this.searching = false});
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: AppEmptyState(
         icon: Icons.receipt_long_outlined,
-        title: filter == 'active'
-            ? 'Không có đơn đang chạy'
-            : filter == 'all'
-                ? 'Chưa có đơn hàng nào'
-                : 'Không có đơn phù hợp',
+        title: searching
+            ? 'Không tìm thấy đơn phù hợp'
+            : filter == 'active'
+                ? 'Không có đơn đang chạy'
+                : filter == 'all'
+                    ? 'Chưa có đơn hàng nào'
+                    : 'Không có đơn phù hợp',
       ),
     );
   }
