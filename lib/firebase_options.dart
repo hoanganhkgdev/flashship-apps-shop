@@ -26,10 +26,9 @@ class DefaultFirebaseOptions {
     databaseURL:       'https://flashship-app-default-rtdb.asia-southeast1.firebasedatabase.app',
   );
 
-  // Thêm app Android com.flashship.shop vào Firebase Console để lấy appId
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey:            'AIzaSyBiEyWGNhWj-sVJYmkfk_V5Y6wkNm5LJIA',
-    appId:             'REPLACE_WITH_ANDROID_APP_ID',
+    apiKey:            'AIzaSyDSYWeYYO9oPK5I2HAkJ145eRp36WwnYaI',
+    appId:             '1:219581386028:android:d2e2d77ff6a965bcf27089',
     messagingSenderId: '219581386028',
     projectId:         'flashship-app',
     storageBucket:     'flashship-app.firebasestorage.app',

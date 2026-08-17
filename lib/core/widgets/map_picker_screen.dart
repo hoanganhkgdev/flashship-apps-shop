@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 import '../services/location_service.dart';
 import '../theme/app_theme.dart';
@@ -38,6 +39,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   String? _address;
   bool _loadingAddress = false;
   bool _mapReady = false;
+  bool _hasLocationPermission = false;
 
   @override
   void initState() {
@@ -48,6 +50,22 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
     } else {
       _loadGpsLocation();
     }
+    _ensureLocationPermission();
+  }
+
+  // GoogleMap(myLocationEnabled: true) crash nếu chưa có quyền vị trí — xin
+  // quyền tường minh ở đây thay vì trông chờ vào side-effect của _loadGpsLocation
+  // (không chạy khi đã có initialLat/Lng truyền sẵn).
+  Future<void> _ensureLocationPermission() async {
+    try {
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      final granted = permission == LocationPermission.always ||
+          permission == LocationPermission.whileInUse;
+      if (mounted && granted) setState(() => _hasLocationPermission = true);
+    } catch (_) {}
   }
 
   Future<void> _loadGpsLocation() async {
@@ -125,7 +143,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
             onMapCreated: _onMapCreated,
             onCameraMove: _onCameraMove,
             onCameraIdle: _onCameraIdle,
-            myLocationEnabled: true,
+            myLocationEnabled: _hasLocationPermission,
             myLocationButtonEnabled: true,
             zoomControlsEnabled: false,
             mapToolbarEnabled: false,

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/grab_widgets.dart';
+import '../../../core/widgets/app_form_widgets.dart';
 import '../providers/auth_provider.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
@@ -136,11 +136,11 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
                     if (auth.error != null) ...[
                       const SizedBox(height: 16),
-                      GrabErrorBox(auth.error!),
+                      AppErrorBox(auth.error!),
                     ],
 
                     const SizedBox(height: 32),
-                    GrabButton(
+                    AppButton(
                       label: 'Xác nhận',
                       onPressed: _otp.length == 6 ? _verify : null,
                       isLoading: auth.isLoading,

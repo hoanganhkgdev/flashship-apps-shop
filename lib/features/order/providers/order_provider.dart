@@ -89,13 +89,3 @@ class OrderListNotifier extends StateNotifier<OrderListState> {
 final orderListProvider = StateNotifierProvider<OrderListNotifier, OrderListState>((ref) {
   return OrderListNotifier(ref.read(apiClientProvider));
 });
-
-// Provider để fetch 1 đơn cụ thể
-final orderDetailProvider = FutureProvider.family<OrderModel?, String>((ref, code) async {
-  final api = ref.read(apiClientProvider);
-  final res = await api.get('/shop/orders/$code');
-  if (res.data['success'] == true) {
-    return OrderModel.fromJson(res.data['data'] as Map<String, dynamic>);
-  }
-  return null;
-});
