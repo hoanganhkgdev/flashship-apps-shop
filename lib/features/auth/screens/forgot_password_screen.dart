@@ -1,9 +1,10 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/validators.dart';
+import '../../../core/widgets/app_form_widgets.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -46,7 +47,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       });
       if (mounted) setState(() { _step2 = true; });
     } catch (e) {
-      if (mounted) setState(() { _error = _parseError(e); });
+      if (mounted) setState(() { _error = parseApiError(e, fallback: 'Đã xảy ra lỗi, vui lòng thử lại'); });
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -63,33 +64,14 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         'password_confirmation': _confCtrl.text,
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Đặt lại mật khẩu thành công!'),
-          backgroundColor: AppColors.success,
-        ));
+        AppSnackbar.success(context, 'Đặt lại mật khẩu thành công!');
         context.go('/login');
       }
     } catch (e) {
-      if (mounted) setState(() { _error = _parseError(e); });
+      if (mounted) setState(() { _error = parseApiError(e, fallback: 'Đã xảy ra lỗi, vui lòng thử lại'); });
     } finally {
       if (mounted) setState(() => _loading = false);
     }
-  }
-
-  String _parseError(Object e) {
-    if (e is DioException) {
-      final data = e.response?.data;
-      if (data is Map) {
-        final msg = data['message'];
-        if (msg is String && msg.isNotEmpty) return msg;
-        final errors = data['errors'];
-        if (errors is Map) {
-          final first = (errors.values.first as List?)?.first;
-          if (first is String) return first;
-        }
-      }
-    }
-    return 'Đã xảy ra lỗi, vui lòng thử lại';
   }
 
   @override
@@ -156,24 +138,20 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             if (!_step2) ...[
               Form(
                 key: _phoneKey,
-                child: _Field(
-                  controller: _phoneCtrl,
-                  label: 'Số điện thoại',
-                  hint: 'Nhập số điện thoại đã đăng ký',
-                  icon: Icons.phone_outlined,
-                  keyboardType: TextInputType.phone,
-                  textInputAction: TextInputAction.done,
-                  onFieldSubmitted: (_) => _sendOtp(),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) {
-                      return 'Vui lòng nhập số điện thoại';
-                    }
-                    if (v.trim().length < 9) {
-                      return 'Số điện thoại không hợp lệ';
-                    }
-                    return null;
-                  },
-                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const AppLabel('Số điện thoại'),
+                  const SizedBox(height: 8),
+                  AppField(
+                    controller: _phoneCtrl,
+                    hint: 'Nhập số điện thoại đã đăng ký',
+                    prefixIcon: Icon(Icons.phone_outlined,
+                        size: 20, color: context.colors.textSecondary),
+                    keyboardType: TextInputType.phone,
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) => _sendOtp(),
+                    validator: Validators.phone,
+                  ),
+                ]),
               ),
             ],
 
@@ -182,11 +160,13 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               Form(
                 key: _resetKey,
                 child: Column(children: [
-                  _Field(
+                  const AppLabel('Mã OTP'),
+                  const SizedBox(height: 8),
+                  AppField(
                     controller: _otpCtrl,
-                    label: 'Mã OTP',
                     hint: '6 chữ số',
-                    icon: Icons.pin_outlined,
+                    prefixIcon: Icon(Icons.pin_outlined,
+                        size: 20, color: context.colors.textSecondary),
                     keyboardType: TextInputType.number,
                     textInputAction: TextInputAction.next,
                     validator: (v) {
@@ -197,11 +177,13 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  _Field(
+                  const AppLabel('Mật khẩu mới'),
+                  const SizedBox(height: 8),
+                  AppField(
                     controller: _passCtrl,
-                    label: 'Mật khẩu mới',
                     hint: 'Tối thiểu 6 ký tự',
-                    icon: Icons.lock_outline_rounded,
+                    prefixIcon: Icon(Icons.lock_outline_rounded,
+                        size: 20, color: context.colors.textSecondary),
                     obscureText: _obscure1,
                     textInputAction: TextInputAction.next,
                     suffixIcon: GestureDetector(
@@ -213,19 +195,16 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                         size: 20, color: AppColors.textSecondary,
                       ),
                     ),
-                    validator: (v) {
-                      if (v == null || v.length < 6) {
-                        return 'Mật khẩu tối thiểu 6 ký tự';
-                      }
-                      return null;
-                    },
+                    validator: Validators.password,
                   ),
                   const SizedBox(height: 16),
-                  _Field(
+                  const AppLabel('Xác nhận mật khẩu'),
+                  const SizedBox(height: 8),
+                  AppField(
                     controller: _confCtrl,
-                    label: 'Xác nhận mật khẩu',
                     hint: 'Nhập lại mật khẩu mới',
-                    icon: Icons.lock_outline_rounded,
+                    prefixIcon: Icon(Icons.lock_outline_rounded,
+                        size: 20, color: context.colors.textSecondary),
                     obscureText: _obscure2,
                     textInputAction: TextInputAction.done,
                     onFieldSubmitted: (_) => _resetPassword(),
@@ -320,96 +299,5 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         ),
       ),
     );
-  }
-}
-
-// ── Input field ───────────────────────────────────────────────────────────────
-
-class _Field extends StatelessWidget {
-  final TextEditingController controller;
-  final String label, hint;
-  final IconData icon;
-  final bool obscureText;
-  final TextInputType? keyboardType;
-  final TextInputAction? textInputAction;
-  final Widget? suffixIcon;
-  final String? Function(String?)? validator;
-  final void Function(String)? onFieldSubmitted;
-
-  const _Field({
-    required this.controller,
-    required this.label,
-    required this.hint,
-    required this.icon,
-    this.obscureText = false,
-    this.keyboardType,
-    this.textInputAction,
-    this.suffixIcon,
-    this.validator,
-    this.onFieldSubmitted,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label,
-          style: const TextStyle(
-              fontSize: 13, fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary)),
-      const SizedBox(height: 8),
-      TextFormField(
-        controller: controller,
-        obscureText: obscureText,
-        keyboardType: keyboardType,
-        textInputAction: textInputAction,
-        onFieldSubmitted: onFieldSubmitted,
-        validator: validator,
-        style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(
-              color: AppColors.textSecondary, fontSize: 15),
-          prefixIcon: Padding(
-            padding: const EdgeInsets.only(left: 14, right: 10),
-            child: Icon(icon, size: 20, color: AppColors.textSecondary),
-          ),
-          prefixIconConstraints:
-              const BoxConstraints(minWidth: 0, minHeight: 0),
-          suffixIcon: suffixIcon != null
-              ? Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: suffixIcon)
-              : null,
-          suffixIconConstraints:
-              const BoxConstraints(minWidth: 0, minHeight: 0),
-          filled: true,
-          fillColor: const Color(0xFFF8F8F8),
-          contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16, vertical: 16),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFE8E8E8)),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFE8E8E8)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(
-                color: AppColors.primary, width: 1.5),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.danger),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(
-                color: AppColors.danger, width: 1.5),
-          ),
-        ),
-      ),
-    ]);
   }
 }

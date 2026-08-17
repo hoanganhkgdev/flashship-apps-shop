@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/address_picker_screen.dart';
+import '../../../core/widgets/app_form_widgets.dart';
 import '../../../core/widgets/map_picker_screen.dart';
 import '../models/address_entry.dart';
 import '../providers/address_provider.dart';
@@ -203,25 +204,17 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-    child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Container(
-        width: 80, height: 80,
-        decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.08),
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(Icons.contact_page_outlined,
-            size: 40, color: AppColors.primary),
-      ),
-      const SizedBox(height: 16),
-      const Text('Chưa có địa chỉ nào',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary)),
-      const SizedBox(height: 6),
-      const Text('Lưu địa chỉ để tạo đơn nhanh hơn',
-          style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-      const SizedBox(height: 20),
-      ElevatedButton.icon(
+    child: AppEmptyState(
+      icon: Icons.contact_page_outlined,
+      title: 'Chưa có địa chỉ nào',
+      titleColor: AppColors.textPrimary,
+      subtitle: 'Lưu địa chỉ để tạo đơn nhanh hơn',
+      boxSize: 80,
+      boxShape: BoxShape.circle,
+      boxColor: AppColors.primary.withValues(alpha: 0.08),
+      iconColor: AppColors.primary,
+      iconSize: 40,
+      action: ElevatedButton.icon(
         onPressed: onAdd,
         icon: const Icon(Icons.add_rounded, size: 18),
         label: const Text('Thêm địa chỉ đầu tiên'),
@@ -232,7 +225,7 @@ class _EmptyState extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       ),
-    ]),
+    ),
   );
 }
 

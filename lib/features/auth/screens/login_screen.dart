@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/grab_widgets.dart';
+import '../../../core/utils/validators.dart';
+import '../../../core/widgets/app_form_widgets.dart';
 import '../providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -110,30 +111,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             // ── Form ────────────────────────────────────────────────
             Form(
               key: _formKey,
-              child: Column(children: [
-                _InputField(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const AppLabel('Số điện thoại'),
+                const SizedBox(height: 8),
+                AppField(
                   controller: _phoneCtrl,
-                  label: 'Số điện thoại',
                   hint: 'Nhập số điện thoại',
-                  icon: Icons.phone_outlined,
+                  prefixIcon: Icon(Icons.phone_outlined,
+                      size: 20, color: context.colors.textSecondary),
                   keyboardType: TextInputType.phone,
                   textInputAction: TextInputAction.next,
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) {
-                      return 'Vui lòng nhập số điện thoại';
-                    }
-                    if (v.trim().length < 9) {
-                      return 'Số điện thoại không hợp lệ';
-                    }
-                    return null;
-                  },
+                  validator: Validators.phone,
                 ),
                 const SizedBox(height: 16),
-                _InputField(
+                const AppLabel('Mật khẩu'),
+                const SizedBox(height: 8),
+                AppField(
                   controller: _passCtrl,
-                  label: 'Mật khẩu',
                   hint: '••••••••',
-                  icon: Icons.lock_outline_rounded,
+                  prefixIcon: Icon(Icons.lock_outline_rounded,
+                      size: 20, color: context.colors.textSecondary),
                   obscureText: _obscure,
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _submit(),
@@ -147,19 +144,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       color: AppColors.textSecondary,
                     ),
                   ),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) {
-                      return 'Vui lòng nhập mật khẩu';
-                    }
-                    if (v.length < 6) {
-                      return 'Mật khẩu tối thiểu 6 ký tự';
-                    }
-                    return null;
-                  },
+                  validator: Validators.password,
                 ),
                 if (auth.error != null) ...[
                   const SizedBox(height: 16),
-                  GrabErrorBox(auth.error!),
+                  AppErrorBox(auth.error!),
                 ],
               ]),
             ),
@@ -222,96 +211,5 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
       ),
     );
-  }
-}
-
-// ── Input field ───────────────────────────────────────────────────────────────
-
-class _InputField extends StatelessWidget {
-  final TextEditingController controller;
-  final String label, hint;
-  final IconData icon;
-  final bool obscureText;
-  final TextInputType? keyboardType;
-  final TextInputAction? textInputAction;
-  final Widget? suffixIcon;
-  final String? Function(String?)? validator;
-  final void Function(String)? onFieldSubmitted;
-
-  const _InputField({
-    required this.controller,
-    required this.label,
-    required this.hint,
-    required this.icon,
-    this.obscureText = false,
-    this.keyboardType,
-    this.textInputAction,
-    this.suffixIcon,
-    this.validator,
-    this.onFieldSubmitted,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label,
-          style: const TextStyle(
-              fontSize: 13, fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary)),
-      const SizedBox(height: 8),
-      TextFormField(
-        controller: controller,
-        obscureText: obscureText,
-        keyboardType: keyboardType,
-        textInputAction: textInputAction,
-        onFieldSubmitted: onFieldSubmitted,
-        validator: validator,
-        style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(
-              color: AppColors.textSecondary, fontSize: 15),
-          prefixIcon: Padding(
-            padding: const EdgeInsets.only(left: 14, right: 10),
-            child: Icon(icon, size: 20, color: AppColors.textSecondary),
-          ),
-          prefixIconConstraints:
-              const BoxConstraints(minWidth: 0, minHeight: 0),
-          suffixIcon: suffixIcon != null
-              ? Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: suffixIcon)
-              : null,
-          suffixIconConstraints:
-              const BoxConstraints(minWidth: 0, minHeight: 0),
-          filled: true,
-          fillColor: const Color(0xFFF8F8F8),
-          contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16, vertical: 16),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFE8E8E8)),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFE8E8E8)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide:
-                const BorderSide(color: AppColors.primary, width: 1.5),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.danger),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide:
-                const BorderSide(color: AppColors.danger, width: 1.5),
-          ),
-        ),
-      ),
-    ]);
   }
 }

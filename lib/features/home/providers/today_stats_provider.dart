@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
+import '../../../core/utils/formatters.dart';
 
 class TodayStats {
   final int orders, active, revenue;
@@ -18,19 +19,16 @@ class TodayStats {
   factory TodayStats.fromJson(Map<String, dynamic> data) {
     final today = data['today'] as Map<String, dynamic>? ?? {};
     return TodayStats(
-      orders:  _n(today['orders']),
-      active:  _n(data['active']),
-      revenue: _n(today['revenue']),
+      orders:  Fmt.toInt(today['orders']),
+      active:  Fmt.toInt(data['active']),
+      revenue: Fmt.toInt(today['revenue']),
     );
   }
 }
 
-int _n(dynamic v) =>
-    v is num ? v.toInt() : int.tryParse(v?.toString() ?? '0') ?? 0;
-
 final todayStatsProvider =
     FutureProvider.autoDispose<TodayStats>((ref) async {
   final res  = await ref.read(apiClientProvider).get('/shop/orders/stats');
-  final data = (res.data['data'] ?? res.data) as Map<String, dynamic>;
+  final data = unwrap(res) as Map<String, dynamic>;
   return TodayStats.fromJson(data);
 });

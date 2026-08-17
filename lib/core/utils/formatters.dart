@@ -6,6 +6,9 @@ class Fmt {
   static final _dtFmt = DateFormat('dd/MM/yyyy HH:mm');
 
   static String currency(num amount) => '${_vnd.format(amount)}đ';
+
+  static int toInt(dynamic v) =>
+      v is num ? v.toInt() : int.tryParse(v?.toString() ?? '0') ?? 0;
   static String dateTime(DateTime dt) => _dtFmt.format(dt.toLocal());
 
   static String timeAgo(DateTime dt) {
@@ -22,6 +25,7 @@ class Fmt {
       'pending':    'Đang tìm tài xế',
       'assigned':   'Tài xế đã nhận',
       'processing': 'Đang lấy hàng',
+      'on_the_way': 'Đang giao',
       'completed':  'Hoàn thành',
       'cancelled':  'Đã huỷ',
     };

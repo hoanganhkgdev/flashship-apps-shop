@@ -68,7 +68,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: _parseError(e));
+      state = state.copyWith(isLoading: false, error: parseApiError(e));
       return false;
     }
   }
@@ -94,7 +94,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _saveSession(res.data);
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: _parseError(e));
+      state = state.copyWith(isLoading: false, error: parseApiError(e));
       return false;
     }
   }
@@ -109,7 +109,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _saveSession(res.data);
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: _parseError(e));
+      state = state.copyWith(isLoading: false, error: parseApiError(e));
       return false;
     }
   }
@@ -128,13 +128,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
         if (cityId != null)  'city_id': cityId,
       });
       final user = ShopUserModel.fromJson(
-          (res.data['data'] ?? res.data) as Map<String, dynamic>);
+          unwrap(res) as Map<String, dynamic>);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(AppConstants.userKey, jsonEncode(user.toJson()));
       state = state.copyWith(user: user);
       return null;
     } catch (e) {
-      return _parseError(e);
+      return parseApiError(e);
     }
   }
 
@@ -145,13 +145,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
       });
       final res = await _api.post('/shop/auth/avatar', data: formData);
       final user = ShopUserModel.fromJson(
-          (res.data['data'] ?? res.data) as Map<String, dynamic>);
+          unwrap(res) as Map<String, dynamic>);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(AppConstants.userKey, jsonEncode(user.toJson()));
       state = state.copyWith(user: user);
       return null;
     } catch (e) {
-      return _parseError(e);
+      return parseApiError(e);
     }
   }
 
@@ -167,7 +167,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       });
       return null;
     } catch (e) {
-      return _parseError(e);
+      return parseApiError(e);
     }
   }
 
@@ -176,7 +176,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final res = await _api.get('/shop/auth/me');
       final user = ShopUserModel.fromJson(
-          (res.data['data'] ?? res.data) as Map<String, dynamic>);
+          unwrap(res) as Map<String, dynamic>);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(AppConstants.userKey, jsonEncode(user.toJson()));
       state = state.copyWith(user: user, isInitialized: true);
@@ -215,7 +215,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(clearUser: true, isInitialized: true);
       return null;
     } catch (e) {
-      return _parseError(e);
+      return parseApiError(e);
     }
   }
 
@@ -238,28 +238,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (_) {}
   }
 
-  String _parseError(dynamic e) {
-    try {
-      final response = (e as dynamic).response;
-      if (response != null) {
-        final data = response.data;
-        if (data is Map) {
-          final msg = data['message'];
-          if (msg != null) return msg.toString();
-          final errors = data['errors'];
-          if (errors is Map) return errors.values.first.first.toString();
-        }
-        return 'Server lỗi ${response.statusCode}';
-      }
-      final type = (e as dynamic).type?.toString() ?? '';
-      if (type.contains('connectionTimeout') || type.contains('receiveTimeout')) {
-        return 'Timeout: server không phản hồi';
-      }
-      return 'Lỗi kết nối';
-    } catch (_) {
-      return 'Lỗi: $e';
-    }
-  }
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {

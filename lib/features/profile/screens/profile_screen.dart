@@ -6,10 +6,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/theme_mode_provider.dart';
 import '../../legal/legal_page_screen.dart';
-import '../../../core/widgets/grab_widgets.dart';
+import '../../../core/widgets/app_form_widgets.dart';
 import '../../auth/models/shop_user_model.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../auth/providers/cities_provider.dart';
+import '../../auth/widgets/city_picker_sheet.dart';
 import '../providers/support_config_provider.dart';
 import '../../order/providers/order_provider.dart';
 import '../../../core/widgets/address_picker_screen.dart';
@@ -305,9 +306,7 @@ class ProfileScreen extends ConsumerWidget {
     final err =
         await ref.read(authProvider.notifier).uploadAvatar(img.path);
     if (err != null && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(err), backgroundColor: AppColors.danger),
-      );
+      AppSnackbar.error(context, err);
     }
   }
 
@@ -344,11 +343,11 @@ class ProfileScreen extends ConsumerWidget {
                   style: TextStyle(
                       fontSize: 17, fontWeight: FontWeight.w700)),
               const SizedBox(height: 20),
-              const GrabLabel('Tên cửa hàng'),
+              const AppLabel('Tên cửa hàng'),
               const SizedBox(height: 8),
-              GrabField(controller: nameCtrl, hint: 'Tên cửa hàng'),
+              AppField(controller: nameCtrl, hint: 'Tên cửa hàng'),
               const SizedBox(height: 14),
-              const GrabLabel('Địa chỉ'),
+              const AppLabel('Địa chỉ'),
               const SizedBox(height: 8),
               GestureDetector(
                 onTap: () async {
@@ -400,43 +399,14 @@ class ProfileScreen extends ConsumerWidget {
                   data: (cities) => Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const GrabLabel('Khu vực'),
+                      const AppLabel('Khu vực'),
                       const SizedBox(height: 8),
                       GestureDetector(
                         onTap: () async {
-                          final result =
-                              await showModalBottomSheet<CityItem>(
-                            context: ctx,
-                            builder: (sheetCtx) => Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const SizedBox(height: 12),
-                                const Padding(
-                                  padding:
-                                      EdgeInsets.fromLTRB(20, 0, 20, 12),
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Text('Chọn khu vực',
-                                        style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight:
-                                                FontWeight.w800)),
-                                  ),
-                                ),
-                                const Divider(height: 1),
-                                ...cities.map((city) => ListTile(
-                                  title: Text(city.name),
-                                  trailing: city.id == cityId
-                                      ? Icon(Icons.check_rounded,
-                                          color: sheetCtx.colors.primary,
-                                          size: 18)
-                                      : null,
-                                  onTap: () =>
-                                      Navigator.pop(sheetCtx, city),
-                                )),
-                                const SizedBox(height: 8),
-                              ],
-                            ),
+                          final result = await showCityPicker(
+                            ctx,
+                            cities: cities,
+                            selectedId: cityId,
                           );
                           if (result != null) {
                             setSt(() {
@@ -472,7 +442,7 @@ class ProfileScreen extends ConsumerWidget {
                 );
               }),
               const SizedBox(height: 24),
-              GrabButton(
+              AppButton(
                 label: 'Lưu thay đổi',
                 onPressed: () async {
                   Navigator.pop(ctx);
@@ -483,10 +453,7 @@ class ProfileScreen extends ConsumerWidget {
                     cityId:  cityId,
                   );
                   if (err != null && context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(err),
-                          backgroundColor: AppColors.danger),
-                    );
+                    AppSnackbar.error(context, err);
                   }
                 },
               ),
@@ -521,21 +488,21 @@ class ProfileScreen extends ConsumerWidget {
               style: TextStyle(
                   fontSize: 17, fontWeight: FontWeight.w700)),
           const SizedBox(height: 20),
-          const GrabLabel('Mật khẩu hiện tại'),
+          const AppLabel('Mật khẩu hiện tại'),
           const SizedBox(height: 8),
-          GrabField(
+          AppField(
               controller: currCtrl,
               hint: '••••••••',
               obscureText: true),
           const SizedBox(height: 14),
-          const GrabLabel('Mật khẩu mới'),
+          const AppLabel('Mật khẩu mới'),
           const SizedBox(height: 8),
-          GrabField(
+          AppField(
               controller: newCtrl,
               hint: '••••••••',
               obscureText: true),
           const SizedBox(height: 24),
-          GrabButton(
+          AppButton(
             label: 'Xác nhận',
             onPressed: () async {
               Navigator.pop(ctx);
@@ -544,14 +511,11 @@ class ProfileScreen extends ConsumerWidget {
                   .changePassword(
                       current: currCtrl.text, next: newCtrl.text);
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  err == null
-                      ? const SnackBar(
-                          content: Text('Đổi mật khẩu thành công'),
-                          backgroundColor: AppColors.success)
-                      : SnackBar(content: Text(err),
-                          backgroundColor: AppColors.danger),
-                );
+                if (err == null) {
+                  AppSnackbar.success(context, 'Đổi mật khẩu thành công');
+                } else {
+                  AppSnackbar.error(context, err);
+                }
               }
             },
           ),
@@ -620,9 +584,7 @@ class ProfileScreen extends ConsumerWidget {
 
     final err = await ref.read(authProvider.notifier).deleteAccount();
     if (err != null && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(err), backgroundColor: AppColors.danger),
-      );
+      AppSnackbar.error(context, err);
     }
   }
 

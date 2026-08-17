@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../utils/formatters.dart';
 
 // ─── Label ────────────────────────────────────────────────────────────────────
 
-class GrabLabel extends StatelessWidget {
+class AppLabel extends StatelessWidget {
   final String text;
-  const GrabLabel(this.text, {super.key});
+  const AppLabel(this.text, {super.key});
 
   @override
   Widget build(BuildContext context) => Text(
@@ -20,7 +21,7 @@ class GrabLabel extends StatelessWidget {
 
 // ─── Input ────────────────────────────────────────────────────────────────────
 
-class GrabField extends StatelessWidget {
+class AppField extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
   final bool obscureText;
@@ -38,7 +39,7 @@ class GrabField extends StatelessWidget {
   final VoidCallback? onTap;
   final FocusNode? focusNode;
 
-  const GrabField({
+  const AppField({
     super.key,
     required this.controller,
     required this.hint,
@@ -132,9 +133,9 @@ class GrabField extends StatelessWidget {
 
 // ─── Error box ────────────────────────────────────────────────────────────────
 
-class GrabErrorBox extends StatelessWidget {
+class AppErrorBox extends StatelessWidget {
   final String message;
-  const GrabErrorBox(this.message, {super.key});
+  const AppErrorBox(this.message, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -162,12 +163,12 @@ class GrabErrorBox extends StatelessWidget {
 
 // ─── Primary button ───────────────────────────────────────────────────────────
 
-class GrabButton extends StatelessWidget {
+class AppButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
   final bool isLoading;
 
-  const GrabButton({
+  const AppButton({
     super.key,
     required this.label,
     required this.onPressed,
@@ -206,8 +207,8 @@ class GrabButton extends StatelessWidget {
 
 // ─── Logo box ─────────────────────────────────────────────────────────────────
 
-class GrabLogoBox extends StatelessWidget {
-  const GrabLogoBox({super.key});
+class AppLogoBox extends StatelessWidget {
+  const AppLogoBox({super.key});
 
   @override
   Widget build(BuildContext context) => Container(
@@ -225,12 +226,12 @@ class GrabLogoBox extends StatelessWidget {
 
 // ─── Section header ───────────────────────────────────────────────────────────
 
-class GrabSectionHeader extends StatelessWidget {
+class AppSectionHeader extends StatelessWidget {
   final String title;
   final String? action;
   final VoidCallback? onAction;
 
-  const GrabSectionHeader({
+  const AppSectionHeader({
     super.key,
     required this.title,
     this.action,
@@ -268,12 +269,12 @@ class GrabSectionHeader extends StatelessWidget {
 
 // ─── Bottom Nav ───────────────────────────────────────────────────────────────
 
-class GrabBottomNav extends StatelessWidget {
+class AppBottomNav extends StatelessWidget {
   final int selectedIndex;
-  final List<GrabNavItem> items;
+  final List<AppNavItem> items;
   final ValueChanged<int> onTap;
 
-  const GrabBottomNav({
+  const AppBottomNav({
     super.key,
     required this.selectedIndex,
     required this.items,
@@ -328,11 +329,11 @@ class GrabBottomNav extends StatelessWidget {
   }
 }
 
-class GrabNavItem {
+class AppNavItem {
   final IconData icon;
   final IconData activeIcon;
   final String label;
-  const GrabNavItem(
+  const AppNavItem(
       {required this.icon,
       required this.activeIcon,
       required this.label});
@@ -340,14 +341,14 @@ class GrabNavItem {
 
 // ─── Surface Card ─────────────────────────────────────────────────────────────
 
-class GrabCard extends StatelessWidget {
+class AppCard extends StatelessWidget {
   final Widget child;
   final EdgeInsets? padding;
   final EdgeInsets? margin;
   final VoidCallback? onTap;
   final bool elevated;
 
-  const GrabCard({
+  const AppCard({
     super.key,
     required this.child,
     this.padding,
@@ -376,20 +377,102 @@ class GrabCard extends StatelessWidget {
   }
 }
 
+// ─── Snackbar ─────────────────────────────────────────────────────────────────
+
+class AppSnackbar {
+  static void error(BuildContext context, String message, {Duration? duration}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: context.colors.danger,
+      duration: duration ?? const Duration(seconds: 4),
+    ));
+  }
+
+  static void success(BuildContext context, String message, {Duration? duration}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: context.colors.success,
+      duration: duration ?? const Duration(seconds: 4),
+    ));
+  }
+}
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
+
+class AppEmptyState extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final Widget? action;
+  final double boxSize;
+  final BoxShape boxShape;
+  final double boxRadius;
+  final Color? boxColor;
+  final Color? iconColor;
+  final double iconSize;
+  final double titleFontSize;
+  final FontWeight titleWeight;
+  final Color? titleColor;
+
+  const AppEmptyState({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.action,
+    this.boxSize = 72,
+    this.boxShape = BoxShape.rectangle,
+    this.boxRadius = 20,
+    this.boxColor,
+    this.iconColor,
+    this.iconSize = 34,
+    this.titleFontSize = 15,
+    this.titleWeight = FontWeight.w600,
+    this.titleColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Container(
+        width: boxSize,
+        height: boxSize,
+        decoration: BoxDecoration(
+          color: boxColor ?? c.surfaceAlt,
+          shape: boxShape,
+          borderRadius: boxShape == BoxShape.rectangle
+              ? BorderRadius.circular(boxRadius)
+              : null,
+        ),
+        child: Icon(icon, size: iconSize, color: iconColor ?? c.textTertiary),
+      ),
+      SizedBox(height: 14),
+      Text(title,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+              fontSize: titleFontSize,
+              fontWeight: titleWeight,
+              color: titleColor ?? c.textSecondary)),
+      if (subtitle != null) ...[
+        const SizedBox(height: 6),
+        Text(subtitle!,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: c.textSecondary)),
+      ],
+      if (action != null) ...[
+        const SizedBox(height: 20),
+        action!,
+      ],
+    ]);
+  }
+}
+
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
-class GrabStatusBadge extends StatelessWidget {
+class AppStatusBadge extends StatelessWidget {
   final String status;
-  const GrabStatusBadge(this.status, {super.key});
-
-  static const _labels = {
-    'pending':    'Đang tìm tài xế',
-    'assigned':   'Tài xế đã nhận',
-    'processing': 'Đang lấy hàng',
-    'on_the_way': 'Đang giao',
-    'completed':  'Hoàn thành',
-    'cancelled':  'Đã huỷ',
-  };
+  const AppStatusBadge(this.status, {super.key});
 
   static (Color, Color) _colorsFor(String s, Palette c) {
     switch (s) {
@@ -406,7 +489,7 @@ class GrabStatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (fg, bg) = _colorsFor(status, context.colors);
-    final label = _labels[status] ?? status;
+    final label = Fmt.orderStatus(status);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(

@@ -63,3 +63,37 @@ class ApiClient {
 
   Future<Response> delete(String path) => _dio.delete(path);
 }
+
+/// Trích message lỗi từ response API (hỗ trợ cả dạng `message` và
+/// `errors` map của Laravel validation). [fallback] dùng khi không có
+/// response (mất mạng, exception khác) — tuỳ theo ngữ cảnh gọi.
+String parseApiError(dynamic e, {String fallback = 'Lỗi kết nối'}) {
+  try {
+    final response = (e as dynamic).response;
+    if (response != null) {
+      final data = response.data;
+      if (data is Map) {
+        final msg = data['message'];
+        if (msg != null) return msg.toString();
+        final errors = data['errors'];
+        if (errors is Map && errors.isNotEmpty) {
+          final first = errors.values.first;
+          if (first is List && first.isNotEmpty) return first.first.toString();
+        }
+      }
+      return 'Server lỗi ${response.statusCode}';
+    }
+    final type = (e as dynamic).type?.toString() ?? '';
+    if (type.contains('connectionTimeout') || type.contains('receiveTimeout')) {
+      return 'Timeout: server không phản hồi';
+    }
+    return fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+
+/// Bóc `data` khỏi response bọc chuẩn `{ data: ... }`, giữ nguyên nếu
+/// response không theo dạng đó.
+dynamic unwrap(Response res) =>
+    res.data is Map ? (res.data['data'] ?? res.data) : res.data;

@@ -5,10 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../core/widgets/grab_widgets.dart';
+import '../../../core/widgets/app_form_widgets.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../notification/models/notification_item.dart';
 import '../../notification/providers/notification_provider.dart';
+import '../../order/models/cargo_type.dart';
 import '../../order/models/order_model.dart';
 import '../../order/providers/order_provider.dart';
 import '../../order/screens/order_list_screen.dart';
@@ -77,10 +78,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   static const _tabs = [
-    GrabNavItem(icon: Icons.home_outlined,         activeIcon: Icons.home_rounded,         label: 'Trang chủ'),
-    GrabNavItem(icon: Icons.list_alt_outlined,     activeIcon: Icons.list_alt_rounded,     label: 'Đơn hàng'),
-    GrabNavItem(icon: Icons.bar_chart_outlined,    activeIcon: Icons.bar_chart_rounded,    label: 'Thống kê'),
-    GrabNavItem(icon: Icons.storefront_outlined,   activeIcon: Icons.storefront_rounded,   label: 'Cửa hàng'),
+    AppNavItem(icon: Icons.home_outlined,         activeIcon: Icons.home_rounded,         label: 'Trang chủ'),
+    AppNavItem(icon: Icons.list_alt_outlined,     activeIcon: Icons.list_alt_rounded,     label: 'Đơn hàng'),
+    AppNavItem(icon: Icons.bar_chart_outlined,    activeIcon: Icons.bar_chart_rounded,    label: 'Thống kê'),
+    AppNavItem(icon: Icons.storefront_outlined,   activeIcon: Icons.storefront_rounded,   label: 'Cửa hàng'),
   ];
 
   static const _pages = [_DashboardTab(), OrderListScreen(), StatsScreen(), ProfileScreen()];
@@ -91,7 +92,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       backgroundColor: context.colors.background,
       body: IndexedStack(index: tab, children: _pages),
-      bottomNavigationBar: GrabBottomNav(
+      bottomNavigationBar: AppBottomNav(
         selectedIndex: tab,
         items: _tabs,
         onTap: (i) => ref.read(_tabProvider.notifier).state = i,
@@ -470,12 +471,6 @@ class _OrderCard extends StatelessWidget {
   final OrderModel order;
   const _OrderCard({required this.order});
 
-  static const _cargoLabels = {
-    'food':    (Icons.lunch_dining_rounded,   'Đồ ăn'),
-    'flowers': (Icons.local_florist_rounded,  'Hoa / Trái cây'),
-    'parcel':  (Icons.inventory_2_rounded,    'Bưu kiện'),
-  };
-
   Color _statusColor(Palette c) {
     if (order.isCompleted) return c.success;
     if (order.isCancelled) return c.danger;
@@ -486,8 +481,7 @@ class _OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c           = context.colors;
-    final cargo       = _cargoLabels[order.cargoType]
-        ?? (Icons.inventory_2_rounded, 'Bưu kiện');
+    final cargo       = cargoTypeOf(order.cargoType);
     final statusColor = _statusColor(c);
 
     return InkWell(
@@ -513,7 +507,7 @@ class _OrderCard extends StatelessWidget {
               children: [
                 Row(children: [
                   Expanded(
-                    child: Text(cargo.$2,
+                    child: Text(cargo.label,
                         style: TextStyle(fontSize: 15,
                             fontWeight: FontWeight.w700,
                             color: c.textPrimary)),
@@ -645,11 +639,8 @@ class _VoucherCard extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         Clipboard.setData(ClipboardData(text: voucher.code));
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Đã sao chép: ${voucher.code}'),
-          duration: const Duration(seconds: 2),
-          backgroundColor: c.success,
-        ));
+        AppSnackbar.success(context, 'Đã sao chép: ${voucher.code}',
+            duration: const Duration(seconds: 2));
       },
       child: Container(
         width: 200,

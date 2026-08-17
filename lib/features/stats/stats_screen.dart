@@ -3,17 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_client.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
-
-// ─── Helper ──────────────────────────────────────────────────────────────────
-
-int _n(dynamic v) =>
-    v is num ? v.toInt() : int.tryParse(v?.toString() ?? '0') ?? 0;
+import '../order/models/cargo_type.dart';
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 final _statsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   final res = await ref.read(apiClientProvider).get('/shop/orders/stats');
-  return (res.data['data'] ?? res.data) as Map<String, dynamic>;
+  return unwrap(res) as Map<String, dynamic>;
 });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -114,11 +110,11 @@ class _StatsContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c         = context.colors;
-    final total     = _n(stats['total']);
-    final active    = _n(stats['active']);
-    final completed = _n(stats['completed']);
-    final cancelled = _n(stats['cancelled']);
-    final revenue   = _n(stats['revenue']);
+    final total     = Fmt.toInt(stats['total']);
+    final active    = Fmt.toInt(stats['active']);
+    final completed = Fmt.toInt(stats['completed']);
+    final cancelled = Fmt.toInt(stats['cancelled']);
+    final revenue   = Fmt.toInt(stats['revenue']);
     final cargoMap  = stats['by_cargo_type'] is Map
         ? Map<String, dynamic>.from(stats['by_cargo_type'] as Map)
         : <String, dynamic>{};
@@ -223,29 +219,17 @@ class _StatsContent extends StatelessWidget {
               label: 'Theo loại hàng'),
           const SizedBox(height: 10),
           _card(c, Column(children: [
-            _CargoRow(
-              icon: Icons.lunch_dining_rounded,
-              label: 'Đồ ăn',
-              count: _n(cargoMap['food']),
-              color: const Color(0xFFF59E0B),
-              total: completed,
-            ),
-            Divider(height: 1, color: c.divider),
-            _CargoRow(
-              icon: Icons.local_florist_rounded,
-              label: 'Hoa / Trái cây',
-              count: _n(cargoMap['flowers']),
-              color: const Color(0xFFEC4899),
-              total: completed,
-            ),
-            Divider(height: 1, color: c.divider),
-            _CargoRow(
-              icon: Icons.inventory_2_rounded,
-              label: 'Bưu kiện',
-              count: _n(cargoMap['parcel']),
-              color: const Color(0xFF6B7280),
-              total: completed,
-            ),
+            for (final cargo in cargoTypes) ...[
+              if (cargo.key != cargoTypes.first.key)
+                Divider(height: 1, color: c.divider),
+              _CargoRow(
+                icon: cargo.icon,
+                label: cargo.label,
+                count: Fmt.toInt(cargoMap[cargo.key]),
+                color: cargo.color,
+                total: completed,
+              ),
+            ],
           ])),
         ],
 
@@ -408,14 +392,14 @@ class _DailyChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c        = context.colors;
-    final maxCount = daily.map((d) => _n(d['count'])).fold(1, (a, b) => a > b ? a : b);
+    final maxCount = daily.map((d) => Fmt.toInt(d['count'])).fold(1, (a, b) => a > b ? a : b);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Column(
         children: daily.map((d) {
-          final count = _n(d['count']);
-          final rev   = _n(d['revenue']);
+          final count = Fmt.toInt(d['count']);
+          final rev   = Fmt.toInt(d['revenue']);
           final date  = d['date'] as String? ?? '';
           final label = date.length >= 10 ? date.substring(5) : date;
           final ratio = maxCount > 0 ? count / maxCount : 0.0;

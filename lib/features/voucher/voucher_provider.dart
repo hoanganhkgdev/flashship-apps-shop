@@ -13,7 +13,7 @@ class VoucherNotifier extends AsyncNotifier<List<VoucherModel>> {
 
   Future<List<VoucherModel>> _fetch() async {
     final res = await ref.read(apiClientProvider).get('/shop/vouchers');
-    final data = res.data['data'] ?? res.data;
+    final data = unwrap(res);
     return (data as List)
         .map((e) => VoucherModel.fromJson(e as Map<String, dynamic>))
         .toList();

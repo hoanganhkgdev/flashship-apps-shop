@@ -7,11 +7,13 @@ import '../../../core/services/address_search_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/address_picker_screen.dart';
-import '../../../core/widgets/grab_widgets.dart';
+import '../../../core/widgets/app_form_widgets.dart';
 import '../../../core/widgets/map_picker_screen.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../models/cargo_type.dart';
 import '../models/order_model.dart';
 import '../providers/order_provider.dart';
+import '../utils/pricing_request.dart';
 
 // ─── Stop model (local) ───────────────────────────────────────────────────────
 
@@ -63,12 +65,6 @@ class _CreateBatchOrderScreenState
   bool    _submitting = false;
 
   final List<_Stop> _stops = [_Stop()];
-
-  static const _cargos = [
-    ('food',    'Đồ ăn',     Icons.lunch_dining_rounded,  Color(0xFFF59E0B)),
-    ('flowers', 'Hoa',       Icons.local_florist_rounded, Color(0xFFEC4899)),
-    ('parcel',  'Bưu kiện',  Icons.inventory_2_rounded,   Color(0xFF6B7280)),
-  ];
 
   @override
   void initState() {
@@ -156,20 +152,18 @@ class _CreateBatchOrderScreenState
 
     try {
       final api    = ref.read(apiClientProvider);
-      final params = <String, dynamic>{'cargo_type': _cargoType};
-
-      if (_pickupLat != null && stop.lat != null) {
-        params['pickup_lat']   = _pickupLat;
-        params['pickup_lng']   = _pickupLng;
-        params['delivery_lat'] = stop.lat;
-        params['delivery_lng'] = stop.lng;
-      } else {
-        params['pickup_address']   = _pickupAddrCtrl.text;
-        params['delivery_address'] = stop.addressCtrl.text;
-      }
+      final params = buildPricingParams(
+        cargoType: _cargoType,
+        pickupLat: _pickupLat,
+        pickupLng: _pickupLng,
+        deliveryLat: stop.lat,
+        deliveryLng: stop.lng,
+        pickupAddress: _pickupAddrCtrl.text,
+        deliveryAddress: stop.addressCtrl.text,
+      );
 
       final res  = await api.get('/shop/pricing/estimate', params: params);
-      final data = (res.data['data'] ?? res.data) as Map<String, dynamic>;
+      final data = unwrap(res) as Map<String, dynamic>;
 
       if (mounted) {
         setState(() {
@@ -258,7 +252,7 @@ class _CreateBatchOrderScreenState
       });
 
       final order = OrderModel.fromJson(
-          (res.data['data'] ?? res.data) as Map<String, dynamic>);
+          unwrap(res) as Map<String, dynamic>);
       ref.read(orderListProvider.notifier).addOrder(order);
 
       if (mounted) {
@@ -266,16 +260,8 @@ class _CreateBatchOrderScreenState
         context.push('/order/${order.code}');
       }
     } on DioException catch (e) {
-      // data có thể là String (HTML lỗi 502/503) chứ không phải Map — index
-      // thẳng ['message'] sẽ ném NoSuchMethodError, làm mất luôn SnackBar
-      // báo lỗi dù nút bấm vẫn được mở lại nhờ finally.
-      final data = e.response?.data;
-      final msg = (data is Map ? data['message'] as String? : null) ?? 'Có lỗi xảy ra';
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg), backgroundColor: AppColors.danger),
-        );
-      }
+      final msg = parseApiError(e, fallback: 'Có lỗi xảy ra');
+      if (mounted) AppSnackbar.error(context, msg);
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -317,7 +303,7 @@ class _CreateBatchOrderScreenState
                       ),
                     ),
                     const SizedBox(height: 10),
-                    GrabField(
+                    AppField(
                       controller: _pickupPhoneCtrl,
                       hint: 'SĐT lấy hàng',
                       keyboardType: TextInputType.phone,
@@ -333,13 +319,14 @@ class _CreateBatchOrderScreenState
                   color: Colors.white,
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                   child: Row(
-                    children: _cargos.map((c) {
-                      final (key, label, icon, color) = c;
+                    children: cargoTypes.map((c) {
+                      final key = c.key, label = c.label;
+                      final icon = c.icon, color = c.color;
                       final selected = _cargoType == key;
                       return Expanded(
                         child: Padding(
                           padding: EdgeInsets.only(
-                            right: key != _cargos.last.$1 ? 8 : 0,
+                            right: key != cargoTypes.last.key ? 8 : 0,
                           ),
                           child: GestureDetector(
                             onTap: () {
@@ -350,15 +337,7 @@ class _CreateBatchOrderScreenState
                               duration: const Duration(milliseconds: 150),
                               padding: const EdgeInsets.symmetric(
                                   vertical: 10, horizontal: 6),
-                              decoration: BoxDecoration(
-                                color: selected
-                                    ? color.withValues(alpha: 0.08)
-                                    : const Color(0xFFF5F5F5),
-                                borderRadius: BorderRadius.circular(10),
-                                border: selected
-                                    ? Border.all(color: color, width: 1.5)
-                                    : null,
-                              ),
+                              decoration: cargoChipDecoration(selected, color),
                               child: Column(children: [
                                 Icon(icon, size: 20,
                                     color: selected
@@ -423,7 +402,7 @@ class _CreateBatchOrderScreenState
                 Container(
                   color: Colors.white,
                   padding: const EdgeInsets.all(16),
-                  child: GrabField(
+                  child: AppField(
                     controller: _noteCtrl,
                     hint: 'Ghi chú cho tài xế...',
                     maxLines: 2,
@@ -711,20 +690,20 @@ class _StopCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Row(children: [
-                Expanded(child: GrabField(
+                Expanded(child: AppField(
                   controller: stop.phoneCtrl,
                   hint: 'SĐT người nhận *',
                   keyboardType: TextInputType.phone,
                 )),
                 const SizedBox(width: 8),
-                Expanded(child: GrabField(
+                Expanded(child: AppField(
                   controller: stop.nameCtrl,
                   hint: 'Tên người nhận',
                 )),
               ]),
               const SizedBox(height: 8),
               Row(children: [
-                Expanded(child: GrabField(
+                Expanded(child: AppField(
                   controller: stop.codCtrl,
                   hint: 'COD',
                   keyboardType: TextInputType.number,
@@ -733,7 +712,7 @@ class _StopCard extends StatelessWidget {
                           color: AppColors.textSecondary, fontSize: 15)),
                 )),
                 const SizedBox(width: 8),
-                Expanded(child: GrabField(
+                Expanded(child: AppField(
                   controller: stop.noteCtrl,
                   hint: 'Ghi chú',
                 )),

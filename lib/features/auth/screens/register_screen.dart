@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/grab_widgets.dart';
+import '../../../core/utils/validators.dart';
+import '../../../core/widgets/app_form_widgets.dart';
 import '../../../core/widgets/address_autocomplete_field.dart';
 import '../providers/auth_provider.dart';
 import '../providers/cities_provider.dart';
+import '../widgets/city_picker_sheet.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -101,9 +103,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       const SizedBox(height: 32),
 
                       // Tên cửa hàng
-                      const GrabLabel('Tên cửa hàng'),
+                      const AppLabel('Tên cửa hàng'),
                       const SizedBox(height: 8),
-                      GrabField(
+                      AppField(
                         controller: _nameCtrl,
                         hint: 'VD: Shop Thời Trang ABC',
                         textInputAction: TextInputAction.next,
@@ -114,23 +116,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       const SizedBox(height: 20),
 
                       // SĐT
-                      const GrabLabel('Số điện thoại'),
+                      const AppLabel('Số điện thoại'),
                       const SizedBox(height: 8),
-                      GrabField(
+                      AppField(
                         controller: _phoneCtrl,
                         hint: '09xx xxx xxx',
                         keyboardType: TextInputType.phone,
                         textInputAction: TextInputAction.next,
-                        validator: (v) {
-                          if (v == null || v.trim().isEmpty) return 'Vui lòng nhập số điện thoại';
-                          if (v.trim().length < 9) return 'Số điện thoại không hợp lệ';
-                          return null;
-                        },
+                        validator: Validators.phone,
                       ),
                       const SizedBox(height: 20),
 
                       // Khu vực
-                      const GrabLabel('Khu vực hoạt động'),
+                      const AppLabel('Khu vực hoạt động'),
                       const SizedBox(height: 8),
                       citiesAsync.when(
                         loading: () => _cityLoadingBox(),
@@ -145,15 +143,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       const SizedBox(height: 20),
 
                       // Địa chỉ
-                      const GrabLabel('Địa chỉ cửa hàng'),
+                      const AppLabel('Địa chỉ cửa hàng'),
                       const SizedBox(height: 8),
                       _AddressField(controller: _addressCtrl),
                       const SizedBox(height: 20),
 
                       // Mật khẩu
-                      const GrabLabel('Mật khẩu'),
+                      const AppLabel('Mật khẩu'),
                       const SizedBox(height: 8),
-                      GrabField(
+                      AppField(
                         controller: _passCtrl,
                         hint: '••••••••',
                         obscureText: _obscure,
@@ -167,20 +165,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             color: AppColors.textSecondary,
                           ),
                         ),
-                        validator: (v) {
-                          if (v == null || v.isEmpty) return 'Vui lòng nhập mật khẩu';
-                          if (v.length < 6) return 'Mật khẩu tối thiểu 6 ký tự';
-                          return null;
-                        },
+                        validator: Validators.password,
                       ),
 
                       if (auth.error != null) ...[
                         const SizedBox(height: 16),
-                        GrabErrorBox(auth.error!),
+                        AppErrorBox(auth.error!),
                       ],
 
                       const SizedBox(height: 28),
-                      GrabButton(
+                      AppButton(
                         label: 'Gửi mã xác nhận',
                         onPressed: _sendOtp,
                         isLoading: auth.isLoading,
@@ -276,48 +270,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       );
 
   Future<void> _showCityPicker(List<CityItem> cities) async {
-    final result = await showModalBottomSheet<CityItem>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 4),
-          Container(
-            width: 36, height: 4,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE0E0E0),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text('Chọn khu vực hoạt động',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-            ),
-          ),
-          const Divider(height: 1),
-          ...cities.map((city) {
-            final selected = city.id == _selectedCityId;
-            return ListTile(
-              title: Text(city.name,
-                  style: TextStyle(
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                      color: selected ? AppColors.primary : AppColors.textPrimary)),
-              trailing: selected
-                  ? const Icon(Icons.check_rounded, color: AppColors.primary, size: 18)
-                  : null,
-              onTap: () => Navigator.pop(ctx, city),
-            );
-          }),
-          const SizedBox(height: 8),
-        ],
-      ),
+    final result = await showCityPicker(
+      context,
+      cities: cities,
+      selectedId: _selectedCityId,
+      title: 'Chọn khu vực hoạt động',
+      showHandle: true,
+      highlightSelected: true,
     );
     if (result != null) {
       setState(() {

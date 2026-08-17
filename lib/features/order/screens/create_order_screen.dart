@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/services.dart' show rootBundle, TextInputFormatter, FilteringTextInputFormatter, TextInputType;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 import 'package:intl/intl.dart';
@@ -10,32 +11,16 @@ import '../../../core/api/api_client.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../core/widgets/grab_widgets.dart';
+import '../../../core/widgets/app_form_widgets.dart';
 import '../../../core/services/address_search_service.dart';
 import '../../../core/widgets/address_picker_screen.dart';
 import '../../../core/widgets/map_picker_screen.dart';
 import '../../address/providers/address_provider.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../models/cargo_type.dart';
 import '../models/order_model.dart';
 import '../providers/order_provider.dart';
-
-// ─── Cargo types ──────────────────────────────────────────────────────────────
-
-class _Cargo {
-  final String key, label;
-  final IconData icon;
-  final Color color;
-  final bool hasWeight;
-  const _Cargo(this.key, this.label, this.icon, this.color,
-      {this.hasWeight = false});
-}
-
-const _cargos = [
-  _Cargo('food',    'Đồ ăn',       Icons.lunch_dining_rounded,  Color(0xFFF59E0B)),
-  _Cargo('flowers', 'Giỏ hoa',     Icons.local_florist_rounded, Color(0xFFEC4899)),
-  _Cargo('parcel',  'Bưu kiện',    Icons.inventory_2_rounded,   Color(0xFF6B7280),
-      hasWeight: true),
-];
+import '../utils/pricing_request.dart';
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -91,17 +76,34 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   List<Map<String, dynamic>> _nearbyDrivers = [];
 
   late final bool _isOutbound;
+  bool _hasLocationPermission = false;
 
   @override
   void initState() {
     super.initState();
     _isOutbound = widget.isOutbound;
     _loadMarkers();
+    _ensureLocationPermission();
     if (widget.reorderFrom != null) {
       _prefillFromReorder(widget.reorderFrom!);
     } else {
       _prefillFromProfile();
     }
+  }
+
+  // GoogleMap(myLocationEnabled: true) crash nếu chưa có quyền vị trí — app
+  // chưa từng chủ động xin quyền này trước khi vào màn đặt đơn (LocationService
+  // chỉ được gọi từ map picker), nên phải tự xin ở đây trước khi build map.
+  Future<void> _ensureLocationPermission() async {
+    try {
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      final granted = permission == LocationPermission.always ||
+          permission == LocationPermission.whileInUse;
+      if (mounted && granted) setState(() => _hasLocationPermission = true);
+    } catch (_) {}
   }
 
   Future<void> _loadMarkers() async {
@@ -136,8 +138,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       final bytes = await frame.image.toByteData(format: ui.ImageByteFormat.png);
       if (bytes == null) return null;
       return gm.BitmapDescriptor.bytes(bytes.buffer.asUint8List());
-    } catch (e) {
-      debugPrint('[Marker] load $path failed: $e');
+    } catch (_) {
       return null;
     }
   }
@@ -309,22 +310,19 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     setState(() { _loadingFee = true; _fee = null; });
     try {
       // weight từ detail sheet nếu đã điền
-      final p = <String, dynamic>{'cargo_type': _cargoType};
-      if (_cargoWeight != null) {
-        p['cargo_weight'] = _cargoWeight;
-      }
-      if (_pickupLat != null && _deliveryLat != null) {
-        p['pickup_lat']   = _pickupLat;
-        p['pickup_lng']   = _pickupLng;
-        p['delivery_lat'] = _deliveryLat;
-        p['delivery_lng'] = _deliveryLng;
-      } else {
-        p['pickup_address']   = _pickupAddr;
-        p['delivery_address'] = _deliveryAddr;
-      }
+      final p = buildPricingParams(
+        cargoType: _cargoType,
+        cargoWeight: _cargoWeight,
+        pickupLat: _pickupLat,
+        pickupLng: _pickupLng,
+        deliveryLat: _deliveryLat,
+        deliveryLng: _deliveryLng,
+        pickupAddress: _pickupAddr ?? '',
+        deliveryAddress: _deliveryAddr ?? '',
+      );
       final res = await ref.read(apiClientProvider)
           .get('/shop/pricing/estimate', params: p);
-      final data = (res.data['data'] ?? res.data) as Map<String, dynamic>;
+      final data = unwrap(res) as Map<String, dynamic>;
       if (mounted) {
         setState(() {
           _fee            = (data['fee'] as num).toInt();
@@ -481,7 +479,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         if (_voucherCode != null)      'voucher_code':  _voucherCode,
       });
       final order = OrderModel.fromJson(
-          (res.data['data'] ?? res.data) as Map<String, dynamic>);
+          unwrap(res) as Map<String, dynamic>);
       ref.read(orderListProvider.notifier).addOrder(order);
       // Gợi ý lưu địa chỉ nếu có tên + SĐT người nhận và chưa có trong sổ
       if (mounted && _receiverPhone.isNotEmpty && _deliveryAddr != null) {
@@ -548,8 +546,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       }
       if (mounted) context.pushReplacement('/order/${order.code}');
     } catch (e) {
-      String msg = 'Không thể đặt đơn, vui lòng thử lại';
-      try { msg = (e as dynamic).response?.data['message'] ?? msg; } catch (_) {}
+      final msg = parseApiError(e, fallback: 'Không thể đặt đơn, vui lòng thử lại');
       if (mounted) setState(() { _error = msg; _submitting = false; });
     }
   }
@@ -557,7 +554,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   // ── Detail sheet ────────────────────────────────────────────────────────────
 
   Future<void> _openDetailSheet() async {
-    final cargo = _cargos.firstWhere((c) => c.key == _cargoType);
+    final cargo = cargoTypes.firstWhere((c) => c.key == _cargoType);
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -665,7 +662,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
             ),
             markers: _markers,
             polylines: _polylines,
-            myLocationEnabled: true,
+            myLocationEnabled: _hasLocationPermission,
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
             mapToolbarEnabled: false,
@@ -958,7 +955,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
                   // ── Loại hàng + Chi tiết ────────────────────────────────
                   Row(children: [
-                    for (final c in _cargos) ...[
+                    for (final c in cargoTypes) ...[
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
@@ -969,15 +966,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                             duration: const Duration(milliseconds: 150),
                             padding: const EdgeInsets.symmetric(
                                 vertical: 9, horizontal: 4),
-                            decoration: BoxDecoration(
-                              color: _cargoType == c.key
-                                  ? c.color.withValues(alpha: 0.08)
-                                  : const Color(0xFFF5F5F5),
-                              borderRadius: BorderRadius.circular(10),
-                              border: _cargoType == c.key
-                                  ? Border.all(color: c.color, width: 1.5)
-                                  : null,
-                            ),
+                            decoration: cargoChipDecoration(
+                                _cargoType == c.key, c.color),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -1198,7 +1188,7 @@ class _DetailResult {
 // ─── Detail Sheet ─────────────────────────────────────────────────────────────
 
 class _DetailSheet extends StatefulWidget {
-  final _Cargo   cargo;
+  final CargoType cargo;
   final bool     isOutbound;
   final String   receiverPhone, receiverName, senderName, senderPhone;
   final String   note;
@@ -1343,7 +1333,7 @@ class _DetailSheetState extends State<_DetailSheet> {
                     icon: Icons.person_pin_circle_rounded,
                     title: widget.isOutbound ? 'Người nhận' : 'Cửa hàng nhận về',
                     children: [
-                      GrabField(
+                      AppField(
                         controller: _receiverPhoneCtrl,
                         hint: widget.isOutbound
                             ? 'SĐT người nhận *'
@@ -1354,7 +1344,7 @@ class _DetailSheetState extends State<_DetailSheet> {
                             size: 18, color: AppColors.textSecondary),
                       ),
                       const SizedBox(height: 8),
-                      GrabField(
+                      AppField(
                         controller: _receiverNameCtrl,
                         hint: widget.isOutbound
                             ? 'Tên người nhận (tuỳ chọn)'
@@ -1375,7 +1365,7 @@ class _DetailSheetState extends State<_DetailSheet> {
                     children: [
                       Row(children: [
                         Expanded(
-                          child: GrabField(
+                          child: AppField(
                             controller: _senderNameCtrl,
                             hint: widget.isOutbound ? 'Tên cửa hàng' : 'Tên người giao',
                             textInputAction: TextInputAction.next,
@@ -1385,7 +1375,7 @@ class _DetailSheetState extends State<_DetailSheet> {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: GrabField(
+                          child: AppField(
                             controller: _senderPhoneCtrl,
                             hint: widget.isOutbound ? 'SĐT lấy hàng' : 'SĐT liên hệ *',
                             keyboardType: TextInputType.phone,
@@ -1407,7 +1397,7 @@ class _DetailSheetState extends State<_DetailSheet> {
                       iconColor: widget.cargo.color,
                       title: 'Hàng hóa · ${widget.cargo.label}',
                       children: [
-                        GrabField(
+                        AppField(
                           controller: _weightCtrl,
                           hint: 'Số kg (ước lượng)',
                           keyboardType:
@@ -1429,7 +1419,7 @@ class _DetailSheetState extends State<_DetailSheet> {
                     icon: Icons.more_horiz_rounded,
                     title: 'Khác',
                     children: [
-                      GrabField(
+                      AppField(
                         controller: _noteCtrl,
                         hint: 'Ghi chú (về hàng hóa, dặn dò tài xế...)',
                         maxLines: 2,
@@ -1486,7 +1476,7 @@ class _DetailSheetState extends State<_DetailSheet> {
                   ),
 
                   const SizedBox(height: 24),
-                  GrabButton(label: 'Xác nhận', onPressed: _save),
+                  AppButton(label: 'Xác nhận', onPressed: _save),
                 ],
               ),
             ),
@@ -1566,8 +1556,7 @@ class _VoucherSheetState extends ConsumerState<_VoucherSheet> {
       final data = res.data as Map<String, dynamic>;
       if (mounted) Navigator.pop(context, data);
     } catch (e) {
-      String msg = 'Mã giảm giá không hợp lệ';
-      try { msg = (e as dynamic).response?.data['message'] ?? msg; } catch (_) {}
+      final msg = parseApiError(e, fallback: 'Mã giảm giá không hợp lệ');
       if (mounted) setState(() => _error = msg);
     } finally {
       if (mounted) setState(() => _applying = false);
@@ -1608,7 +1597,7 @@ class _VoucherSheetState extends ConsumerState<_VoucherSheet> {
               Expanded(
                 child: SizedBox(
                   height: 44,
-                  child: GrabField(
+                  child: AppField(
                     controller: _codeCtrl,
                     hint: 'Nhập mã giảm giá',
                     textInputAction: TextInputAction.done,

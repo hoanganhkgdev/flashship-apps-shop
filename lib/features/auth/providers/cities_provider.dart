@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/api/api_client.dart';
 import '../../../core/constants/app_constants.dart';
 
 class CityItem {
@@ -13,6 +14,6 @@ class CityItem {
 
 final citiesProvider = FutureProvider<List<CityItem>>((ref) async {
   final res  = await Dio().get('${AppConstants.baseUrl}/cities');
-  final list = (res.data['data'] ?? res.data) as List;
+  final list = unwrap(res) as List;
   return list.cast<Map<String, dynamic>>().map(CityItem.fromJson).toList();
 });

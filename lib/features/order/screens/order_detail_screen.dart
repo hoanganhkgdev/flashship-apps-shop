@@ -14,6 +14,7 @@ import '../../../core/api/api_client.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/app_form_widgets.dart';
 import '../models/order_model.dart';
 import '../providers/order_provider.dart';
 
@@ -112,7 +113,7 @@ class _State extends ConsumerState<OrderDetailScreen>
     final db  = FirebaseDatabase.instanceFor(
         app: FirebaseDatabase.instance.app, databaseURL: dbUrl);
     _locationSub = db
-        .ref('flashship_main/locations/driver_$driverId')
+        .ref('locations/driver_$driverId')
         .onValue
         .listen((event) {
       final data = event.snapshot.value;
@@ -146,7 +147,7 @@ class _State extends ConsumerState<OrderDetailScreen>
       final res = await ref.read(apiClientProvider)
           .get('/shop/orders/${widget.orderCode}');
       final order = OrderModel.fromJson(
-          (res.data['data'] ?? res.data) as Map<String, dynamic>);
+          unwrap(res) as Map<String, dynamic>);
       setState(() { _order = order; _loading = false; });
       if (_activeStatuses.contains(order.status)) _startRTDB();
       if (order.canRate && !_ratingDone && !_hasShownRatingPrompt) {
@@ -162,7 +163,7 @@ class _State extends ConsumerState<OrderDetailScreen>
       final res = await ref.read(apiClientProvider)
           .get('/shop/orders/${widget.orderCode}');
       final order = OrderModel.fromJson(
-          (res.data['data'] ?? res.data) as Map<String, dynamic>);
+          unwrap(res) as Map<String, dynamic>);
       if (!mounted) return;
 
       final prevDriverId = _order?.driver?.id;
@@ -214,10 +215,8 @@ class _State extends ConsumerState<OrderDetailScreen>
       await _fetchOrder();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_parseError(e)),
-              backgroundColor: AppColors.danger),
-        );
+        AppSnackbar.error(context,
+            parseApiError(e, fallback: 'Không thể huỷ đơn. Thử lại sau.'));
       }
     } finally {
       if (mounted) setState(() => _cancelling = false);
@@ -302,14 +301,6 @@ class _State extends ConsumerState<OrderDetailScreen>
         },
       ),
     );
-  }
-
-  String _parseError(dynamic e) {
-    try {
-      final data = (e as dynamic).response?.data;
-      if (data is Map) return data['message']?.toString() ?? 'Lỗi không xác định';
-    } catch (_) {}
-    return 'Không thể huỷ đơn. Thử lại sau.';
   }
 
   @override

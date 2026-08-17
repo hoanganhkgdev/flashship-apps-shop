@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/app_form_widgets.dart';
 import '../models/notification_item.dart';
 import '../providers/notification_provider.dart';
 
@@ -479,24 +480,19 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Center(
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          width: 80, height: 80,
-          decoration: BoxDecoration(
-            color: c.primary.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Icon(Icons.notifications_none_rounded,
-              size: 40, color: c.primary),
-        ),
-        const SizedBox(height: 18),
-        Text('Chưa có thông báo nào',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700,
-                color: c.textPrimary)),
-        const SizedBox(height: 6),
-        Text('Thông báo đơn hàng sẽ xuất hiện tại đây',
-            style: TextStyle(fontSize: 13, color: c.textSecondary)),
-      ]),
+      child: AppEmptyState(
+        icon: Icons.notifications_none_rounded,
+        title: 'Chưa có thông báo nào',
+        titleColor: c.textPrimary,
+        subtitle: 'Thông báo đơn hàng sẽ xuất hiện tại đây',
+        boxSize: 80,
+        boxRadius: 24,
+        boxColor: c.primary.withValues(alpha: 0.08),
+        iconColor: c.primary,
+        iconSize: 40,
+        titleFontSize: 16,
+        titleWeight: FontWeight.w700,
+      ),
     );
   }
 }

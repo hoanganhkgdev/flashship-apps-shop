@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/app_form_widgets.dart';
+import '../models/cargo_type.dart';
 import '../models/order_model.dart';
 import '../providers/order_provider.dart';
 
@@ -279,12 +281,6 @@ class _OrderCard extends StatelessWidget {
   final OrderModel order;
   const _OrderCard({required this.order});
 
-  static const _cargoMeta = {
-    'food':    ('Đồ ăn',          Color(0xFFF59E0B)),
-    'flowers': ('Hoa / Trái cây', Color(0xFFEC4899)),
-    'parcel':  ('Bưu kiện',       Color(0xFF6B7280)),
-  };
-
   static const _serviceMeta = {
     'shop_delivery': ('Giao đến',   Color(0xFF3B82F6)),
     'shop_pickup':   ('Nhận về',    Color(0xFF8B5CF6)),
@@ -307,8 +303,8 @@ class _OrderCard extends StatelessWidget {
     final address = order.isBatch && order.stops.isNotEmpty
         ? '${order.stops.length} điểm · ${order.stops.first['address'] ?? ''}'
         : order.deliveryAddress;
-    final cargo   = _cargoMeta[order.cargoType]
-        ?? ('Bưu kiện', const Color(0xFF6B7280));
+    final cargoMeta = cargoTypeOf(order.cargoType);
+    final cargo   = (cargoMeta.label, cargoMeta.color);
     final service = _serviceMeta[order.shopServiceType]
         ?? ('Giao đến', const Color(0xFF3B82F6));
     final dimmed  = order.isCancelled;
@@ -453,28 +449,15 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
     return Center(
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          width: 72, height: 72,
-          decoration: BoxDecoration(
-            color: c.surfaceAlt,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Icon(Icons.receipt_long_outlined, size: 34, color: c.textTertiary),
-        ),
-        const SizedBox(height: 14),
-        Text(
-          filter == 'active'
-              ? 'Không có đơn đang chạy'
-              : filter == 'all'
-                  ? 'Chưa có đơn hàng nào'
-                  : 'Không có đơn phù hợp',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600,
-              color: c.textSecondary),
-        ),
-      ]),
+      child: AppEmptyState(
+        icon: Icons.receipt_long_outlined,
+        title: filter == 'active'
+            ? 'Không có đơn đang chạy'
+            : filter == 'all'
+                ? 'Chưa có đơn hàng nào'
+                : 'Không có đơn phù hợp',
+      ),
     );
   }
 }

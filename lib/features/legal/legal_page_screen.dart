@@ -40,7 +40,7 @@ class _LegalPageScreenState extends ConsumerState<LegalPageScreen> {
       // Dùng public endpoint /api/pages/{slug}
       final res = await ref.read(apiClientProvider)
           .get('/pages/${widget.slug}');
-      final data    = (res.data['data'] ?? res.data) as Map<String, dynamic>;
+      final data    = unwrap(res) as Map<String, dynamic>;
       final content = data['content'] as String? ?? '';
       final title   = data['title']   as String? ?? widget.title;
 
