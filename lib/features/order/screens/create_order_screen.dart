@@ -15,6 +15,7 @@ import '../../../core/widgets/app_form_widgets.dart';
 import '../../../core/services/address_search_service.dart';
 import '../../../core/widgets/address_picker_screen.dart';
 import '../../../core/widgets/map_picker_screen.dart';
+import '../../address/models/address_entry.dart';
 import '../../address/providers/address_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/cargo_type.dart';
@@ -27,7 +28,16 @@ import '../utils/pricing_request.dart';
 class CreateOrderScreen extends ConsumerStatefulWidget {
   final bool isOutbound;
   final Map<String, dynamic>? reorderFrom;
-  const CreateOrderScreen({super.key, this.isOutbound = true, this.reorderFrom});
+  // Pre-fill địa chỉ giao hàng từ sổ địa chỉ đã lưu (vd: chip "Địa chỉ thường
+  // dùng" ở trang chủ) — khác reorderFrom ở chỗ vẫn giữ auto-fill pickup từ
+  // hồ sơ shop (_prefillFromProfile) thay vì thay thế toàn bộ.
+  final AddressEntry? prefillDelivery;
+  const CreateOrderScreen({
+    super.key,
+    this.isOutbound = true,
+    this.reorderFrom,
+    this.prefillDelivery,
+  });
 
   @override
   ConsumerState<CreateOrderScreen> createState() => _CreateOrderScreenState();
@@ -88,7 +98,38 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       _prefillFromReorder(widget.reorderFrom!);
     } else {
       _prefillFromProfile();
+      if (widget.prefillDelivery != null) {
+        _applyDeliveryPrefill(widget.prefillDelivery!);
+      }
     }
+  }
+
+  // Điền sẵn phía giao hàng từ 1 địa chỉ đã lưu — pickup vẫn do
+  // _prefillFromProfile() phụ trách (chạy trước lệnh này) nên không cần lặp lại.
+  void _applyDeliveryPrefill(AddressEntry entry) {
+    _deliveryAddr      = entry.address;
+    _deliveryPlaceName = entry.displayName;
+    _receiverName      = entry.name;
+    _receiverPhone     = entry.phone;
+    // Chỉ gán tọa độ theo cặp — địa chỉ sổ lưu có thể chỉ có 1 trong 2 (nhập
+    // tay không chọn bản đồ), gán lẻ 1 chiều sẽ khiến _fitCamera()/_markers
+    // (vốn chỉ check null 1 trong 2 rồi unwrap "!" cả cặp) bị crash.
+    if (entry.lat != null && entry.lng != null) {
+      _deliveryLat = entry.lat;
+      _deliveryLng = entry.lng;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _estimate();
+      if (_deliveryLat != null && _deliveryLng != null) {
+        _mapCtrl?.animateCamera(gm.CameraUpdate.newLatLngZoom(
+            gm.LatLng(_deliveryLat!, _deliveryLng!), 14));
+      }
+      if (_pickupLat != null && _pickupLng != null &&
+          _deliveryLat != null && _deliveryLng != null) {
+        _fitCamera();
+      }
+    });
   }
 
   // GoogleMap(myLocationEnabled: true) crash nếu chưa có quyền vị trí — app
@@ -953,7 +994,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
                   const SizedBox(height: 12),
 
-                  // ── Loại hàng + Chi tiết ────────────────────────────────
+                  // ── Loại hàng ────────────────────────────────────────────
                   Row(children: [
                     for (final c in cargoTypes) ...[
                       Expanded(
@@ -992,57 +1033,105 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      if (c.key != cargoTypes.last.key) const SizedBox(width: 6),
                     ],
-                    // Detail button
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: _openDetailSheet,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 9, horizontal: 4),
-                          decoration: BoxDecoration(
-                            color: _showPhoneWarning
-                                ? AppColors.danger.withValues(alpha: 0.08)
-                                : const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(10),
-                            border: _showPhoneWarning
-                                ? Border.all(
-                                    color: AppColors.danger.withValues(alpha: 0.3))
-                                : null,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.edit_note_rounded,
-                                  size: 16,
-                                  color: _showPhoneWarning
-                                      ? AppColors.danger
-                                      : AppColors.textSecondary),
-                              const SizedBox(width: 5),
-                              Text(
-                                _showPhoneWarning ? 'Thêm SĐT' : 'Chi tiết',
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                    color: _showPhoneWarning
-                                        ? AppColors.danger
-                                        : AppColors.textSecondary),
-                              ),
-                              if (_hasDetail && !_showPhoneWarning) ...[
-                                const SizedBox(width: 4),
-                                Container(width: 6, height: 6,
-                                    decoration: const BoxDecoration(
-                                        color: AppColors.primary,
-                                        shape: BoxShape.circle)),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
                   ]),
+
+                  const SizedBox(height: AppSpace.sm),
+
+                  // ── Thông tin người nhận ──────────────────────────────────
+                  GestureDetector(
+                    onTap: _openDetailSheet,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpace.md, vertical: AppSpace.sm + 2),
+                      decoration: BoxDecoration(
+                        color: _showPhoneWarning
+                            ? AppColors.danger.withValues(alpha: 0.08)
+                            : _hasDetail
+                                ? AppColors.primary.withValues(alpha: 0.08)
+                                : const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        border: _showPhoneWarning
+                            ? Border.all(
+                                color: AppColors.danger.withValues(alpha: 0.3))
+                            : null,
+                      ),
+                      child: Row(children: [
+                        Icon(
+                          _showPhoneWarning
+                              ? Icons.error_outline_rounded
+                              : Icons.contact_phone_outlined,
+                          size: 18,
+                          color: _showPhoneWarning
+                              ? AppColors.danger
+                              : _hasDetail
+                                  ? AppColors.primary
+                                  : AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: AppSpace.sm),
+                        Expanded(
+                          child: _showPhoneWarning
+                              // Ưu tiên cao nhất: dù đã có tên/note, thiếu SĐT
+                              // vẫn luôn hiện cảnh báo thay vì trạng thái "đã điền".
+                              ? const Text('Thiếu số điện thoại người nhận',
+                                  style: TextStyle(
+                                      fontSize: 13, fontWeight: FontWeight.w600,
+                                      color: AppColors.danger))
+                              : _hasDetail
+                                  ? Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          [
+                                            if (_receiverName.isNotEmpty) _receiverName,
+                                            _receiverPhone,
+                                          ].join(' · '),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                              fontSize: 13, fontWeight: FontWeight.w700,
+                                              color: AppColors.textPrimary),
+                                        ),
+                                        if (_note.isNotEmpty)
+                                          Text(_note,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: AppColors.textSecondary)),
+                                      ],
+                                    )
+                                  : Row(mainAxisSize: MainAxisSize.min, children: [
+                                      const Text('Thêm thông tin người nhận',
+                                          style: TextStyle(
+                                              fontSize: 13, fontWeight: FontWeight.w600,
+                                              color: AppColors.textSecondary)),
+                                      const SizedBox(width: 3),
+                                      const Text('*',
+                                          style: TextStyle(
+                                              fontSize: 13, fontWeight: FontWeight.w700,
+                                              color: AppColors.danger)),
+                                    ]),
+                        ),
+                        Icon(
+                          _showPhoneWarning
+                              ? Icons.chevron_right_rounded
+                              : _hasDetail
+                                  ? Icons.edit_rounded
+                                  : Icons.chevron_right_rounded,
+                          size: 18,
+                          color: _showPhoneWarning
+                              ? AppColors.danger
+                              : _hasDetail
+                                  ? AppColors.primary
+                                  : AppColors.textSecondary,
+                        ),
+                      ]),
+                    ),
+                  ),
 
                   // ── COD preview ─────────────────────────────────────────
                   if (_codAmount != null && _codAmount! > 0) ...[

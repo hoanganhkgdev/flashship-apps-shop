@@ -6,6 +6,8 @@ import '../../../core/services/notification_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_form_widgets.dart';
+import '../../address/models/address_entry.dart';
+import '../../address/providers/address_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../notification/models/notification_item.dart';
 import '../../notification/providers/notification_provider.dart';
@@ -140,6 +142,9 @@ class _DashboardTab extends ConsumerWidget {
               ),
             ),
 
+            // ── Banner thông báo/khuyến mãi ───────────────────────────────
+            const SliverToBoxAdapter(child: _HomeBannerSection()),
+
             // ── Service cards ────────────────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
@@ -190,6 +195,9 @@ class _DashboardTab extends ConsumerWidget {
               ),
             ),
 
+            // ── Địa chỉ thường dùng ───────────────────────────────────────
+            const SliverToBoxAdapter(child: _FrequentAddressSection()),
+
             // ── Voucher section ──────────────────────────────────────────
             const SliverToBoxAdapter(child: _VoucherSection()),
 
@@ -220,7 +228,7 @@ class _DashboardTab extends ConsumerWidget {
                       ...active.take(5).toList().asMap().entries.map((e) {
                         final i = e.key;
                         return Column(children: [
-                          _OrderCard(order: e.value),
+                          _OrderCard(key: ValueKey(e.value.code), order: e.value),
                           if (i < active.take(5).length - 1)
                             Divider(height: 1, indent: 60, color: c.divider),
                         ]);
@@ -465,13 +473,212 @@ class _ServiceCard extends StatelessWidget {
   }
 }
 
+// ─── Banner thông báo/khuyến mãi ───────────────────────────────────────────────
+// TODO: đang hardcode _homeBanners tĩnh. Khi backend có endpoint thông báo hệ
+// thống (vd GET /shop/announcements), thay bằng 1 provider fetch danh sách rồi
+// truyền vào _HomeBannerSection — widget đã sẵn carousel cho trường hợp >1 banner.
+
+class _BannerItem {
+  final IconData icon;
+  final String   title;
+  final String   subtitle;
+  final String   route;
+  const _BannerItem({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.route,
+  });
+}
+
+const _homeBanners = <_BannerItem>[
+  _BannerItem(
+    icon: Icons.campaign_rounded,
+    title: 'Ưu đãi phí giao hàng tuần này',
+    subtitle: 'Giảm đến 15% cho đơn nội thành, xem chi tiết ngay',
+    route: '/notifications',
+  ),
+];
+
+class _HomeBannerSection extends StatelessWidget {
+  const _HomeBannerSection();
+
+  @override
+  Widget build(BuildContext context) {
+    if (_homeBanners.isEmpty) return const SizedBox.shrink();
+
+    if (_homeBanners.length == 1) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+        child: _BannerCard(item: _homeBanners.first),
+      );
+    }
+
+    return SizedBox(
+      height: 78,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+        itemCount: _homeBanners.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (_, i) => SizedBox(
+          width: MediaQuery.of(context).size.width - 32,
+          child: _BannerCard(item: _homeBanners[i]),
+        ),
+      ),
+    );
+  }
+}
+
+class _BannerCard extends StatelessWidget {
+  final _BannerItem item;
+  const _BannerCard({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return GestureDetector(
+      onTap: () => context.push(item.route),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpace.md),
+        decoration: BoxDecoration(
+          color: c.primarySoft,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        child: Row(children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(color: c.primary, shape: BoxShape.circle),
+            alignment: Alignment.center,
+            child: Icon(item.icon, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: AppSpace.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(item.title,
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
+                        color: c.textPrimary)),
+                const SizedBox(height: 2),
+                Text(item.subtitle,
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12, color: c.textSecondary)),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpace.sm),
+          Icon(Icons.chevron_right_rounded, color: c.primary),
+        ]),
+      ),
+    );
+  }
+}
+
+// ─── Địa chỉ thường dùng ────────────────────────────────────────────────────────
+
+class _FrequentAddressSection extends ConsumerWidget {
+  const _FrequentAddressSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(addressProvider);
+    final c     = context.colors;
+
+    return async.when(
+      loading: () => const SizedBox.shrink(),
+      error:   (_, __) => const SizedBox.shrink(),
+      data: (addresses) {
+        if (addresses.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+              child: Row(children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: c.info.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.location_on_rounded, size: 15, color: c.info),
+                ),
+                const SizedBox(width: 8),
+                Text('Địa chỉ thường dùng',
+                    style: TextStyle(fontSize: 17,
+                        fontWeight: FontWeight.w800, color: c.textPrimary)),
+              ]),
+            ),
+            SizedBox(
+              height: 40,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                itemCount: addresses.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, i) => _AddressChip(entry: addresses[i]),
+              ),
+            ),
+          ]),
+        );
+      },
+    );
+  }
+}
+
+class _AddressChip extends StatelessWidget {
+  final AddressEntry entry;
+  const _AddressChip({required this.entry});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return GestureDetector(
+      onTap: () => context.push('/create-order', extra: entry),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: c.surface,
+          borderRadius: BorderRadius.circular(99),
+          border: Border.all(color: c.divider),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.location_on_rounded, size: 14, color: c.textSecondary),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(entry.displayName,
+                maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                    color: c.textPrimary)),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
 // ─── Order Card (Grab style = customer pattern) ───────────────────────────────
 
 class _OrderCard extends StatelessWidget {
   final OrderModel order;
-  const _OrderCard({required this.order});
+  const _OrderCard({super.key, required this.order});
+
+  // Hệ thống chỉ có 6 status thật (pending/assigned/processing/on_the_way/
+  // completed/cancelled) — không có status riêng cho "giao thất bại" hay "huỷ
+  // chờ xác nhận". Tín hiệu "cần chú ý" khả dụng duy nhất từ dữ liệu hiện có:
+  // đơn còn 'pending' (chưa tìm được tài xế) quá lâu so với lúc tạo.
+  static const _pendingAttentionThreshold = Duration(minutes: 15);
+
+  bool get _needsAttention =>
+      order.status == 'pending' &&
+      DateTime.now().difference(order.createdAt) >= _pendingAttentionThreshold;
 
   Color _statusColor(Palette c) {
+    if (_needsAttention) return c.danger;
     if (order.isCompleted) return c.success;
     if (order.isCancelled) return c.danger;
     if (order.status == 'pending') return c.warning;
@@ -483,70 +690,100 @@ class _OrderCard extends StatelessWidget {
     final c           = context.colors;
     final cargo       = cargoTypeOf(order.cargoType);
     final statusColor = _statusColor(c);
+    final attention   = _needsAttention;
 
     return InkWell(
       onTap: () => context.push('/order/${order.code}'),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        child: IntrinsicHeight(
-          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          // ── Điểm nhấn trạng thái ─────────────────────────────────────
-          Container(
-            width: 4,
-            decoration: BoxDecoration(
-              color: statusColor,
-              borderRadius: BorderRadius.circular(2),
+      child: Stack(children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          child: IntrinsicHeight(
+            child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            // ── Điểm nhấn trạng thái ─────────────────────────────────────
+            Container(
+              width: 4,
+              decoration: BoxDecoration(
+                color: statusColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
-          const SizedBox(width: 14),
+            const SizedBox(width: 14),
 
-          // ── Info ────────────────────────────────────────────────────────
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  Expanded(
-                    child: Text(cargo.label,
-                        style: TextStyle(fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: c.textPrimary)),
-                  ),
-                  Text(Fmt.currency(order.shippingFee),
-                      style: TextStyle(fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: c.textPrimary)),
-                ]),
-                const SizedBox(height: 3),
-                Text(order.deliveryAddress,
-                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 13, color: c.textSecondary)),
-                const SizedBox(height: 6),
-                Row(children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(
-                          alpha: context.isDark ? 0.18 : 0.1),
-                      borderRadius: BorderRadius.circular(6),
+            // ── Info ────────────────────────────────────────────────────────
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    Expanded(
+                      child: Text(cargo.label,
+                          style: TextStyle(fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: c.textPrimary)),
                     ),
-                    child: Text(Fmt.orderStatus(order.status),
-                        style: TextStyle(fontSize: 11,
-                            fontWeight: FontWeight.w600, color: statusColor)),
-                  ),
-                  const Spacer(),
-                  Text(Fmt.timeAgo(order.createdAt),
+                    Text(Fmt.currency(order.shippingFee),
+                        style: TextStyle(fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: c.textPrimary)),
+                  ]),
+                  const SizedBox(height: 3),
+                  Text(order.deliveryAddress,
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          fontSize: 12, color: c.textSecondary)),
-                ]),
-              ],
+                          fontSize: 13, color: c.textSecondary)),
+                  const SizedBox(height: 6),
+                  if (attention) ...[
+                    // ── Dòng cảnh báo thay cho badge trạng thái mặc định ──
+                    Row(children: [
+                      Icon(Icons.error_rounded, size: 14, color: c.danger),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text('Chưa tìm được tài xế — cần kiểm tra lại',
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12,
+                                fontWeight: FontWeight.w600, color: c.danger)),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(Fmt.timeAgo(order.createdAt),
+                          style: TextStyle(
+                              fontSize: 12, color: c.textSecondary)),
+                    ]),
+                  ] else ...[
+                    Row(children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(
+                              alpha: context.isDark ? 0.18 : 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(Fmt.orderStatus(order.status),
+                            style: TextStyle(fontSize: 11,
+                                fontWeight: FontWeight.w600, color: statusColor)),
+                      ),
+                      const Spacer(),
+                      Text(Fmt.timeAgo(order.createdAt),
+                          style: TextStyle(
+                              fontSize: 12, color: c.textSecondary)),
+                    ]),
+                  ],
+                ],
+              ),
+            ),
+          ]),
+          ),
+        ),
+        // ── Chấm tròn báo hiệu ở góc trái ────────────────────────────────
+        if (attention)
+          Positioned(
+            top: 10, left: 10,
+            child: Container(
+              width: 8, height: 8,
+              decoration: BoxDecoration(color: c.danger, shape: BoxShape.circle),
             ),
           ),
-        ]),
-        ),
-      ),
+      ]),
     );
   }
 }

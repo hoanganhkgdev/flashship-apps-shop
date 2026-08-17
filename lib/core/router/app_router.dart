@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../features/address/models/address_entry.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/otp_screen.dart';
@@ -73,6 +74,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           final extra = state.extra;
           if (extra is bool) {
             return CreateOrderScreen(isOutbound: extra);
+          }
+          if (extra is AddressEntry) {
+            return CreateOrderScreen(isOutbound: true, prefillDelivery: extra);
           }
           if (extra is Map<String, dynamic>) {
             return CreateOrderScreen(
