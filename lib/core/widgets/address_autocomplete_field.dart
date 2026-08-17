@@ -8,6 +8,7 @@ class AddressAutocompleteField extends StatefulWidget {
   final TextEditingController controller;
   final String label;
   final String hint;
+  final Color? fillColor;
   final void Function(String address, double? lat, double? lng)? onSelected;
 
   const AddressAutocompleteField({
@@ -15,6 +16,7 @@ class AddressAutocompleteField extends StatefulWidget {
     required this.controller,
     required this.label,
     this.hint = 'Nhập địa chỉ...',
+    this.fillColor,
     this.onSelected,
   });
 
@@ -186,6 +188,8 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
             decoration: InputDecoration(
               hintText: widget.hint,
               hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+              filled: widget.fillColor != null ? true : null,
+              fillColor: widget.fillColor,
               prefixIcon: _searching
                   ? const Padding(
                       padding: EdgeInsets.all(12),

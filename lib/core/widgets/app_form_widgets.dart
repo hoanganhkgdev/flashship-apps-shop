@@ -38,6 +38,7 @@ class AppField extends StatelessWidget {
   final bool readOnly;
   final VoidCallback? onTap;
   final FocusNode? focusNode;
+  final Color? fillColor;
 
   const AppField({
     super.key,
@@ -57,6 +58,7 @@ class AppField extends StatelessWidget {
     this.readOnly = false,
     this.onTap,
     this.focusNode,
+    this.fillColor,
   });
 
   @override
@@ -102,7 +104,7 @@ class AppField extends StatelessWidget {
         suffixIconConstraints:
             const BoxConstraints(minWidth: 40, minHeight: 40),
         filled: true,
-        fillColor: c.surfaceAlt,
+        fillColor: fillColor ?? c.surfaceAlt,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
         border: OutlineInputBorder(
