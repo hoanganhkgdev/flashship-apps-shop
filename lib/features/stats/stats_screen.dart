@@ -7,7 +7,21 @@ import '../order/models/cargo_type.dart';
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
-final _statsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+final _statsPeriodProvider = StateProvider<String>((ref) => 'week');
+
+const _periods = [
+  ('today', 'Hôm nay'),
+  ('week',  'Tuần này'),
+  ('month', 'Tháng này'),
+];
+
+final _statsProvider =
+    FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, period) async {
+  // TODO: backend GET /shop/orders/stats (Modules/Shop/app/Http/Controllers/
+  // OrderController.php:51) chưa nhận tham số khoảng thời gian — hiện luôn trả
+  // dữ liệu all-time + "daily" cố định 7 ngày gần nhất, `period` không ảnh
+  // hưởng kết quả. Khi backend hỗ trợ (vd ?period=today|week|month), đổi dòng
+  // dưới thành: .get('/shop/orders/stats', params: {'period': period}).
   final res = await ref.read(apiClientProvider).get('/shop/orders/stats');
   return unwrap(res) as Map<String, dynamic>;
 });
@@ -19,8 +33,9 @@ class StatsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c         = context.colors;
-    final statsAsync = ref.watch(_statsProvider);
+    final c          = context.colors;
+    final period     = ref.watch(_statsPeriodProvider);
+    final statsAsync = ref.watch(_statsProvider(period));
 
     return Scaffold(
       backgroundColor: c.background,
@@ -48,7 +63,7 @@ class StatsScreen extends ConsumerWidget {
                         child: CircularProgressIndicator(strokeWidth: 2,
                             color: c.primary))
                     : GestureDetector(
-                        onTap: () => ref.invalidate(_statsProvider),
+                        onTap: () => ref.invalidate(_statsProvider(period)),
                         child: Container(
                           width: 36, height: 36,
                           decoration: BoxDecoration(
@@ -62,6 +77,55 @@ class StatsScreen extends ConsumerWidget {
               ]),
             ),
 
+            // ── Bộ lọc khoảng thời gian ─────────────────────────────────
+            Container(
+              color: c.surface,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  color: c.surfaceAlt,
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                padding: const EdgeInsets.all(3),
+                child: Row(
+                  children: _periods.map((p) {
+                    final selected = period == p.$1;
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () =>
+                            ref.read(_statsPeriodProvider.notifier).state = p.$1,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          decoration: BoxDecoration(
+                            color: selected ? c.surface : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: selected
+                                ? [BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.06),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 1))]
+                                : null,
+                          ),
+                          child: Center(
+                            child: Text(p.$2,
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: selected
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: selected
+                                        ? c.primary
+                                        : c.textSecondary)),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+
             // ── Content ─────────────────────────────────────────────────
             Expanded(
               child: statsAsync.when(
@@ -70,7 +134,7 @@ class StatsScreen extends ConsumerWidget {
                         color: c.primary, strokeWidth: 2)),
                 error: (_, __) => RefreshIndicator(
                   color: c.primary,
-                  onRefresh: () async => ref.invalidate(_statsProvider),
+                  onRefresh: () async => ref.invalidate(_statsProvider(period)),
                   child: ListView(children: [
                     const SizedBox(height: 120),
                     Center(child: Container(
@@ -90,7 +154,7 @@ class StatsScreen extends ConsumerWidget {
                 ),
                 data: (stats) => RefreshIndicator(
                   color: c.primary,
-                  onRefresh: () async => ref.invalidate(_statsProvider),
+                  onRefresh: () async => ref.invalidate(_statsProvider(period)),
                   child: _StatsContent(stats: stats),
                 ),
               ),
@@ -389,87 +453,64 @@ class _DailyChart extends StatelessWidget {
   final List<dynamic> daily;
   const _DailyChart({required this.daily});
 
+  static const _chartHeight = 110.0;
+
   @override
   Widget build(BuildContext context) {
     final c        = context.colors;
     final maxCount = daily.map((d) => Fmt.toInt(d['count'])).fold(1, (a, b) => a > b ? a : b);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Column(
+      padding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: daily.map((d) {
           final count = Fmt.toInt(d['count']);
-          final rev   = Fmt.toInt(d['revenue']);
           final date  = d['date'] as String? ?? '';
           final label = date.length >= 10 ? date.substring(5) : date;
           final ratio = maxCount > 0 ? count / maxCount : 0.0;
+          final isMax = count > 0 && count == maxCount;
+          final barHeight = (ratio.clamp(0.0, 1.0) * _chartHeight).clamp(4.0, _chartHeight);
 
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Row(children: [
-              // Date label
-              SizedBox(
-                width: 40,
-                child: Text(label,
-                    style: TextStyle(fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: c.textSecondary)),
-              ),
-              const SizedBox(width: 8),
-
-              // Bar
-              Expanded(
-                child: Stack(children: [
-                  Container(
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: c.surfaceAlt,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  // Số đơn — chỉ hiện trên cột cao nhất để tránh rối
+                  SizedBox(
+                    height: 16,
+                    child: isMax
+                        ? Text('$count',
+                            style: TextStyle(fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: c.primary))
+                        : null,
                   ),
-                  FractionallySizedBox(
-                    widthFactor: ratio.clamp(0.02, 1.0),
-                    child: Container(
-                      height: 24,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            c.primary,
-                            c.primary.withValues(alpha: 0.7),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(6),
+                  const SizedBox(height: 4),
+
+                  // Cột
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    height: barHeight,
+                    decoration: BoxDecoration(
+                      color: isMax ? c.primary : c.surfaceAlt,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(6),
+                        topRight: Radius.circular(6),
                       ),
                     ),
                   ),
-                ]),
-              ),
-              const SizedBox(width: 10),
+                  const SizedBox(height: 8),
 
-              // Count
-              SizedBox(
-                width: 44,
-                child: Text('$count đơn',
-                    textAlign: TextAlign.right,
-                    style: TextStyle(fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: count == maxCount
-                            ? c.primary
-                            : c.textPrimary)),
+                  // Nhãn ngày
+                  Text(label,
+                      style: TextStyle(fontSize: 10, color: c.textSecondary)),
+                ],
               ),
-
-              // Revenue (nếu có)
-              if (rev > 0) ...[
-                const SizedBox(width: 6),
-                SizedBox(
-                  width: 68,
-                  child: Text(Fmt.currency(rev),
-                      textAlign: TextAlign.right,
-                      style: TextStyle(fontSize: 10,
-                          color: c.textSecondary)),
-                ),
-              ],
-            ]),
+            ),
           );
         }).toList(),
       ),
