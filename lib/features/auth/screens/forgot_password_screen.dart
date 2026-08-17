@@ -5,6 +5,7 @@ import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_form_widgets.dart';
+import '../../../core/widgets/step_progress_bar.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -104,6 +105,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               ),
             ),
             const SizedBox(height: 32),
+
+            // ── Chỉ báo 2 bước ────────────────────────────────────────
+            StepProgressBar(currentStep: _step2 ? 2 : 1, totalSteps: 2),
+            const SizedBox(height: 24),
 
             // ── Icon ─────────────────────────────────────────────────
             Container(

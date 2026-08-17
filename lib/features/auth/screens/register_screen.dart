@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_form_widgets.dart';
 import '../../../core/widgets/address_autocomplete_field.dart';
+import '../../../core/widgets/step_progress_bar.dart';
 import '../providers/auth_provider.dart';
 import '../providers/cities_provider.dart';
 import '../widgets/city_picker_sheet.dart';
@@ -85,45 +86,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
 
             // Thanh tiến trình 2 bước — đang ở bước 1/2
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
+            const Padding(
+              padding: EdgeInsets.fromLTRB(
                   AppSpace.xl, 0, AppSpace.xl, AppSpace.sm),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(99),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpace.xs),
-                        Expanded(
-                          child: Container(
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: c.surfaceAlt,
-                              borderRadius: BorderRadius.circular(99),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: AppSpace.md),
-                  Text('Bước 1/2',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: c.textSecondary,
-                      )),
-                ],
-              ),
+              child: StepProgressBar(currentStep: 1, totalSteps: 2),
             ),
 
             Expanded(

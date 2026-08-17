@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_form_widgets.dart';
+import '../../../core/widgets/step_progress_bar.dart';
 import '../providers/auth_provider.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
@@ -95,7 +96,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpace.sm),
+                    const StepProgressBar(currentStep: 2, totalSteps: 2),
+                    const SizedBox(height: AppSpace.xl),
                     const Text('Xác nhận OTP',
                         style: TextStyle(
                             fontSize: 26,
@@ -189,35 +192,45 @@ class _OtpBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return SizedBox(
       width: 46,
-      child: TextFormField(
-        controller: controller,
-        focusNode:  focusNode,
-        maxLength:  1,
-        textAlign:  TextAlign.center,
-        keyboardType: TextInputType.number,
-        style: const TextStyle(
-            fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-        decoration: InputDecoration(
-          counterText: '',
-          filled: true,
-          fillColor: const Color(0xFFF5F5F5),
-          contentPadding: const EdgeInsets.symmetric(vertical: 14),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColors.primary, width: 2),
-          ),
-        ),
-        onChanged: onChanged,
+      // Lắng nghe controller để đổi fillColor khi người dùng gõ — TextFormField
+      // tự vẽ lại text/border theo focus, nhưng không tự rebuild widget cha khi
+      // text đổi nên cần AnimatedBuilder để cập nhật màu "đã nhập".
+      child: AnimatedBuilder(
+        animation: controller,
+        builder: (context, _) {
+          final hasValue = controller.text.isNotEmpty;
+          return TextFormField(
+            controller: controller,
+            focusNode:  focusNode,
+            maxLength:  1,
+            textAlign:  TextAlign.center,
+            keyboardType: TextInputType.number,
+            style: const TextStyle(
+                fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            decoration: InputDecoration(
+              counterText: '',
+              filled: true,
+              fillColor: hasValue ? c.primarySoft : c.surfaceAlt,
+              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+              ),
+            ),
+            onChanged: onChanged,
+          );
+        },
       ),
     );
   }
