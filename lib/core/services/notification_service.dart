@@ -46,6 +46,12 @@ class NotificationService {
 
   static StreamSubscription<RemoteMessage>? _onMessageSub;
   static StreamSubscription<RemoteMessage>? _onOpenedSub;
+  static StreamSubscription<String>? _onTokenRefreshSub;
+
+  // Gán từ bên ngoài (AuthNotifier) để đăng ký lại token với backend khi
+  // Firebase xoay vòng FCM token — trước đây chỉ đăng ký 1 lần lúc login nên
+  // token cũ hết hiệu lực là mất push vĩnh viễn cho tới lần đăng nhập kế tiếp.
+  static void Function(String newToken)? onTokenRefresh;
 
   static final _statusController = StreamController<String>.broadcast();
   static Stream<String> get orderStatusStream => _statusController.stream;
@@ -61,6 +67,10 @@ class NotificationService {
     _onMessageSub = FirebaseMessaging.onMessage.listen(_onMessage);
     _onOpenedSub?.cancel();
     _onOpenedSub = FirebaseMessaging.onMessageOpenedApp.listen(_onTap);
+    _onTokenRefreshSub?.cancel();
+    _onTokenRefreshSub = FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+      onTokenRefresh?.call(newToken);
+    });
 
     try {
       final initial = await FirebaseMessaging.instance

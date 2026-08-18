@@ -70,6 +70,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     NotificationService.onOrderTap = (code) {
       if (mounted) context.push('/order/$code');
     };
+    // Firebase xoay vòng FCM token định kỳ — đăng ký lại với backend ngay khi
+    // đổi, tránh trường hợp backend giữ token cũ đã hết hiệu lực.
+    NotificationService.onTokenRefresh = (newToken) {
+      ref.read(authProvider.notifier).updateFcmToken(newToken);
+    };
   }
 
   @override

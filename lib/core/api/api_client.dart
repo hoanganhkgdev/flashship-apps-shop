@@ -4,8 +4,23 @@ import 'package:dio/io.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
+import 'session_expired_notifier.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
+
+// 401 ở các endpoint này là lỗi nghiệp vụ bình thường (sai mật khẩu, OTP hết
+// hạn...), không phải phiên đăng nhập hết hạn — không bắn SessionExpiredNotifier.
+// '/shop/auth/logout' cũng loại trừ: gọi logout khi token đã chết vẫn hợp lệ,
+// 401 ở đó không mang thêm thông tin gì và tránh vòng lặp lại tự kích hoạt
+// luồng hết phiên ngay trong lúc đang xử lý logout.
+const _sessionExemptPaths = {
+  '/shop/auth/login',
+  '/shop/auth/send-otp',
+  '/shop/auth/verify-otp-register',
+  '/shop/auth/forgot-password',
+  '/shop/auth/reset-password',
+  '/shop/auth/logout',
+};
 
 class ApiClient {
   late final Dio _dio;
@@ -29,7 +44,14 @@ class ApiClient {
         }
         handler.next(options);
       },
-      onError: (error, handler) => handler.next(error),
+      onError: (error, handler) {
+        final path = error.requestOptions.path;
+        if (error.response?.statusCode == 401 &&
+            !_sessionExemptPaths.contains(path)) {
+          SessionExpiredNotifier.notify();
+        }
+        handler.next(error);
+      },
     ));
   }
 

@@ -231,13 +231,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> _registerFcmToken() async {
-    try {
-      final fcmToken = await NotificationService.getToken();
-      if (fcmToken == null) return;
-      await _api.post('/shop/auth/fcm-token', data: {'fcm_token': fcmToken});
-    } catch (_) {}
+    final fcmToken = await NotificationService.getToken();
+    if (fcmToken == null) return;
+    await updateFcmToken(fcmToken);
   }
 
+  // Gọi lại khi NotificationService.onTokenRefresh báo Firebase đã xoay vòng
+  // token — nhận thẳng token mới thay vì tự getToken() lại.
+  Future<void> updateFcmToken(String token) async {
+    if (state.token == null) return; // chưa đăng nhập thì bỏ qua
+    try {
+      await _api.post('/shop/auth/fcm-token', data: {'fcm_token': token});
+    } catch (_) {}
+  }
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {

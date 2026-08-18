@@ -1,13 +1,16 @@
+import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'core/api/api_client.dart';
+import 'core/api/session_expired_notifier.dart';
 import 'core/router/app_router.dart';
 import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_mode_provider.dart';
+import 'core/widgets/app_form_widgets.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/order/providers/order_provider.dart';
 import 'features/version/providers/app_version_provider.dart';
@@ -41,6 +44,8 @@ class _FlashShipShopAppState extends ConsumerState<FlashShipShopApp>
     with WidgetsBindingObserver {
 
   bool _forceDialogShown = false;
+  bool _handlingSessionExpired = false;
+  StreamSubscription<void>? _sessionExpiredSub;
 
   @override
   void initState() {
@@ -49,12 +54,39 @@ class _FlashShipShopAppState extends ConsumerState<FlashShipShopApp>
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await NotificationService.init();
     });
+    _sessionExpiredSub =
+        SessionExpiredNotifier.stream.listen((_) => _onSessionExpired());
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _sessionExpiredSub?.cancel();
     super.dispose();
+  }
+
+  // Xử lý tập trung khi bất kỳ API call nào trả 401 ngoài các endpoint auth
+  // loại trừ (xem _sessionExemptPaths trong api_client.dart) — tự đăng xuất,
+  // báo cho user, điều hướng về /login. Guard 2 lớp: _handlingSessionExpired
+  // chặn nhiều 401 gần như đồng thời (vd nhiều request song song lúc app vừa
+  // resume) xử lý trùng lặp; kiểm tra isAuthenticated chặn các 401 lặp lại
+  // SAU khi đã đăng xuất (lúc đó không còn token nên request nào cũng 401).
+  Future<void> _onSessionExpired() async {
+    if (_handlingSessionExpired) return;
+    if (!ref.read(authProvider).isAuthenticated) return;
+    _handlingSessionExpired = true;
+    try {
+      await ref.read(authProvider.notifier).logout();
+      final ctx = appNavigatorKey.currentContext;
+      if (ctx != null && ctx.mounted) {
+        AppSnackbar.error(ctx, 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại');
+      }
+      // _AuthListenable trong app_router.dart đã tự redirect về /login khi
+      // authProvider đổi trạng thái — gọi thêm ở đây cho tường minh/chắc chắn.
+      ref.read(routerProvider).go('/login');
+    } finally {
+      _handlingSessionExpired = false;
+    }
   }
 
   @override
