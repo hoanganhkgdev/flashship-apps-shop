@@ -10,10 +10,10 @@ import '../../../core/widgets/address_picker_screen.dart';
 import '../../../core/widgets/app_form_widgets.dart';
 import '../../../core/widgets/map_picker_screen.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../voucher/widgets/voucher_sheet.dart';
 import '../models/cargo_type.dart';
 import '../models/order_model.dart';
 import '../providers/order_provider.dart';
-import '../utils/pricing_request.dart';
 
 // ─── Stop model (local) ───────────────────────────────────────────────────────
 
@@ -68,9 +68,24 @@ class _CreateBatchOrderScreenState
   String  _cargoType = 'food';
   bool    _submitting = false;
 
+  final _weightCtrl = TextEditingController();
+
+  String? _voucherCode;
+  String? _voucherLabel;
+  int?    _voucherDiscount;
+
   final List<_Stop> _stops = [_Stop()];
   // Id của _Stop đang mở rộng để nhập liệu — null nghĩa là tất cả đang thu gọn.
   String? _expandedStopId;
+
+  // Cân nặng chỉ áp dụng khi loại hàng hiện tại có hasWeight (bưu kiện) — nếu
+  // người dùng từng gõ cân nặng rồi đổi sang loại khác, không để giá trị cũ
+  // âm thầm lọt vào estimate/submit của loại hàng không liên quan.
+  double? get _cargoWeight {
+    if (!cargoTypeOf(_cargoType).hasWeight) return null;
+    final t = _weightCtrl.text.trim();
+    return t.isEmpty ? null : double.tryParse(t.replaceAll(',', '.'));
+  }
 
   @override
   void initState() {
@@ -105,6 +120,7 @@ class _CreateBatchOrderScreenState
     _pickupAddrCtrl.dispose();
     _pickupPhoneCtrl.dispose();
     _noteCtrl.dispose();
+    _weightCtrl.dispose();
     for (final s in _stops) { s.dispose(); }
     super.dispose();
   }
@@ -140,47 +156,71 @@ class _CreateBatchOrderScreenState
       _stops[index].lat = result.lat;
       _stops[index].lng = result.lng;
     });
-    _estimateStop(index);
+    _estimateAll();
   }
 
   // ── Estimate ────────────────────────────────────────────────────────────
 
+  // Gọi 1 lần /shop/pricing/estimate-batch cho toàn bộ điểm giao thay vì lặp
+  // /shop/pricing/estimate cho từng điểm — khớp với cách OrderController::
+  // storeBatch tính phí (1 lượt tính cho cả đơn), tránh N request rời rạc.
   Future<void> _estimateAll() async {
-    await Future.wait([
-      for (var i = 0; i < _stops.length; i++) _estimateStop(i),
-    ]);
-  }
+    final pickupAddr = _pickupAddrCtrl.text.trim();
+    if (pickupAddr.isEmpty) return;
+    final validStops = _stops.where((s) => s.addressCtrl.text.trim().isNotEmpty).toList();
+    if (validStops.isEmpty) return;
 
-  Future<void> _estimateStop(int index) async {
-    final stop = _stops[index];
-    if (_pickupAddrCtrl.text.isEmpty || stop.addressCtrl.text.isEmpty) return;
+    // Lưu tổng phí cũ TRƯỚC khi set fee = null cho trạng thái loading — dùng
+    // so sánh xem phí có thực sự đổi để quyết định có cần gỡ voucher không.
+    final oldTotalFee = _totalFee;
 
-    setState(() { stop.estimating = true; stop.fee = null; });
+    setState(() {
+      for (final s in validStops) { s.estimating = true; s.fee = null; }
+    });
 
     try {
-      final api    = ref.read(apiClientProvider);
-      final params = buildPricingParams(
-        cargoType: _cargoType,
-        pickupLat: _pickupLat,
-        pickupLng: _pickupLng,
-        deliveryLat: stop.lat,
-        deliveryLng: stop.lng,
-        pickupAddress: _pickupAddrCtrl.text,
-        deliveryAddress: stop.addressCtrl.text,
-      );
-
-      final res  = await api.get('/shop/pricing/estimate', params: params);
-      final data = unwrap(res) as Map<String, dynamic>;
+      final api = ref.read(apiClientProvider);
+      final res = await api.post('/shop/pricing/estimate-batch', data: {
+        'cargo_type': _cargoType,
+        if (_pickupLat != null) 'pickup_lat': _pickupLat,
+        if (_pickupLng != null) 'pickup_lng': _pickupLng,
+        'pickup_address': pickupAddr,
+        'stops': validStops.map((s) => {
+          'address': s.addressCtrl.text.trim(),
+          if (s.lat != null) 'lat': s.lat,
+          if (s.lng != null) 'lng': s.lng,
+          if (_cargoWeight != null) 'cargo_weight': _cargoWeight,
+        }).toList(),
+      });
+      final data    = unwrap(res) as Map<String, dynamic>;
+      final results = (data['stops'] as List).cast<Map<String, dynamic>>();
 
       if (mounted) {
+        final newTotalFee = (data['total_fee'] as num).toInt();
+        final shouldRemoveVoucher = _voucherCode != null && newTotalFee != oldTotalFee;
+
         setState(() {
-          stop.fee        = (data['fee'] as num).toInt();
-          stop.distanceKm = (data['distance_km'] as num?)?.toDouble();
-          stop.estimating = false;
+          for (var i = 0; i < validStops.length && i < results.length; i++) {
+            validStops[i].fee        = (results[i]['fee'] as num).toInt();
+            validStops[i].distanceKm = (results[i]['distance_km'] as num?)?.toDouble();
+            validStops[i].estimating = false;
+          }
+          if (shouldRemoveVoucher) _removeVoucher();
         });
+
+        if (shouldRemoveVoucher) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Phí đơn đã thay đổi, mã giảm giá đã được gỡ — vui lòng áp lại nếu cần.'),
+          ));
+        }
       }
     } catch (_) {
-      if (mounted) setState(() { stop.estimating = false; });
+      if (mounted) {
+        setState(() {
+          for (final s in validStops) { s.estimating = false; }
+        });
+      }
     }
   }
 
@@ -215,6 +255,36 @@ class _CreateBatchOrderScreenState
   }
 
   int get _totalFee => _stops.fold(0, (s, st) => s + (st.fee ?? 0));
+
+  int get _finalFee =>
+      (_totalFee - (_voucherDiscount ?? 0)).clamp(0, _totalFee);
+
+  // ── Voucher ─────────────────────────────────────────────────────────────
+
+  Future<void> _openVoucherSheet() async {
+    if (_totalFee == 0) return;
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => VoucherSheet(fee: _totalFee),
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _voucherCode     = result['code'] as String;
+        _voucherLabel    = result['discount_label'] as String?;
+        _voucherDiscount = (result['discount'] as num).toInt();
+      });
+    }
+  }
+
+  void _removeVoucher() {
+    _voucherCode     = null;
+    _voucherLabel    = null;
+    _voucherDiscount = null;
+  }
 
   // ── Submit ────────────────────────────────────────────────────────────────
 
@@ -270,8 +340,10 @@ class _CreateBatchOrderScreenState
         'pickup_phone':   _pickupPhoneCtrl.text.trim(),
         'order_note':     _noteCtrl.text.trim(),
         'cargo_type':     _cargoType,
-        if (_pickupLat != null) 'pickup_lat': _pickupLat,
-        if (_pickupLng != null) 'pickup_lng': _pickupLng,
+        if (_pickupLat != null)   'pickup_lat':   _pickupLat,
+        if (_pickupLng != null)   'pickup_lng':   _pickupLng,
+        if (_cargoWeight != null) 'cargo_weight': _cargoWeight,
+        if (_voucherCode != null) 'voucher_code': _voucherCode,
         'stops': stops,
       });
 
@@ -385,6 +457,27 @@ class _CreateBatchOrderScreenState
                   ),
                 ),
 
+                // Cân nặng chung — chỉ hiện khi loại hàng có hasWeight (bưu kiện)
+                if (cargoTypeOf(_cargoType).hasWeight) ...[
+                  const SizedBox(height: 1),
+                  Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: AppField(
+                      controller: _weightCtrl,
+                      hint: 'Khối lượng cả đơn (ước lượng)',
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      prefixIcon: const Icon(Icons.scale_outlined,
+                          size: 18, color: AppColors.textSecondary),
+                      suffix: const Text('kg',
+                          style: TextStyle(
+                              color: AppColors.textSecondary, fontSize: 13)),
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _estimateAll(),
+                    ),
+                  ),
+                ],
+
                 const SizedBox(height: 8),
 
                 // ── Stops ──────────────────────────────────────────────
@@ -408,7 +501,7 @@ class _CreateBatchOrderScreenState
                             _expandedStopId == stop.id ? null : stop.id;
                       }),
                       onPickAddress: () => _pickStopAddress(i),
-                      onAddressChanged: (_) => _estimateStop(i),
+                      onAddressChanged: (_) => _estimateAll(),
                       onRemove: () => _removeStop(i),
                     );
                   },
@@ -459,15 +552,74 @@ class _CreateBatchOrderScreenState
             padding: EdgeInsets.fromLTRB(
                 16, 12, 16, MediaQuery.of(context).padding.bottom + 12),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
+              // ── Voucher ─────────────────────────────────────────────
+              if (_voucherCode != null)
+                GestureDetector(
+                  onTap: _totalFee == 0 ? null : _openVoucherSheet,
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(children: [
+                      const Icon(Icons.local_offer_rounded,
+                          size: 16, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '$_voucherCode${_voucherLabel != null ? ' • $_voucherLabel' : ''}',
+                          style: const TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w700,
+                              color: AppColors.primary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => setState(_removeVoucher),
+                        child: const Icon(Icons.close_rounded,
+                            size: 18, color: AppColors.textSecondary),
+                      ),
+                    ]),
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: GestureDetector(
+                    onTap: _totalFee == 0 ? null : _openVoucherSheet,
+                    behavior: HitTestBehavior.opaque,
+                    child: const Row(children: [
+                      Icon(Icons.local_offer_outlined,
+                          size: 16, color: AppColors.primary),
+                      SizedBox(width: 6),
+                      Text('Bạn có mã giảm giá?',
+                          style: TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w600,
+                              color: AppColors.primary)),
+                    ]),
+                  ),
+                ),
+
               // Total + button
               Row(children: [
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   const Text('Tổng phí',
                       style: TextStyle(
                           fontSize: 11, color: AppColors.textSecondary)),
+                  if (_voucherDiscount != null && _voucherDiscount! > 0 && _totalFee > 0)
+                    Text(
+                      Fmt.currency(_totalFee),
+                      style: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                          decoration: TextDecoration.lineThrough),
+                    ),
                   Text(
                     _stops.any((s) => s.fee != null)
-                        ? Fmt.currency(_totalFee)
+                        ? Fmt.currency(_finalFee)
                         : '—',
                     style: const TextStyle(
                         fontSize: 20, fontWeight: FontWeight.w800,
