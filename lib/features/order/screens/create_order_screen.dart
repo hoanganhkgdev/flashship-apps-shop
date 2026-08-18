@@ -1,6 +1,5 @@
-import 'dart:ui' as ui;
 import 'package:dio/dio.dart';
-import 'package:flutter/services.dart' show rootBundle, TextInputFormatter, FilteringTextInputFormatter, TextInputType;
+import 'package:flutter/services.dart' show TextInputFormatter, FilteringTextInputFormatter, TextInputType;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -11,6 +10,8 @@ import '../../../core/api/api_client.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/map_style.dart';
+import '../../../core/utils/marker_icon_builder.dart';
 import '../../../core/widgets/app_form_widgets.dart';
 import '../../../core/services/address_search_service.dart';
 import '../../../core/widgets/address_picker_screen.dart';
@@ -18,6 +19,9 @@ import '../../../core/widgets/map_picker_screen.dart';
 import '../../address/models/address_entry.dart';
 import '../../address/providers/address_provider.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../voucher/voucher_model.dart';
+import '../../voucher/voucher_provider.dart';
+import '../../voucher/widgets/voucher_card.dart';
 import '../models/cargo_type.dart';
 import '../models/order_model.dart';
 import '../providers/order_provider.dart';
@@ -45,6 +49,11 @@ class CreateOrderScreen extends ConsumerStatefulWidget {
 
 class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   gm.GoogleMapController? _mapCtrl;
+  String? _mapStyle;
+  // Che bản đồ tới khi camera đã ở đúng vị trí (toạ độ shop thật hoặc hết
+  // thời gian chờ) — tránh hiện bản đồ ở fallback rồi "giật" sang vị trí
+  // đúng. Xem _geocodeShopAddress()/onMapCreated() và timeout trong initState.
+  bool _mapReady = false;
 
   // Addresses
   String? _pickupAddr, _deliveryAddr;
@@ -94,6 +103,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     _isOutbound = widget.isOutbound;
     _loadMarkers();
     _ensureLocationPermission();
+    loadMapStyle().then((s) { if (mounted) setState(() => _mapStyle = s); });
     if (widget.reorderFrom != null) {
       _prefillFromReorder(widget.reorderFrom!);
     } else {
@@ -102,6 +112,11 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         _applyDeliveryPrefill(widget.prefillDelivery!);
       }
     }
+    // Timeout: nếu geocode chậm/thất bại thì vẫn mở khoá bản đồ sau 600ms
+    // thay vì chặn người dùng vô thời hạn — khi đó map hiện ở fallback.
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted && !_mapReady) setState(() => _mapReady = true);
+    });
   }
 
   // Điền sẵn phía giao hàng từ 1 địa chỉ đã lưu — pickup vẫn do
@@ -148,9 +163,11 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   }
 
   Future<void> _loadMarkers() async {
-    _pickupMarkerIcon   = await _loadIcon('assets/images/icon_pick.png',     56);
-    _deliveryMarkerIcon = await _loadIcon('assets/images/icon_delivery.png', 56);
-    _driverMarkerIcon   = await _loadIcon('assets/images/icon_shiper.png',   42);
+    _pickupMarkerIcon = await buildPinMarker(
+        color: AppColors.primary, icon: Icons.storefront_rounded);
+    _deliveryMarkerIcon = await buildPinMarker(
+        color: AppColors.success, icon: Icons.person_rounded);
+    _driverMarkerIcon = await buildDriverMarker(color: AppColors.info);
     if (mounted) setState(() {});
   }
 
@@ -168,20 +185,6 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
           .cast<Map<String, dynamic>>();
       if (mounted) setState(() => _nearbyDrivers = list);
     } catch (_) {}
-  }
-
-  Future<gm.BitmapDescriptor?> _loadIcon(String path, int size) async {
-    try {
-      final data  = await rootBundle.load(path);
-      final codec = await ui.instantiateImageCodec(
-          data.buffer.asUint8List(), targetWidth: size, targetHeight: size);
-      final frame = await codec.getNextFrame();
-      final bytes = await frame.image.toByteData(format: ui.ImageByteFormat.png);
-      if (bytes == null) return null;
-      return gm.BitmapDescriptor.bytes(bytes.buffer.asUint8List());
-    } catch (_) {
-      return null;
-    }
   }
 
   void _prefillFromReorder(Map<String, dynamic> r) {
@@ -255,18 +258,22 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
       if (isPickup) {
         setState(() { _pickupLat = result.lat; _pickupLng = result.lng; });
-        if (result.lat != null && result.lng != null) {
-          _mapCtrl?.animateCamera(gm.CameraUpdate.newLatLngZoom(
-              gm.LatLng(result.lat!, result.lng!), 15));
-          _fetchNearbyDrivers();
-        }
       } else {
         setState(() { _deliveryLat = result.lat; _deliveryLng = result.lng; });
-        if (result.lat != null && result.lng != null) {
-          _mapCtrl?.animateCamera(gm.CameraUpdate.newLatLngZoom(
+      }
+
+      if (result.lat != null && result.lng != null) {
+        // moveCamera (không animation) cho lần định vị đầu tiên khi màn hình
+        // vừa mở — tránh hiệu ứng bay "giật/vèo" từ fallback sang vị trí
+        // thật. _mapCtrl có thể vẫn null nếu GoogleMap chưa kịp tạo xong;
+        // khi đó onMapCreated sẽ tự định vị + mở khoá bản đồ dựa theo
+        // _pickupLat/_deliveryLat vừa set ở trên.
+        if (_mapCtrl != null) {
+          _mapCtrl!.moveCamera(gm.CameraUpdate.newLatLngZoom(
               gm.LatLng(result.lat!, result.lng!), 15));
-          _fetchNearbyDrivers();
+          if (!_mapReady) setState(() => _mapReady = true);
         }
+        _fetchNearbyDrivers();
       }
     } catch (_) {}
   }
@@ -687,14 +694,20 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
           // ── Full-screen map ─────────────────────────────────────────────
           gm.GoogleMap(
+            style: _mapStyle,
             onMapCreated: (c) {
               _mapCtrl = c;
-              if (_pickupLat != null) {
-                c.animateCamera(gm.CameraUpdate.newLatLngZoom(
+              // moveCamera (không animation) cho lần định vị đầu tiên — toạ
+              // độ đã biết trước khi map tạo xong (reorder/địa chỉ đã lưu/
+              // geocode xong sớm), nhảy thẳng tới thay vì bay từ fallback.
+              if (_pickupLat != null && _pickupLng != null) {
+                c.moveCamera(gm.CameraUpdate.newLatLngZoom(
                     gm.LatLng(_pickupLat!, _pickupLng!), 15));
-              } else if (_deliveryLat != null) {
-                c.animateCamera(gm.CameraUpdate.newLatLngZoom(
+                if (!_mapReady) setState(() => _mapReady = true);
+              } else if (_deliveryLat != null && _deliveryLng != null) {
+                c.moveCamera(gm.CameraUpdate.newLatLngZoom(
                     gm.LatLng(_deliveryLat!, _deliveryLng!), 15));
+                if (!_mapReady) setState(() => _mapReady = true);
               }
             },
             initialCameraPosition: const gm.CameraPosition(
@@ -712,6 +725,21 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               bottom: 300 + bottomPad,
             ),
           ),
+
+          // ── Lớp phủ che bản đồ tới khi camera vào đúng vị trí ────────────
+          if (!_mapReady)
+            Positioned.fill(
+              child: Container(
+                color: context.colors.surfaceAlt,
+                child: Center(
+                  child: SizedBox(
+                    width: 22, height: 22,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: AppColors.primary),
+                  ),
+                ),
+              ),
+            ),
 
           // ── Floating address bar ────────────────────────────────────────
           SafeArea(
@@ -890,6 +918,56 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               ),
             ),
           ),
+
+          // ── Chip số tài xế gần đây ─────────────────────────────────────
+          // Chỉ hiện khi đã có ít nhất 1 điểm (lấy/giao) có toạ độ — tức đã
+          // từng gọi _fetchNearbyDrivers() ít nhất 1 lần. Đặt cao hơn bảng
+          // điều khiển dưới cùng (bottom panel hiện ~350-400px tuỳ nội dung).
+          if ((_pickupLat != null && _pickupLng != null) ||
+              (_deliveryLat != null && _deliveryLng != null))
+            Positioned(
+              left: 0, right: 0,
+              bottom: 320 + bottomPad,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpace.md, vertical: AppSpace.sm),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(AppRadius.xl),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 8),
+                    ],
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Container(
+                      width: 7, height: 7,
+                      decoration: BoxDecoration(
+                        color: _nearbyDrivers.isNotEmpty
+                            ? AppColors.success
+                            : AppColors.textSecondary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpace.sm),
+                    Text(
+                      _nearbyDrivers.isNotEmpty
+                          ? '${_nearbyDrivers.length} tài xế gần đây'
+                          : 'Chưa có tài xế trực tuyến gần đây',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _nearbyDrivers.isNotEmpty
+                            ? AppColors.textPrimary
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+            ),
 
           // ── My location button ──────────────────────────────────────────
           Positioned(
@@ -1102,6 +1180,19 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                                               style: const TextStyle(
                                                   fontSize: 11,
                                                   color: AppColors.textSecondary)),
+                                        if (_codAmount != null && _codAmount! > 0)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                top: AppSpace.xs),
+                                            child: Text(
+                                                'COD: ${Fmt.currency(_codAmount!)}',
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: AppColors.primary)),
+                                          ),
                                       ],
                                     )
                                   : Row(mainAxisSize: MainAxisSize.min, children: [
@@ -1132,28 +1223,6 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                       ]),
                     ),
                   ),
-
-                  // ── COD preview ─────────────────────────────────────────
-                  if (_codAmount != null && _codAmount! > 0) ...[
-                    const SizedBox(height: 8),
-                    GestureDetector(
-                      onTap: _openDetailSheet,
-                      behavior: HitTestBehavior.opaque,
-                      child: Row(children: [
-                        const Icon(Icons.payments_outlined,
-                            size: 14, color: AppColors.textSecondary),
-                        const SizedBox(width: 6),
-                        const Text('Thu hộ COD:',
-                            style: TextStyle(
-                                fontSize: 12, color: AppColors.textSecondary)),
-                        const SizedBox(width: 4),
-                        Text(Fmt.currency(_codAmount!),
-                            style: const TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary)),
-                      ]),
-                    ),
-                  ],
 
                   const SizedBox(height: 12),
                   const Divider(height: 1, color: Color(0xFFF5F5F5)),
@@ -1607,16 +1676,8 @@ class _VoucherSheet extends ConsumerStatefulWidget {
 
 class _VoucherSheetState extends ConsumerState<_VoucherSheet> {
   final _codeCtrl = TextEditingController();
-  List<Map<String, dynamic>> _vouchers = [];
-  bool _loading  = true;
   bool _applying = false;
   String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetch();
-  }
 
   @override
   void dispose() {
@@ -1624,14 +1685,15 @@ class _VoucherSheetState extends ConsumerState<_VoucherSheet> {
     super.dispose();
   }
 
-  Future<void> _fetch() async {
-    try {
-      final res = await ref.read(apiClientProvider).get('/shop/vouchers');
-      final list = (res.data['data'] as List? ?? []).cast<Map<String, dynamic>>();
-      if (mounted) setState(() => _vouchers = list);
-    } catch (_) {} finally {
-      if (mounted) setState(() => _loading = false);
+  // Lý do không đủ điều kiện áp mã — null nếu voucher đủ điều kiện. Ưu tiên
+  // theo thứ tự: hết hạn > hết lượt > chưa đạt đơn tối thiểu.
+  String? _ineligibleReason(VoucherModel v) {
+    if (v.isExpired) return 'Đã hết hạn sử dụng';
+    if (v.isFull) return 'Đã hết lượt sử dụng';
+    if (v.minOrderValue != null && widget.fee < v.minOrderValue!) {
+      return 'Đơn tối thiểu ${Fmt.currency(v.minOrderValue!)}';
     }
+    return null;
   }
 
   Future<void> _apply(String code) async {
@@ -1654,6 +1716,7 @@ class _VoucherSheetState extends ConsumerState<_VoucherSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final vouchersAsync = ref.watch(voucherProvider);
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -1739,15 +1802,23 @@ class _VoucherSheetState extends ConsumerState<_VoucherSheet> {
 
           // ── Danh sách mã ────────────────────────────────────────────
           Flexible(
-            child: _loading
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(
-                        child: SizedBox(width: 22, height: 22,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: AppColors.primary))),
-                  )
-                : _vouchers.isEmpty
+            child: vouchersAsync.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                      child: SizedBox(width: 22, height: 22,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: AppColors.primary))),
+                ),
+                error: (_, __) => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text('Không có mã giảm giá khả dụng',
+                        style: TextStyle(
+                            fontSize: 13, color: AppColors.textSecondary)),
+                  ),
+                ),
+                data: (vouchers) => vouchers.isEmpty
                     ? const Padding(
                         padding: EdgeInsets.symmetric(vertical: 24),
                         child: Center(
@@ -1759,79 +1830,44 @@ class _VoucherSheetState extends ConsumerState<_VoucherSheet> {
                     : ListView.separated(
                         shrinkWrap: true,
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                        itemCount: _vouchers.length,
+                        itemCount: vouchers.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 10),
                         itemBuilder: (_, i) {
-                          final v = _vouchers[i];
-                          final code = v['code'] as String;
-                          final eligible = v['min_order_value'] == null ||
-                              widget.fee >= (v['min_order_value'] as num);
-                          return Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF5F5F5),
-                              borderRadius: BorderRadius.circular(12),
+                          final v = vouchers[i];
+                          final reason = _ineligibleReason(v);
+                          final eligible = reason == null;
+                          return VoucherCard(
+                            voucher: v,
+                            eligible: eligible,
+                            fadeContent: !eligible,
+                            descriptionOverride: reason,
+                            trailing: SizedBox(
+                              height: 32,
+                              child: ElevatedButton(
+                                onPressed: (!eligible || _applying)
+                                    ? null
+                                    : () => _apply(v.code),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: eligible
+                                      ? AppColors.primary
+                                      : context.colors.surfaceAlt,
+                                  disabledBackgroundColor: context.colors.surfaceAlt,
+                                  foregroundColor:
+                                      eligible ? Colors.white : AppColors.textSecondary,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8)),
+                                ),
+                                child: const Text('Áp dụng',
+                                    style: TextStyle(
+                                        fontSize: 12, fontWeight: FontWeight.w700)),
+                              ),
                             ),
-                            child: Row(children: [
-                              const Icon(Icons.local_offer_rounded,
-                                  size: 20, color: AppColors.primary),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(code,
-                                        style: const TextStyle(
-                                            fontSize: 14, fontWeight: FontWeight.w800,
-                                            color: AppColors.textPrimary)),
-                                    if (v['discount_label'] != null)
-                                      Text(v['discount_label'] as String,
-                                          style: const TextStyle(
-                                              fontSize: 12, fontWeight: FontWeight.w600,
-                                              color: AppColors.primary)),
-                                    if (v['description'] != null)
-                                      Text(v['description'] as String,
-                                          style: const TextStyle(
-                                              fontSize: 11, color: AppColors.textSecondary),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis),
-                                    if (!eligible)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 2),
-                                        child: Text(
-                                          'Đơn tối thiểu ${Fmt.currency((v['min_order_value'] as num).toInt())}',
-                                          style: const TextStyle(
-                                              fontSize: 11, color: AppColors.danger),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              SizedBox(
-                                height: 32,
-                                child: ElevatedButton(
-                                  onPressed: (!eligible || _applying)
-                                      ? null
-                                      : () => _apply(code),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primary,
-                                    disabledBackgroundColor:
-                                        AppColors.primary.withValues(alpha: 0.3),
-                                    elevation: 0,
-                                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8)),
-                                  ),
-                                  child: const Text('Áp dụng',
-                                      style: TextStyle(
-                                          fontSize: 12, fontWeight: FontWeight.w700)),
-                                ),
-                              ),
-                            ]),
                           );
                         },
                       ),
+              ),
           ),
         ],
       ),

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:ui' as ui;
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -14,6 +13,8 @@ import '../../../core/api/api_client.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/map_style.dart';
+import '../../../core/utils/marker_icon_builder.dart';
 import '../../../core/widgets/app_form_widgets.dart';
 import '../models/order_model.dart';
 import '../providers/order_provider.dart';
@@ -912,31 +913,23 @@ class _DriverMapCardState extends State<_DriverMapCard> {
   gm.BitmapDescriptor?    _deliveryIcon;
   double _heading  = 0.0;
   double? _prevLat, _prevLng;
+  String? _mapStyle;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _buildIcons());
+    loadMapStyle().then((s) { if (mounted) setState(() => _mapStyle = s); });
   }
 
   Future<void> _buildIcons() async {
     if (!mounted) return;
-    _shipperIcon  = await _loadMarkerIcon('assets/images/icon_shiper.png',   42);
-    _pickupIcon   = await _loadMarkerIcon('assets/images/icon_pick.png',     56);
-    _deliveryIcon = await _loadMarkerIcon('assets/images/icon_delivery.png', 56);
+    _shipperIcon = await buildDriverMarker(color: AppColors.info);
+    _pickupIcon = await buildPinMarker(
+        color: AppColors.primary, icon: Icons.storefront_rounded);
+    _deliveryIcon = await buildPinMarker(
+        color: AppColors.success, icon: Icons.person_rounded);
     if (mounted) setState(() {});
-  }
-
-  Future<gm.BitmapDescriptor?> _loadMarkerIcon(String path, int size) async {
-    try {
-      final data  = await rootBundle.load(path);
-      final codec = await ui.instantiateImageCodec(
-          data.buffer.asUint8List(), targetWidth: size, targetHeight: size);
-      final frame = await codec.getNextFrame();
-      final bytes = await frame.image.toByteData(format: ui.ImageByteFormat.png);
-      if (bytes == null) return null;
-      return gm.BitmapDescriptor.bytes(bytes.buffer.asUint8List());
-    } catch (_) { return null; }
   }
 
   @override
@@ -1050,6 +1043,7 @@ class _DriverMapCardState extends State<_DriverMapCard> {
           child: SizedBox(
             height: 180,
             child: gm.GoogleMap(
+              style: _mapStyle,
               initialCameraPosition: gm.CameraPosition(
                 target: gm.LatLng(dLat, dLng),
                 zoom: 15,

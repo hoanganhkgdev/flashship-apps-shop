@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 import '../services/location_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/map_style.dart';
 
 class MapPickResult {
   final String  address;
@@ -40,6 +41,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   bool _loadingAddress = false;
   bool _mapReady = false;
   bool _hasLocationPermission = false;
+  String? _mapStyle;
 
   @override
   void initState() {
@@ -51,6 +53,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
       _loadGpsLocation();
     }
     _ensureLocationPermission();
+    loadMapStyle().then((s) { if (mounted) setState(() => _mapStyle = s); });
   }
 
   // GoogleMap(myLocationEnabled: true) crash nếu chưa có quyền vị trí — xin
@@ -136,6 +139,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
       body: Stack(
         children: [
           gm.GoogleMap(
+            style: _mapStyle,
             initialCameraPosition: gm.CameraPosition(
               target: gm.LatLng(_centerLat, _centerLng),
               zoom: 15.5,
