@@ -410,8 +410,7 @@ class _CreateBatchOrderScreenState
       ref.read(orderListProvider.notifier).addOrder(order);
 
       if (mounted) {
-        context.pop();
-        context.push('/order/${order.code}');
+        context.pushReplacement('/order/${order.code}');
       }
     } on DioException catch (e) {
       final msg = parseApiError(e, fallback: 'Có lỗi xảy ra');
