@@ -18,6 +18,9 @@ import '../providers/support_config_provider.dart';
 import '../../order/providers/order_provider.dart';
 import '../../../core/widgets/address_picker_screen.dart';
 import '../../../core/widgets/map_picker_screen.dart';
+import '../../security/pin_setup_screen.dart';
+import '../../security/providers/pin_provider.dart';
+import 'devices_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -168,6 +171,24 @@ class ProfileScreen extends ConsumerWidget {
                 iconBg: const Color(0xFF34C759),
                 label: 'Đổi số điện thoại',
                 onTap: () => _showChangePhoneSheet(context),
+              ),
+              _SettingsRow(
+                icon: Icons.pin_rounded,
+                iconBg: const Color(0xFFFF9500),
+                label: 'Khoá bằng mã PIN',
+                showChevron: false,
+                trailing: Switch(
+                  value: ref.watch(pinProvider).isEnabled,
+                  onChanged: (v) => _togglePinLock(context, ref, v),
+                ),
+                onTap: () => _togglePinLock(context, ref, !ref.read(pinProvider).isEnabled),
+              ),
+              _SettingsRow(
+                icon: Icons.devices_rounded,
+                iconBg: const Color(0xFF5AC8FA),
+                label: 'Thiết bị đăng nhập',
+                onTap: () => Navigator.push(
+                    context, MaterialPageRoute(builder: (_) => const DevicesScreen())),
               ),
             ]),
 
@@ -544,6 +565,24 @@ class ProfileScreen extends ConsumerWidget {
           }
         },
       ),
+    );
+  }
+
+  Future<void> _togglePinLock(BuildContext context, WidgetRef ref, bool enable) async {
+    final notifier = ref.read(pinProvider.notifier);
+    if (!enable) {
+      await notifier.setEnabled(false);
+      return;
+    }
+    if (ref.read(pinProvider).hasPin) {
+      await notifier.setEnabled(true);
+      return;
+    }
+    // Chưa có PIN nào — mở màn thiết lập, bật khoá xảy ra bên trong đó
+    // (pinProvider.setPin) khi người dùng nhập xong và xác nhận khớp.
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const PinSetupScreen()),
     );
   }
 

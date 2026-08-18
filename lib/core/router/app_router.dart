@@ -14,6 +14,8 @@ import '../../features/order/screens/create_batch_order_screen.dart';
 import '../../features/order/screens/create_order_screen.dart';
 import '../../features/order/screens/order_detail_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
+import '../../features/security/pin_lock_screen.dart';
+import '../../features/security/providers/pin_provider.dart';
 import '../../features/stats/stats_screen.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/version/providers/app_version_provider.dart';
@@ -28,6 +30,8 @@ class _AuthListenable extends ChangeNotifier {
     ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
     ref.listen<AppVersionState>(appVersionProvider, (_, __) => notifyListeners());
     ref.listen<bool>(splashReadyProvider, (_, __) => notifyListeners());
+    ref.listen<PinState>(pinProvider, (_, __) => notifyListeners());
+    ref.listen<bool>(pinLockPassedProvider, (_, __) => notifyListeners());
   }
 }
 
@@ -42,18 +46,32 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final auth     = ref.read(authProvider);
       final version  = ref.read(appVersionProvider);
+      final pin      = ref.read(pinProvider);
       final location = state.matchedLocation;
 
       final splashReady = ref.read(splashReadyProvider);
-      if (!auth.isInitialized || !splashReady) return location == '/splash' ? null : '/splash';
+      if (!auth.isInitialized || !pin.isInitialized || !splashReady) {
+        return location == '/splash' ? null : '/splash';
+      }
       if (version.needsForceUpdate) return '/splash';
 
-      final isAuth  = auth.isAuthenticated;
-      final onSplash = location == '/splash';
-      final onAuth   = location == '/login' || location == '/register' || location == '/forgot-password';
+      final isAuth    = auth.isAuthenticated;
+      final onSplash  = location == '/splash';
+      final onAuth    = location == '/login' || location == '/register' || location == '/forgot-password';
+      final onPinLock = location == '/pin-lock';
 
-      if (onSplash) return isAuth ? '/home' : '/login';
+      // Yêu cầu nhập PIN khi: đã đăng nhập, đang bật khoá PIN, đã thiết lập
+      // PIN, và chưa qua màn khoá lần nào trong phiên app hiện tại (cold start).
+      final needsPinLock =
+          isAuth && pin.isEnabled && pin.hasPin && !ref.read(pinLockPassedProvider);
+
+      if (onSplash) {
+        if (!isAuth) return '/login';
+        return needsPinLock ? '/pin-lock' : '/home';
+      }
       if (isAuth && onAuth) return '/home';
+      if (needsPinLock && !onPinLock) return '/pin-lock';
+      if (!needsPinLock && onPinLock) return '/home';
       if (!isAuth && !onSplash && !onAuth && location != '/otp') return '/login';
       return null;
     },
@@ -67,6 +85,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) => OtpScreen(regData: state.extra as Map<String, dynamic>),
       ),
       GoRoute(path: '/home',         builder: (_, __) => const HomeScreen()),
+      GoRoute(
+        path: '/pin-lock',
+        builder: (_, __) => PinLockScreen(
+          onUnlocked: () => ref.read(pinLockPassedProvider.notifier).state = true,
+        ),
+      ),
       GoRoute(path: '/create-batch', builder: (_, __) => const CreateBatchOrderScreen()),
       GoRoute(
         path: '/create-order',

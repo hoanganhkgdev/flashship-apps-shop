@@ -1,5 +1,7 @@
 package com.flashship.shop
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+// FlutterFragmentActivity (thay vì FlutterActivity) — local_auth cần
+// FragmentActivity để hiện BiometricPrompt (vân tay/Face ID).
+class MainActivity : FlutterFragmentActivity()

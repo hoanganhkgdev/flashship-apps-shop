@@ -13,6 +13,8 @@ import 'core/theme/theme_mode_provider.dart';
 import 'core/widgets/app_form_widgets.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/order/providers/order_provider.dart';
+import 'features/security/pin_lock_screen.dart';
+import 'features/security/providers/pin_provider.dart';
 import 'features/version/providers/app_version_provider.dart';
 import 'firebase_options.dart';
 
@@ -46,6 +48,7 @@ class _FlashShipShopAppState extends ConsumerState<FlashShipShopApp>
   bool _forceDialogShown = false;
   bool _handlingSessionExpired = false;
   StreamSubscription<void>? _sessionExpiredSub;
+  DateTime? _backgroundedAt;
 
   @override
   void initState() {
@@ -91,6 +94,9 @@ class _FlashShipShopAppState extends ConsumerState<FlashShipShopApp>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _backgroundedAt = DateTime.now();
+    }
     if (state == AppLifecycleState.resumed) {
       // Đóng socket cũ trước — tránh request bị treo do tái dùng connection
       // mà OS đã đóng băng trong lúc app ở nền lâu.
@@ -103,7 +109,28 @@ class _FlashShipShopAppState extends ConsumerState<FlashShipShopApp>
       }
       _forceDialogShown = false;
       ref.read(appVersionProvider.notifier).check();
+      _maybeShowPinLock();
     }
+  }
+
+  // Hiện màn khoá PIN khi app quay lại từ nền sau khi đã ở nền tối thiểu 30s
+  // — tránh khoá phiền lúc chỉ chuyển app rồi quay lại ngay (vd mở app chụp
+  // ảnh, chọn địa chỉ trên bản đồ ngoài app...).
+  Future<void> _maybeShowPinLock() async {
+    final backgroundedAt = _backgroundedAt;
+    _backgroundedAt = null;
+    if (backgroundedAt == null) return;
+    if (DateTime.now().difference(backgroundedAt) < const Duration(seconds: 30)) return;
+
+    final pin = ref.read(pinProvider);
+    if (!pin.isEnabled || !pin.hasPin) return;
+    if (pinLockScreenVisible) return;
+
+    final ctx = appNavigatorKey.currentContext;
+    if (ctx == null) return;
+    await Navigator.of(ctx, rootNavigator: true).push(
+      MaterialPageRoute(fullscreenDialog: true, builder: (_) => const PinLockScreen()),
+    );
   }
 
   void _showForceDialog(AppVersionState v) {

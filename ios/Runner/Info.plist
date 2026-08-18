@@ -34,6 +34,8 @@
 	<string>FlashShip Shop cần truy cập thư viện ảnh để cập nhật ảnh đại diện shop.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>FlashShip Shop cần truy cập camera để chụp ảnh đại diện shop.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>FlashShip Shop dùng Face ID để mở khoá ứng dụng nhanh hơn.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

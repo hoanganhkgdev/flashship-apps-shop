@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/notification_service.dart';
+import '../../../core/utils/device_name.dart';
 import '../models/shop_user_model.dart';
 
 class AuthState {
@@ -83,6 +84,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
+      final deviceName = await getDeviceName();
       final res = await _api.post('/shop/auth/verify-otp-register', data: {
         'phone':    phone,
         'otp':      otp,
@@ -90,6 +92,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         'password': password,
         if (address != null && address.isNotEmpty) 'address': address,
         if (cityId != null) 'city_id': cityId,
+        if (deviceName != null) 'device_name': deviceName,
       });
       await _saveSession(res.data);
       return true;
@@ -102,9 +105,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> login({required String phone, required String password}) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
+      final deviceName = await getDeviceName();
       final res = await _api.post('/shop/auth/login', data: {
         'phone': phone,
         'password': password,
+        if (deviceName != null) 'device_name': deviceName,
       });
       await _saveSession(res.data);
       return true;
