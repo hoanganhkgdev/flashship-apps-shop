@@ -67,8 +67,13 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   Future<void> _resend() async {
     if (_countdown > 0) return;
-    await ref.read(authProvider.notifier).sendOtp(widget.regData['phone'] as String);
-    _startCountdown();
+    final ok = await ref.read(authProvider.notifier).sendOtp(widget.regData['phone'] as String);
+    if (!mounted) return;
+    if (ok) {
+      _startCountdown();
+    } else {
+      setState(() {}); // hiện auth.error qua AppErrorBox đã có sẵn trong build()
+    }
   }
 
   @override
