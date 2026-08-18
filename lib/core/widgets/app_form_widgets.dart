@@ -104,31 +104,145 @@ class AppField extends StatelessWidget {
         suffixIconConstraints:
             const BoxConstraints(minWidth: 40, minHeight: 40),
         filled: true,
-        fillColor: fillColor ?? c.surfaceAlt,
+        fillColor: fillColor ?? c.surface,
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          borderSide: BorderSide(color: c.divider, width: 1.4),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          borderSide: BorderSide(color: c.divider, width: 1.4),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
           borderSide: BorderSide(color: c.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: BorderSide(color: c.danger),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          borderSide: BorderSide(color: c.danger, width: 1.4),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
           borderSide: BorderSide(color: c.danger, width: 1.5),
         ),
       ),
       validator: validator,
+    );
+  }
+}
+
+// ─── Phone input (mã vùng +84 cố định) ─────────────────────────────────────────
+
+/// Field số điện thoại kiểu Grab — "+84" cố định bên trái, ngăn cách bằng
+/// vạch dọc mỏng, phần nhập chỉ nhận số thuê bao (không gồm số 0 đầu).
+/// [controller] vẫn giữ đúng định dạng cũ ("0912345678") để không đổi format
+/// gửi lên backend — PhoneField chỉ đổi cách hiển thị, tự đồng bộ 2 chiều
+/// với 1 controller nội bộ chỉ chứa phần số sau "+84".
+class PhoneField extends StatefulWidget {
+  final TextEditingController controller;
+  final String hint;
+  final TextInputAction? textInputAction;
+  final void Function(String)? onFieldSubmitted;
+  final String? Function(String?)? validator;
+
+  const PhoneField({
+    super.key,
+    required this.controller,
+    this.hint = '912 345 678',
+    this.textInputAction,
+    this.onFieldSubmitted,
+    this.validator,
+  });
+
+  @override
+  State<PhoneField> createState() => _PhoneFieldState();
+}
+
+class _PhoneFieldState extends State<PhoneField> {
+  late final TextEditingController _localCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.controller.text;
+    _localCtrl = TextEditingController(
+        text: initial.startsWith('0') ? initial.substring(1) : initial);
+    _localCtrl.addListener(_syncToController);
+  }
+
+  void _syncToController() {
+    widget.controller.text = '0${_localCtrl.text}';
+  }
+
+  @override
+  void dispose() {
+    _localCtrl.removeListener(_syncToController);
+    _localCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return TextFormField(
+      controller: _localCtrl,
+      keyboardType: TextInputType.phone,
+      textInputAction: widget.textInputAction,
+      onFieldSubmitted: widget.onFieldSubmitted,
+      style: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w500,
+        color: c.textPrimary,
+      ),
+      // Validate trên giá trị đầy đủ đã đồng bộ (widget.controller), không
+      // phải phần hiển thị — giữ đúng logic validate cũ (Validators.phone).
+      validator: (_) => widget.validator?.call(widget.controller.text),
+      decoration: InputDecoration(
+        hintText: widget.hint,
+        hintStyle: TextStyle(
+          color: c.textTertiary,
+          fontSize: 15,
+          fontWeight: FontWeight.w400,
+        ),
+        prefixIcon: Padding(
+          padding: const EdgeInsets.only(left: 20, right: 12),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Text('+84',
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: c.textPrimary)),
+            const SizedBox(width: 12),
+            Container(width: 1.4, height: 20, color: c.divider),
+          ]),
+        ),
+        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+        filled: true,
+        fillColor: c.surface,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          borderSide: BorderSide(color: c.divider, width: 1.4),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          borderSide: BorderSide(color: c.divider, width: 1.4),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          borderSide: BorderSide(color: c.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          borderSide: BorderSide(color: c.danger, width: 1.4),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          borderSide: BorderSide(color: c.danger, width: 1.5),
+        ),
+      ),
     );
   }
 }
@@ -190,7 +304,7 @@ class AppButton extends StatelessWidget {
           disabledBackgroundColor: c.primary.withValues(alpha: 0.5),
           foregroundColor: c.onPrimary,
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md)),
+              borderRadius: BorderRadius.circular(AppRadius.pill)),
         ),
         child: isLoading
             ? const SizedBox(

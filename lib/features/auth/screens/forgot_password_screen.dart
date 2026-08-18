@@ -6,6 +6,7 @@ import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_form_widgets.dart';
+import '../../../core/widgets/otp_input.dart';
 import '../../../core/widgets/step_progress_bar.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
@@ -18,7 +19,7 @@ class ForgotPasswordScreen extends ConsumerStatefulWidget {
 
 class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final _phoneCtrl = TextEditingController();
-  final _otpCtrl   = TextEditingController();
+  final _otpInputCtl = OtpInputController();
   final _passCtrl  = TextEditingController();
   final _confCtrl  = TextEditingController();
 
@@ -37,7 +38,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   @override
   void dispose() {
     _phoneCtrl.dispose();
-    _otpCtrl.dispose();
+    _otpInputCtl.dispose();
     _passCtrl.dispose();
     _confCtrl.dispose();
     _timer?.cancel();
@@ -90,12 +91,18 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   }
 
   Future<void> _resetPassword() async {
+    // OtpInput không phải FormField nên không tự tham gia Form.validate() —
+    // kiểm tra thủ công trước, giữ đúng thông báo cũ ("Mã OTP gồm 6 chữ số").
+    if (_otpInputCtl.otp.length != 6) {
+      setState(() { _error = 'Mã OTP gồm 6 chữ số'; });
+      return;
+    }
     if (!_resetKey.currentState!.validate()) return;
     setState(() { _loading = true; _error = null; });
     try {
       await ref.read(apiClientProvider).post('/shop/auth/reset-password', data: {
         'phone':                 _phoneCtrl.text.trim(),
-        'otp':                   _otpCtrl.text.trim(),
+        'otp':                   _otpInputCtl.otp,
         'password':              _passCtrl.text,
         'password_confirmation': _confCtrl.text,
       });
@@ -147,13 +154,13 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
             // ── Icon ─────────────────────────────────────────────────
             Container(
-              width: 56, height: 56,
+              width: 40, height: 40,
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
               child: const Icon(Icons.lock_reset_rounded,
-                  size: 28, color: AppColors.primary),
+                  size: 20, color: AppColors.primary),
             ),
             const SizedBox(height: 20),
 
@@ -181,12 +188,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   const AppLabel('Số điện thoại'),
                   const SizedBox(height: 8),
-                  AppField(
+                  PhoneField(
                     controller: _phoneCtrl,
-                    hint: 'Nhập số điện thoại đã đăng ký',
-                    prefixIcon: Icon(Icons.phone_outlined,
-                        size: 20, color: context.colors.textSecondary),
-                    keyboardType: TextInputType.phone,
                     textInputAction: TextInputAction.done,
                     onFieldSubmitted: (_) => _sendOtp(),
                     validator: Validators.phone,
@@ -201,22 +204,14 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 key: _resetKey,
                 child: Column(children: [
                   const AppLabel('Mã OTP'),
-                  const SizedBox(height: 8),
-                  AppField(
-                    controller: _otpCtrl,
-                    hint: '6 chữ số',
-                    prefixIcon: Icon(Icons.pin_outlined,
-                        size: 20, color: context.colors.textSecondary),
-                    keyboardType: TextInputType.number,
-                    textInputAction: TextInputAction.next,
-                    validator: (v) {
-                      if (v == null || v.trim().length != 6) {
-                        return 'Mã OTP gồm 6 chữ số';
-                      }
-                      return null;
+                  const SizedBox(height: 12),
+                  OtpInput(
+                    controller: _otpInputCtl,
+                    onChanged: (_) {
+                      if (_error != null) setState(() { _error = null; });
                     },
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   const AppLabel('Mật khẩu mới'),
                   const SizedBox(height: 8),
                   AppField(
@@ -306,7 +301,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                      borderRadius: BorderRadius.circular(AppRadius.pill)),
                 ),
                 child: _loading
                     ? const SizedBox(

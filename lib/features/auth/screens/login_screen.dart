@@ -57,33 +57,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           padding: EdgeInsets.fromLTRB(
               AppSpace.xl, AppSpace.xxl, AppSpace.xl, bottom + AppSpace.xxl),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Huy hiệu logo ─────────────────────────────────────────
+              // ── Logo nhỏ ──────────────────────────────────────────────
               Container(
-                width: 64,
-                height: 64,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
                 child: Center(
                   child: Image.asset('assets/images/logo.png',
-                      width: 32, height: 32, color: Colors.white),
+                      width: 20, height: 20, color: Colors.white),
                 ),
               ),
               const SizedBox(height: AppSpace.xl),
 
               // ── Heading ───────────────────────────────────────────────
               const Text('Đăng nhập',
-                  textAlign: TextAlign.center,
                   style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w700,
+                      letterSpacing: -0.5,
                       color: AppColors.textPrimary)),
               const SizedBox(height: AppSpace.xs),
               const Text('Nhập thông tin để tiếp tục sử dụng',
-                  textAlign: TextAlign.center,
                   style:
                       TextStyle(fontSize: 14, color: AppColors.textSecondary)),
               const SizedBox(height: AppSpace.xxl),
@@ -96,12 +95,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     children: [
                       const AppLabel('Số điện thoại'),
                       const SizedBox(height: AppSpace.sm),
-                      AppField(
+                      PhoneField(
                         controller: _phoneCtrl,
-                        hint: 'Nhập số điện thoại',
-                        prefixIcon: Icon(Icons.phone_outlined,
-                            size: 20, color: context.colors.textSecondary),
-                        keyboardType: TextInputType.phone,
                         textInputAction: TextInputAction.next,
                         validator: Validators.phone,
                       ),
@@ -159,7 +154,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.md)),
+                        borderRadius: BorderRadius.circular(AppRadius.pill)),
                   ),
                   child: auth.isLoading
                       ? const SizedBox(

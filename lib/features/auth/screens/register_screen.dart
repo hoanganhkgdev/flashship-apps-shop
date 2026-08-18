@@ -145,12 +145,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           const SizedBox(height: AppSpace.lg),
                           const AppLabel('Số điện thoại'),
                           const SizedBox(height: AppSpace.sm),
-                          AppField(
+                          PhoneField(
                             controller: _phoneCtrl,
-                            hint: '09xx xxx xxx',
-                            keyboardType: TextInputType.phone,
                             textInputAction: TextInputAction.next,
-                            fillColor: c.surface,
                             validator: Validators.phone,
                           ),
                         ],

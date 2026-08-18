@@ -62,44 +62,33 @@ class _OtpBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    // Dạng gạch chân (không khung/nền) — enabledBorder/focusedBorder của
+    // InputDecoration đã tự chuyển đổi theo focus, không cần tự theo dõi
+    // focus/text thủ công như bản khung viền trước đây.
     return SizedBox(
-      width: 46,
-      // Lắng nghe controller để đổi fillColor khi người dùng gõ — TextFormField
-      // tự vẽ lại text/border theo focus, nhưng không tự rebuild widget cha khi
-      // text đổi nên cần AnimatedBuilder để cập nhật màu "đã nhập".
-      child: AnimatedBuilder(
-        animation: controller,
-        builder: (context, _) {
-          final hasValue = controller.text.isNotEmpty;
-          return TextFormField(
-            controller: controller,
-            focusNode:  focusNode,
-            maxLength:  1,
-            textAlign:  TextAlign.center,
-            keyboardType: TextInputType.number,
-            style: const TextStyle(
-                fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-            decoration: InputDecoration(
-              counterText: '',
-              filled: true,
-              fillColor: hasValue ? c.primarySoft : c.surfaceAlt,
-              contentPadding: const EdgeInsets.symmetric(vertical: 14),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-                borderSide: const BorderSide(color: AppColors.primary, width: 2),
-              ),
-            ),
-            onChanged: onChanged,
-          );
-        },
+      width: 42,
+      child: TextFormField(
+        controller: controller,
+        focusNode:  focusNode,
+        maxLength:  1,
+        textAlign:  TextAlign.center,
+        keyboardType: TextInputType.number,
+        style: const TextStyle(
+            fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+        decoration: InputDecoration(
+          counterText: '',
+          contentPadding: const EdgeInsets.only(bottom: 10),
+          border: UnderlineInputBorder(
+            borderSide: BorderSide(color: c.divider, width: 1.6),
+          ),
+          enabledBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: c.divider, width: 1.6),
+          ),
+          focusedBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: AppColors.primary, width: 2.4),
+          ),
+        ),
+        onChanged: onChanged,
       ),
     );
   }

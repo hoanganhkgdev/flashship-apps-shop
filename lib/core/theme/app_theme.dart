@@ -34,6 +34,9 @@ class AppRadius {
   static const lg   = 16.0;
   static const xl   = 20.0;
   static const card = 16.0;
+  // Bo tròn hoàn toàn (field/button dạng viên thuốc) — số đủ lớn để luôn
+  // vượt quá nửa chiều cao thực tế, Flutter tự giới hạn về hình viên thuốc.
+  static const pill = 999.0;
 }
 
 /// Bảng màu theo chế độ sáng/tối. Lấy trong widget bằng `context.colors`.
