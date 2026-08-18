@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -30,13 +31,26 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   bool _obscure2 = true;
   String? _error;
 
+  int    _countdown = 60;
+  Timer? _timer;
+
   @override
   void dispose() {
     _phoneCtrl.dispose();
     _otpCtrl.dispose();
     _passCtrl.dispose();
     _confCtrl.dispose();
+    _timer?.cancel();
     super.dispose();
+  }
+
+  void _startCountdown() {
+    _countdown = 60;
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (_countdown <= 0) { t.cancel(); return; }
+      setState(() => _countdown--);
+    });
   }
 
   Future<void> _sendOtp() async {
@@ -46,7 +60,28 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       await ref.read(apiClientProvider).post('/shop/auth/forgot-password', data: {
         'phone': _phoneCtrl.text.trim(),
       });
-      if (mounted) setState(() { _step2 = true; });
+      if (mounted) {
+        setState(() { _step2 = true; });
+        _startCountdown();
+      }
+    } catch (e) {
+      if (mounted) setState(() { _error = parseApiError(e, fallback: 'Đã xảy ra lỗi, vui lòng thử lại'); });
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  // Dùng riêng cho nút "Gửi lại mã OTP" ở bước 2 — không gọi
+  // _phoneKey.currentState!.validate() vì Form gắn với _phoneKey chỉ tồn tại
+  // ở bước 1 (currentState null ở bước 2, gọi validate() sẽ crash null-check).
+  // Số điện thoại đã khoá từ bước 1 nên không cần validate lại.
+  Future<void> _resendOtp() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      await ref.read(apiClientProvider).post('/shop/auth/forgot-password', data: {
+        'phone': _phoneCtrl.text.trim(),
+      });
+      if (mounted) _startCountdown();
     } catch (e) {
       if (mounted) setState(() { _error = parseApiError(e, fallback: 'Đã xảy ra lỗi, vui lòng thử lại'); });
     } finally {
@@ -289,15 +324,19 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             if (_step2) ...[
               const SizedBox(height: 16),
               Center(
-                child: GestureDetector(
-                  onTap: _loading ? null : _sendOtp,
-                  child: Text('Gửi lại mã OTP',
-                      style: TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w600,
-                          color: _loading
-                              ? AppColors.textSecondary
-                              : AppColors.primary)),
-                ),
+                child: _countdown > 0
+                    ? Text('Gửi lại sau $_countdown giây',
+                        style: const TextStyle(
+                            fontSize: 14, color: AppColors.textSecondary))
+                    : GestureDetector(
+                        onTap: _loading ? null : _resendOtp,
+                        child: Text('Gửi lại mã OTP',
+                            style: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w600,
+                                color: _loading
+                                    ? AppColors.textSecondary
+                                    : AppColors.primary)),
+                      ),
               ),
             ],
           ],
