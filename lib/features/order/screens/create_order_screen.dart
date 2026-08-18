@@ -330,6 +330,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       final tPN = _pickupPlaceName; _pickupPlaceName = _deliveryPlaceName; _deliveryPlaceName = tPN;
       final tLa = _pickupLat;       _pickupLat       = _deliveryLat;       _deliveryLat       = tLa;
       final tLo = _pickupLng;       _pickupLng       = _deliveryLng;       _deliveryLng       = tLo;
+      final tN  = _senderName;      _senderName      = _receiverName;      _receiverName      = tN;
+      final tP  = _senderPhone;     _senderPhone     = _receiverPhone;     _receiverPhone     = tP;
     });
     _estimate();
     _fitCamera();
@@ -355,6 +357,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
   Future<void> _estimate() async {
     if (_pickupAddr == null || _deliveryAddr == null) return;
+    // Lưu lại phí cũ TRƯỚC khi setState() dưới đây ghi đè _fee = null cho
+    // trạng thái loading — dùng để so sánh xem phí có thực sự đổi không.
+    final oldFee = _fee;
     setState(() { _loadingFee = true; _fee = null; });
     try {
       // weight từ detail sheet nếu đã điền
@@ -372,13 +377,22 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
           .get('/shop/pricing/estimate', params: p);
       final data = unwrap(res) as Map<String, dynamic>;
       if (mounted) {
+        final newFee = (data['fee'] as num).toInt();
+        // Chỉ gỡ voucher khi ĐANG áp VÀ phí thực sự đổi — tránh gỡ oan mỗi
+        // lần gọi lại _estimate() (vd đổi cân nặng nhưng phí không đổi).
+        final shouldRemoveVoucher = _voucherCode != null && newFee != oldFee;
         setState(() {
-          _fee            = (data['fee'] as num).toInt();
+          _fee            = newFee;
           _nightSurcharge = (data['night_surcharge'] as num?)?.toInt() ?? 0;
           _distanceKm     = (data['distance_km'] as num?)?.toDouble();
-          // Phí thay đổi → mã giảm giá đã áp có thể không còn hợp lệ, bỏ áp
-          _removeVoucher();
+          if (shouldRemoveVoucher) _removeVoucher();
         });
+        if (shouldRemoveVoucher) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Phí đơn đã thay đổi, mã giảm giá đã được gỡ — vui lòng áp lại nếu cần.'),
+          ));
+        }
       }
     } catch (_) {} finally {
       if (mounted) setState(() => _loadingFee = false);
