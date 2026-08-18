@@ -18,6 +18,9 @@ import '../utils/pricing_request.dart';
 // ─── Stop model (local) ───────────────────────────────────────────────────────
 
 class _Stop {
+  // Id ổn định — dùng làm Key cho ReorderableListView và để theo dõi thẻ
+  // đang mở rộng (_expandedStopId), KHÔNG dùng index vì index đổi khi kéo-thả.
+  final String id;
   final TextEditingController addressCtrl;
   final TextEditingController phoneCtrl;
   final TextEditingController nameCtrl;
@@ -29,7 +32,8 @@ class _Stop {
   bool    estimating = false;
 
   _Stop()
-      : addressCtrl = TextEditingController(),
+      : id          = UniqueKey().toString(),
+        addressCtrl = TextEditingController(),
         phoneCtrl   = TextEditingController(),
         nameCtrl    = TextEditingController(),
         codCtrl     = TextEditingController(),
@@ -65,10 +69,13 @@ class _CreateBatchOrderScreenState
   bool    _submitting = false;
 
   final List<_Stop> _stops = [_Stop()];
+  // Id của _Stop đang mở rộng để nhập liệu — null nghĩa là tất cả đang thu gọn.
+  String? _expandedStopId;
 
   @override
   void initState() {
     super.initState();
+    _expandedStopId = _stops.first.id;
     WidgetsBinding.instance.addPostFrameCallback((_) => _prefill());
   }
 
@@ -181,13 +188,30 @@ class _CreateBatchOrderScreenState
 
   void _addStop() {
     if (_stops.length >= 10) return;
-    setState(() => _stops.add(_Stop()));
+    final stop = _Stop();
+    setState(() {
+      _stops.add(stop);
+      _expandedStopId = stop.id; // mở luôn điểm vừa thêm để nhập
+    });
   }
 
   void _removeStop(int index) {
     if (_stops.length <= 1) return;
-    _stops[index].dispose();
-    setState(() => _stops.removeAt(index));
+    final removed = _stops[index];
+    removed.dispose();
+    setState(() {
+      _stops.removeAt(index);
+      if (_expandedStopId == removed.id) _expandedStopId = null;
+    });
+  }
+
+  // onReorderItem (thay onReorder đã deprecated) tự điều chỉnh newIndex sau
+  // khi phần tử ở oldIndex bị lấy ra, nên không cần trừ 1 thủ công nữa.
+  void _onReorderStops(int oldIndex, int newIndex) {
+    setState(() {
+      final stop = _stops.removeAt(oldIndex);
+      _stops.insert(newIndex, stop);
+    });
   }
 
   int get _totalFee => _stops.fold(0, (s, st) => s + (st.fee ?? 0));
@@ -365,18 +389,30 @@ class _CreateBatchOrderScreenState
 
                 // ── Stops ──────────────────────────────────────────────
                 _sectionHeader('Các điểm giao hàng'),
-                ..._stops.asMap().entries.map((e) {
-                  final i    = e.key;
-                  final stop = e.value;
-                  return _StopCard(
-                    index:     i,
-                    stop:      stop,
-                    canRemove: _stops.length > 1,
-                    onPickAddress: () => _pickStopAddress(i),
-                    onAddressChanged: (_) => _estimateStop(i),
-                    onRemove: () => _removeStop(i),
-                  );
-                }),
+                ReorderableListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  buildDefaultDragHandles: false,
+                  itemCount: _stops.length,
+                  onReorderItem: _onReorderStops,
+                  itemBuilder: (context, i) {
+                    final stop = _stops[i];
+                    return _StopCard(
+                      key: ValueKey(stop.id),
+                      index:     i,
+                      stop:      stop,
+                      canRemove: _stops.length > 1,
+                      isExpanded: stop.id == _expandedStopId,
+                      onToggle: () => setState(() {
+                        _expandedStopId =
+                            _expandedStopId == stop.id ? null : stop.id;
+                      }),
+                      onPickAddress: () => _pickStopAddress(i),
+                      onAddressChanged: (_) => _estimateStop(i),
+                      onRemove: () => _removeStop(i),
+                    );
+                  },
+                ),
 
                 // Thêm điểm
                 if (_stops.length < 10)
@@ -423,58 +459,6 @@ class _CreateBatchOrderScreenState
             padding: EdgeInsets.fromLTRB(
                 16, 12, 16, MediaQuery.of(context).padding.bottom + 12),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              // Per-stop summary
-              ..._stops.asMap().entries.map((e) {
-                final i    = e.key;
-                final stop = e.value;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(children: [
-                    Container(
-                      width: 20, height: 20,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Center(
-                        child: Text('${i + 1}',
-                            style: const TextStyle(
-                                fontSize: 11, fontWeight: FontWeight.w700,
-                                color: Colors.white)),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        stop.addressCtrl.text.isEmpty
-                            ? 'Chưa có địa chỉ'
-                            : stop.addressCtrl.text,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.textSecondary),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    if (stop.estimating)
-                      const SizedBox(width: 14, height: 14,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 1.5, color: AppColors.primary))
-                    else if (stop.fee != null)
-                      Text(Fmt.currency(stop.fee!),
-                          style: const TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w700,
-                              color: AppColors.primary))
-                    else
-                      const Text('—',
-                          style: TextStyle(
-                              fontSize: 13, color: AppColors.textSecondary)),
-                  ]),
-                );
-              }),
-
-              const Divider(height: 16, color: Color(0xFFF0F0F0)),
-
               // Total + button
               Row(children: [
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -570,85 +554,188 @@ class _StopCard extends StatelessWidget {
   final int index;
   final _Stop stop;
   final bool canRemove;
+  final bool isExpanded;
+  final VoidCallback onToggle;
   final VoidCallback onPickAddress;
   final ValueChanged<String> onAddressChanged;
   final VoidCallback onRemove;
 
   const _StopCard({
+    super.key,
     required this.index,
     required this.stop,
     required this.canRemove,
+    required this.isExpanded,
+    required this.onToggle,
     required this.onPickAddress,
     required this.onAddressChanged,
     required this.onRemove,
   });
 
+  Widget _dragHandle() => ReorderableDragStartListener(
+        index: index,
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+          child: Icon(Icons.drag_handle_rounded,
+              size: 18, color: AppColors.textSecondary),
+        ),
+      );
+
+  Widget _indexBadge() => Container(
+        width: 22, height: 22,
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Center(
+          child: Text('${index + 1}',
+              style: const TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.w800,
+                  color: Colors.white)),
+        ),
+      );
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      isExpanded ? _buildExpanded() : _buildCollapsed();
+
+  // ── Thu gọn: 1 hàng ~50px ───────────────────────────────────────────────
+  Widget _buildCollapsed() {
+    final hasAddress = stop.addressCtrl.text.isNotEmpty;
+    final subParts = [
+      if (stop.phoneCtrl.text.isNotEmpty) stop.phoneCtrl.text,
+      if (stop.codCtrl.text.isNotEmpty) 'COD ${stop.codCtrl.text}',
+    ];
+
     return Container(
       color: Colors.white,
       margin: const EdgeInsets.only(bottom: 2),
+      child: InkWell(
+        onTap: onToggle,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Row(children: [
+            _dragHandle(),
+            const SizedBox(width: 6),
+            _indexBadge(),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    hasAddress ? stop.addressCtrl.text : 'Chưa nhập địa chỉ',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      fontStyle:
+                          hasAddress ? FontStyle.normal : FontStyle.italic,
+                      color: hasAddress
+                          ? AppColors.textPrimary
+                          : AppColors.textSecondary,
+                    ),
+                  ),
+                  if (subParts.isNotEmpty)
+                    Text(subParts.join(' · '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 11, color: AppColors.textSecondary)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (stop.estimating)
+              const SizedBox(width: 14, height: 14,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 1.5, color: AppColors.primary))
+            else
+              Text(
+                stop.fee != null ? Fmt.currency(stop.fee!) : '—',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: stop.fee != null
+                        ? AppColors.primary
+                        : AppColors.textSecondary),
+              ),
+            const SizedBox(width: 2),
+            const Icon(Icons.keyboard_arrow_down_rounded,
+                size: 20, color: AppColors.textSecondary),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  // ── Mở rộng: header + đủ 5 field, viền primary nổi bật ──────────────────
+  Widget _buildExpanded() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 2),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: AppColors.primary, width: 1.4),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header row
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
-            child: Row(children: [
-              Container(
-                width: 24, height: 24,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Center(
-                  child: Text('${index + 1}',
-                      style: const TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w800,
-                          color: Colors.white)),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text('Điểm ${index + 1}',
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary)),
-              if (stop.distanceKm != null) ...[
+          InkWell(
+            onTap: onToggle,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(10, 10, 8, 8),
+              child: Row(children: [
+                _dragHandle(),
+                const SizedBox(width: 6),
+                _indexBadge(),
                 const SizedBox(width: 8),
-                Text('${stop.distanceKm!.toStringAsFixed(1)} km',
+                Text('Điểm ${index + 1}',
                     style: const TextStyle(
-                        fontSize: 12, color: AppColors.textSecondary)),
-              ],
-              const Spacer(),
-              if (stop.fee != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(Fmt.currency(stop.fee!),
+                        fontSize: 14, fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary)),
+                if (stop.distanceKm != null) ...[
+                  const SizedBox(width: 8),
+                  Text('${stop.distanceKm!.toStringAsFixed(1)} km',
                       style: const TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.w800,
-                          color: AppColors.primary)),
-                )
-              else if (stop.estimating)
-                const SizedBox(width: 16, height: 16,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: AppColors.primary)),
-              if (canRemove) ...[
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.remove_circle_outline_rounded,
-                      color: AppColors.danger, size: 20),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                      minWidth: 32, minHeight: 32),
-                  onPressed: onRemove,
-                ),
-              ],
-            ]),
+                          fontSize: 12, color: AppColors.textSecondary)),
+                ],
+                const Spacer(),
+                if (stop.fee != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(Fmt.currency(stop.fee!),
+                        style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w800,
+                            color: AppColors.primary)),
+                  )
+                else if (stop.estimating)
+                  const SizedBox(width: 16, height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppColors.primary)),
+                if (canRemove) ...[
+                  const SizedBox(width: 4),
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline_rounded,
+                        color: AppColors.danger, size: 20),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                        minWidth: 32, minHeight: 32),
+                    onPressed: onRemove,
+                  ),
+                ],
+                const SizedBox(width: 2),
+                const Icon(Icons.keyboard_arrow_up_rounded,
+                    size: 20, color: AppColors.textSecondary),
+              ]),
+            ),
           ),
 
           // Fields
