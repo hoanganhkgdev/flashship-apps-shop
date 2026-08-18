@@ -5,7 +5,22 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 class NotificationService {
   NotificationService._();
 
-  static void Function(String orderCode)? onOrderTap;
+  // Đệm order code khi bấm thông báo đẩy TRƯỚC KHI onOrderTap được gán
+  // (vd cold-start: getInitialMessage() xử lý xong trước khi HomeScreen kịp
+  // mount và gán callback) — cùng pattern với _pendingNotifications, tránh
+  // phụ thuộc thứ tự/số lần gọi init().
+  static void Function(String orderCode)? _onOrderTap;
+  static String? _pendingOrderTap;
+
+  static set onOrderTap(void Function(String orderCode)? callback) {
+    _onOrderTap = callback;
+    if (callback != null && _pendingOrderTap != null) {
+      callback(_pendingOrderTap!);
+      _pendingOrderTap = null;
+    }
+  }
+
+  static void Function(String orderCode)? get onOrderTap => _onOrderTap;
 
   static final _pendingNotifications = <Map<String, String?>>[];
 
@@ -89,9 +104,17 @@ class NotificationService {
     if (message.data['type'] == 'order_status') {
       final code = message.data['order_code'] as String?;
       _dispatch(title, body, orderCode: code);
-      if (code != null) onOrderTap?.call(code);
+      if (code != null) _dispatchOrderTap(code);
     } else if (title.isNotEmpty) {
       _dispatch(title, body);
+    }
+  }
+
+  static void _dispatchOrderTap(String code) {
+    if (_onOrderTap != null) {
+      _onOrderTap!(code);
+    } else {
+      _pendingOrderTap = code;
     }
   }
 }

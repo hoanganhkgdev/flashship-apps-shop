@@ -18,8 +18,8 @@ import '../../order/screens/order_list_screen.dart';
 import '../../profile/screens/profile_screen.dart';
 import '../../stats/stats_screen.dart';
 import '../providers/today_stats_provider.dart';
-import '../../voucher/voucher_model.dart';
 import '../../voucher/voucher_provider.dart';
+import '../../voucher/widgets/voucher_card.dart';
 
 final _tabProvider = StateProvider<int>((ref) => 0);
 
@@ -36,7 +36,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(orderListProvider.notifier).fetch();
-      NotificationService.init();
     });
 
     NotificationService.onIncomingNotification = ({
@@ -289,7 +288,7 @@ class _Header extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final unread = ref.watch(unreadCountProvider);
+    final unread = ref.watch(unreadCountProvider).valueOrNull ?? 0;
     final c      = context.colors;
 
     return Container(
@@ -843,144 +842,26 @@ class _VoucherSection extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
                 itemCount: vouchers.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 10),
-                itemBuilder: (_, i) => _VoucherCard(voucher: vouchers[i]),
+                itemBuilder: (_, i) {
+                  final v = vouchers[i];
+                  return SizedBox(
+                    width: 200,
+                    child: VoucherCard(
+                      voucher: v,
+                      eligible: !(v.isExpired || v.isFull),
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: v.code));
+                        AppSnackbar.success(context, 'Đã sao chép: ${v.code}',
+                            duration: const Duration(seconds: 2));
+                      },
+                    ),
+                  );
+                },
               ),
             ),
           ]),
         );
       },
-    );
-  }
-}
-
-class _VoucherCard extends StatelessWidget {
-  final VoucherModel voucher;
-  const _VoucherCard({required this.voucher});
-
-  String get _discountText => voucher.type == 'percent'
-      ? '-${voucher.value}%'
-      : '-${voucher.value}đ';
-
-  String get _expiry {
-    if (voucher.expiresAt == null) return '';
-    final d = voucher.expiresAt!;
-    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c       = context.colors;
-    final expired = voucher.isExpired || voucher.isFull;
-    final accent  = expired ? c.textTertiary : c.success;
-
-    return GestureDetector(
-      onTap: () {
-        Clipboard.setData(ClipboardData(text: voucher.code));
-        AppSnackbar.success(context, 'Đã sao chép: ${voucher.code}',
-            duration: const Duration(seconds: 2));
-      },
-      child: Container(
-        width: 200,
-        decoration: BoxDecoration(
-          color: c.surface,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: c.cardShadow,
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-
-          // ── Left accent strip ──
-          Container(
-            width: 56,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: expired
-                    ? [c.surfaceAlt, c.surfaceAlt]
-                    : [c.success, c.success.withValues(alpha: 0.75)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(_discountText,
-                    style: TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.w900,
-                        color: expired ? c.textTertiary : Colors.white,
-                        height: 1)),
-                const SizedBox(height: 2),
-                Text('OFF',
-                    style: TextStyle(
-                        fontSize: 8, fontWeight: FontWeight.w700,
-                        letterSpacing: 1.5,
-                        color: expired
-                            ? c.textTertiary
-                            : Colors.white.withValues(alpha: 0.8))),
-              ],
-            ),
-          ),
-
-          // ── Right content ──
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Code
-                  Row(children: [
-                    Text(voucher.code,
-                        style: TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w800,
-                            color: accent, letterSpacing: 0.5)),
-                    const SizedBox(width: 5),
-                    Icon(Icons.copy_rounded, size: 12, color: accent),
-                  ]),
-                  const SizedBox(height: 4),
-                  // Mô tả hoặc min order
-                  Text(
-                    voucher.description?.isNotEmpty == true
-                        ? voucher.description!
-                        : voucher.minOrderValue != null
-                            ? 'Đơn từ ${voucher.minOrderValue}đ'
-                            : 'Không giới hạn đơn tối thiểu',
-                    style: TextStyle(fontSize: 10, color: c.textSecondary),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 5),
-                  // HSD + usage
-                  Row(children: [
-                    if (voucher.expiresAt != null) ...[
-                      Icon(Icons.access_time_rounded,
-                          size: 10,
-                          color: expired ? c.danger : c.textTertiary),
-                      const SizedBox(width: 3),
-                      Text(
-                        expired ? 'Hết hạn' : _expiry,
-                        style: TextStyle(
-                            fontSize: 10,
-                            color: expired ? c.danger : c.textTertiary),
-                      ),
-                    ],
-                    if (voucher.usageLimit != null) ...[
-                      const Spacer(),
-                      Text(
-                        '${voucher.usageCount ?? 0}/${voucher.usageLimit}',
-                        style: TextStyle(
-                            fontSize: 10,
-                            color: c.textTertiary),
-                      ),
-                    ],
-                  ]),
-                ],
-              ),
-            ),
-          ),
-        ]),
-      ),
     );
   }
 }

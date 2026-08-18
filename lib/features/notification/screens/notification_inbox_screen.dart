@@ -62,16 +62,23 @@ class NotificationInboxScreen extends ConsumerStatefulWidget {
 
 class _NotificationInboxScreenState
     extends ConsumerState<NotificationInboxScreen> {
-  static const _pageSize = 15;
-  int _limit = _pageSize;
+  bool _loadingMore = false;
+
+  Future<void> _onLoadMore() async {
+    if (_loadingMore) return;
+    setState(() => _loadingMore = true);
+    await ref.read(notificationProvider.notifier).loadMore();
+    if (mounted) setState(() => _loadingMore = false);
+  }
 
   @override
   Widget build(BuildContext context) {
     final items       = ref.watch(notificationProvider);
-    final unreadCount = items.where((n) => !n.isRead).length;
+    // Đếm chính xác trên toàn bộ DB qua unreadCountProvider — không derive
+    // từ items (chỉ gồm các trang đã tải) để khớp với badge ở trang chủ.
+    final unreadCount = ref.watch(unreadCountProvider).valueOrNull ?? 0;
     final groups      = _groupItems(items);
-    final visible     = groups.take(_limit).toList();
-    final hasMore     = groups.length > _limit;
+    final hasMore     = ref.watch(notificationHasMoreProvider);
     final c           = context.colors;
 
     return Scaffold(
@@ -156,15 +163,14 @@ class _NotificationInboxScreenState
                 ? const _EmptyState()
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
-                    itemCount: visible.length + (hasMore ? 1 : 0),
+                    itemCount: groups.length + (hasMore ? 1 : 0),
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (_, i) {
-                      if (i == visible.length) {
+                      if (i == groups.length) {
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 4),
                           child: OutlinedButton(
-                            onPressed: () =>
-                                setState(() => _limit += _pageSize),
+                            onPressed: _loadingMore ? null : _onLoadMore,
                             style: OutlinedButton.styleFrom(
                               foregroundColor: c.primary,
                               side: BorderSide(
@@ -173,15 +179,21 @@ class _NotificationInboxScreenState
                                   borderRadius: BorderRadius.circular(12)),
                               minimumSize: const Size(double.infinity, 46),
                             ),
-                            child: Text('Xem thêm',
-                                style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: c.primary)),
+                            child: _loadingMore
+                                ? SizedBox(
+                                    width: 18, height: 18,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2, color: c.primary),
+                                  )
+                                : Text('Xem thêm',
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: c.primary)),
                           ),
                         );
                       }
-                      final g = visible[i];
+                      final g = groups[i];
                       return _GroupCard(
                         group: g,
                         onTap: () {
