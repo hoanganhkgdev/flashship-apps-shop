@@ -20,6 +20,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _obscure = true;
 
   @override
+  void initState() {
+    super.initState();
+    // Xoá lỗi còn sót lại từ màn xác thực khác (vd Đăng ký) — authProvider.error
+    // dùng chung cho mọi thao tác, không tự xoá khi chuyển màn.
+    WidgetsBinding.instance.addPostFrameCallback(
+        (_) => ref.read(authProvider.notifier).clearError());
+  }
+
+  @override
   void dispose() {
     _phoneCtrl.dispose();
     _passCtrl.dispose();

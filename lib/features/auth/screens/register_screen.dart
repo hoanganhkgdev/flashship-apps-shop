@@ -30,6 +30,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool    _cityError     = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Xoá lỗi còn sót lại từ màn xác thực khác (vd Đăng nhập) — authProvider.error
+    // dùng chung cho mọi thao tác, không tự xoá khi chuyển màn.
+    WidgetsBinding.instance.addPostFrameCallback(
+        (_) => ref.read(authProvider.notifier).clearError());
+  }
+
+  @override
   void dispose() {
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
@@ -80,7 +89,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               child: Row(children: [
                 IconButton(
                   icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-                  onPressed: () => context.pop(),
+                  onPressed: () {
+                    // Xoá lỗi trước khi quay lại — màn Đăng nhập vẫn đang
+                    // mounted phía dưới (push không dispose), tự đọc lại
+                    // authProvider.error ngay khi lộ ra nếu không xoá ở đây.
+                    ref.read(authProvider.notifier).clearError();
+                    context.pop();
+                  },
                 ),
               ]),
             ),
@@ -209,7 +224,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         const Text('Đã có tài khoản? ',
                             style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
                         GestureDetector(
-                          onTap: () => context.pop(),
+                          onTap: () {
+                            ref.read(authProvider.notifier).clearError();
+                            context.pop();
+                          },
                           child: const Text('Đăng nhập',
                               style: TextStyle(
                                   fontSize: 14,

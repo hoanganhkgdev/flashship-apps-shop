@@ -50,6 +50,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _loadFromStorage();
   }
 
+  // error là state dùng chung cho mọi thao tác xác thực (login/sendOtp/
+  // verifyOtpAndRegister...) nên chỉ tự xoá ở ĐẦU mỗi lần gọi API mới, không
+  // tự xoá khi chuyển màn — các màn Login/Register/Otp gọi hàm này trong
+  // initState() để không kế thừa lỗi còn sót lại từ màn trước đó.
+  void clearError() {
+    if (state.error != null) state = state.copyWith(clearError: true);
+  }
+
   Future<void> _loadFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
     final token    = prefs.getString(AppConstants.tokenKey);

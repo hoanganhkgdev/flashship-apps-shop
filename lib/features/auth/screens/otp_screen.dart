@@ -26,6 +26,10 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   void initState() {
     super.initState();
     _startCountdown();
+    // Xoá lỗi còn sót lại từ màn xác thực khác — authProvider.error dùng
+    // chung cho mọi thao tác, không tự xoá khi chuyển màn.
+    WidgetsBinding.instance.addPostFrameCallback(
+        (_) => ref.read(authProvider.notifier).clearError());
   }
 
   @override
@@ -82,7 +86,13 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
               child: Row(children: [
                 IconButton(
                   icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-                  onPressed: () => context.pop(),
+                  onPressed: () {
+                    // Xoá lỗi trước khi quay lại — màn Đăng ký vẫn đang
+                    // mounted phía dưới (push không dispose), tự đọc lại
+                    // authProvider.error ngay khi lộ ra nếu không xoá ở đây.
+                    ref.read(authProvider.notifier).clearError();
+                    context.pop();
+                  },
                 ),
               ]),
             ),
