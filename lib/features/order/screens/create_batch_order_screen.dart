@@ -259,6 +259,64 @@ class _CreateBatchOrderScreenState
   int get _finalFee =>
       (_totalFee - (_voucherDiscount ?? 0)).clamp(0, _totalFee);
 
+  // ── Exit confirmation ────────────────────────────────────────────────────
+
+  bool get _hasUnsavedData =>
+      _stops.length > 1 ||
+      _stops.any((s) =>
+          s.addressCtrl.text.trim().isNotEmpty ||
+          s.phoneCtrl.text.trim().isNotEmpty ||
+          s.nameCtrl.text.trim().isNotEmpty ||
+          s.codCtrl.text.trim().isNotEmpty ||
+          s.noteCtrl.text.trim().isNotEmpty);
+
+  // context.pop() ở nút back gọi Navigator.pop() trực tiếp, không đi qua
+  // maybePop() nên PopScope không tự chặn được — dùng chung hàm này cho cả
+  // PopScope lẫn nút back thủ công trong build().
+  Future<void> _handleBackPress() async {
+    if (!_hasUnsavedData) {
+      if (mounted) context.pop();
+      return;
+    }
+    final confirmed = await _confirmExitDialog();
+    if (confirmed && mounted) context.pop();
+  }
+
+  Future<bool> _confirmExitDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Huỷ đặt đơn gộp?',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+        content: Text(
+            'Toàn bộ ${_stops.length} điểm giao đã nhập sẽ không được lưu.',
+            style: const TextStyle(fontSize: 14, height: 1.5)),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.textSecondary,
+              side: const BorderSide(color: Color(0xFFE5E7EB)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Ở lại'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Thoát'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
   // ── Voucher ─────────────────────────────────────────────────────────────
 
   Future<void> _openVoucherSheet() async {
@@ -367,13 +425,19 @@ class _CreateBatchOrderScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: !_hasUnsavedData,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBackPress();
+      },
+      child: Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Đơn gộp nhiều điểm'),
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
-          onPressed: () => context.pop(),
+          onPressed: _handleBackPress,
         ),
       ),
       body: Column(
@@ -654,6 +718,7 @@ class _CreateBatchOrderScreenState
             ]),
           ),
         ],
+      ),
       ),
     );
   }

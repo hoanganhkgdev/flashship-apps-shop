@@ -70,6 +70,13 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   double? _cargoWeight;
   int?   _codAmount;
 
+  // True khi người dùng đã tự tay chọn địa chỉ hoặc lưu chi tiết đơn (xem
+  // _pickAddress()/_openDetailSheet()) — KHÔNG bật khi dữ liệu chỉ tới từ
+  // _prefillFromProfile()/_prefillFromReorder()/_applyDeliveryPrefill(), vì
+  // lúc đó người dùng chưa mất công nhập gì thực sự. Dùng làm điều kiện
+  // cảnh báo thoát màn (xem PopScope trong build()).
+  bool _userEdited = false;
+
   // Fee
   int?   _fee;
   int    _nightSurcharge = 0;
@@ -296,6 +303,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     );
     if (result == null || !mounted) return;
     setState(() {
+      _userEdited = true;
       if (isPickup) {
         _pickupAddr      = result.address;
         _pickupPlaceName = result.placeName;
@@ -633,6 +641,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         codAmount:     _codAmount,
         onSave: (result) {
           setState(() {
+            _userEdited    = true;
             _receiverPhone = result.receiverPhone;
             _receiverName  = result.receiverName;
             _senderName    = result.senderName;
@@ -650,6 +659,54 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
   bool get _hasDetail =>
       _receiverPhone.isNotEmpty || _receiverName.isNotEmpty || _note.isNotEmpty;
+
+  // ── Exit confirmation ────────────────────────────────────────────────────
+
+  // Dùng cho cả PopScope (back gesture/nút cứng) lẫn nút back thủ công trong
+  // build() — context.pop() ở nút back gọi Navigator.pop() trực tiếp, không
+  // đi qua maybePop() nên PopScope không tự chặn được, phải tự kiểm tra ở đây.
+  Future<void> _handleBackPress() async {
+    if (!_userEdited) {
+      if (mounted) context.pop();
+      return;
+    }
+    final confirmed = await _confirmExitDialog();
+    if (confirmed && mounted) context.pop();
+  }
+
+  Future<bool> _confirmExitDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Huỷ đặt đơn?',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+        content: const Text('Thông tin bạn đã nhập sẽ không được lưu.',
+            style: TextStyle(fontSize: 14, height: 1.5)),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.textSecondary,
+              side: const BorderSide(color: Color(0xFFE5E7EB)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Ở lại'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Thoát'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
 
   bool get _needsPhone => _receiverPhone.trim().isEmpty;
 
@@ -699,7 +756,13 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     const fallbackLat = 10.0452;
     const fallbackLng = 105.7469;
 
-    return Scaffold(
+    return PopScope(
+      canPop: !_userEdited,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBackPress();
+      },
+      child: Scaffold(
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
@@ -776,7 +839,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                     IconButton(
                       icon: const Icon(Icons.arrow_back_rounded),
                       color: AppColors.textPrimary,
-                      onPressed: () => context.pop(),
+                      onPressed: _handleBackPress,
                     ),
 
                     // Address rows
@@ -1334,6 +1397,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }
