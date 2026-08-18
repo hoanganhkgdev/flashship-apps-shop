@@ -35,6 +35,9 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
   int  _savedLimit   = 10;
   int  _historyLimit = 5;
   Timer? _debounce;
+  // Địa chỉ đã lưu đang thử geocode lại (thiếu lat/lng sẵn có) — hiện
+  // spinner đúng tile đó thay vì chặn im lặng như trước.
+  int? _retryingEntryId;
 
   @override
   void initState() {
@@ -100,6 +103,47 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Không lấy được tọa độ. Vui lòng thử lại.')),
+      );
+    }
+  }
+
+  // Địa chỉ đã lưu thiếu lat/lng (dữ liệu cũ/nhập tay không qua bản đồ) —
+  // thử geocode lại từ entry.address theo đúng pattern
+  // _geocodeShopAddress() ở create_order_screen.dart thay vì im lặng chặn.
+  Future<void> _selectFromSaved(AddressEntry entry) async {
+    if (entry.lat != null && entry.lng != null) {
+      Navigator.of(context).pop(MapPickResult(
+        address:      entry.address,
+        lat:          entry.lat!,
+        lng:          entry.lng!,
+        placeName:    entry.displayName,
+        contactName:  entry.name,
+        contactPhone: entry.phone,
+      ));
+      return;
+    }
+
+    setState(() { _selecting = true; _retryingEntryId = entry.id; });
+    final result = await AddressSearchService.getDetail(AddressResult(
+      display: entry.address, mainText: entry.address,
+      secondaryText: '', placeId: '',
+    ));
+    if (!mounted) return;
+    setState(() { _selecting = false; _retryingEntryId = null; });
+
+    if (result != null && result.lat != null && result.lng != null) {
+      Navigator.of(context).pop(MapPickResult(
+        address:      result.display,
+        lat:          result.lat!,
+        lng:          result.lng!,
+        placeName:    entry.displayName,
+        contactName:  entry.name,
+        contactPhone: entry.phone,
+      ));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(
+            'Không tìm được toạ độ cho địa chỉ này, vui lòng sửa lại trong Sổ địa chỉ.')),
       );
     }
   }
@@ -234,15 +278,17 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF7F7F8),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: AppColors.primary, width: 1.4),
                   ),
                   child: Row(children: [
                     Container(
                       width: 36, height: 36,
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        color: context.colors.primarySoft,
+                        shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.map_rounded,
                           color: AppColors.primary, size: 18),
@@ -250,8 +296,8 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
                     const SizedBox(width: 12),
                     const Text('Chọn vị trí trên bản đồ',
                         style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary)),
+                            fontSize: 14, fontWeight: FontWeight.w700,
+                            color: AppColors.primary)),
                     const Spacer(),
                     const Icon(Icons.chevron_right_rounded,
                         color: AppColors.textSecondary, size: 20),
@@ -359,22 +405,13 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
                       : _SavedTab(
                           entries:  savedEntries,
                           limit:    _savedLimit,
+                          retryingEntryId: _retryingEntryId,
                           onLoadMore: savedEntries.length > _savedLimit
                               ? () => setState(() =>
                                   _savedLimit = (_savedLimit + 10)
                                       .clamp(0, savedEntries.length))
                               : null,
-                          onSelect: (entry) {
-                            if (entry.lat == null || entry.lng == null) return;
-                            Navigator.of(context).pop(MapPickResult(
-                              address:      entry.address,
-                              lat:          entry.lat!,
-                              lng:          entry.lng!,
-                              placeName:    entry.displayName,
-                              contactName:  entry.name,
-                              contactPhone: entry.phone,
-                            ));
-                          },
+                          onSelect: _selectFromSaved,
                         ),
                 ],
               ),
@@ -442,12 +479,25 @@ class _EmptyTab extends StatelessWidget {
 class _SavedAddressTile extends StatelessWidget {
   final AddressEntry entry;
   final VoidCallback onTap;
-  const _SavedAddressTile({required this.entry, required this.onTap});
+  final bool isRetrying;
+  const _SavedAddressTile({
+    required this.entry,
+    required this.onTap,
+    this.isRetrying = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
+    final c = context.colors;
+    final missingCoords = entry.lat == null || entry.lng == null;
+    final hasLabel = entry.label != null &&
+        entry.label!.isNotEmpty &&
+        entry.label != entry.name;
+    final initial =
+        entry.displayName.isNotEmpty ? entry.displayName[0].toUpperCase() : '?';
+
+    final tile = InkWell(
+      onTap: isRetrying ? null : onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -455,37 +505,104 @@ class _SavedAddressTile extends StatelessWidget {
           color: const Color(0xFFF7F7F8),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Row(children: [
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // ── Avatar ──
           Container(
-            width: 36, height: 36,
+            width: 40, height: 40,
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              color: missingCoords ? c.surfaceAlt : c.primarySoft,
+              shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.bookmark_rounded,
-                size: 18, color: AppColors.primary),
+            alignment: Alignment.center,
+            child: isRetrying
+                ? SizedBox(
+                    width: 18, height: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: c.primary),
+                  )
+                : Text(initial,
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: missingCoords ? c.textTertiary : c.primary)),
           ),
           const SizedBox(width: 12),
+
+          // ── Nội dung ──
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(entry.displayName,
-                    style: const TextStyle(fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text(entry.address,
-                    style: const TextStyle(fontSize: 12,
-                        color: AppColors.textSecondary),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                // Dòng 1: tên + badge label
+                Row(children: [
+                  Flexible(
+                    child: Text(entry.displayName,
+                        style: TextStyle(fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: c.textPrimary),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                  if (hasLabel) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: c.primarySoft,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(entry.label!,
+                          style: TextStyle(fontSize: 8,
+                              fontWeight: FontWeight.w700,
+                              color: c.primary)),
+                    ),
+                  ],
+                ]),
+                const SizedBox(height: 3),
+
+                // Dòng 2: SĐT
+                Row(children: [
+                  Icon(Icons.phone_outlined, size: 12, color: c.textSecondary),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(entry.phone,
+                        style: TextStyle(fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: c.textSecondary),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                ]),
+                const SizedBox(height: 3),
+
+                // Dòng 3: địa chỉ, hoặc cảnh báo thiếu toạ độ
+                missingCoords
+                    ? Row(children: [
+                        Icon(Icons.warning_amber_rounded,
+                            size: 14, color: c.warning),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                              isRetrying
+                                  ? 'Đang tìm toạ độ...'
+                                  : 'Chưa có toạ độ · nhấn để định vị lại',
+                              style: TextStyle(fontSize: 10.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: c.warning),
+                              maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ),
+                      ])
+                    : Text(entry.address,
+                        style: TextStyle(fontSize: 10.5, color: c.textTertiary),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
         ]),
       ),
     );
+
+    if (!missingCoords) return tile;
+    return Opacity(opacity: 0.55, child: tile);
   }
 }
 
@@ -498,12 +615,14 @@ class _SavedTab extends StatelessWidget {
   final int                         limit;
   final void Function(AddressEntry) onSelect;
   final VoidCallback?               onLoadMore;
+  final int?                        retryingEntryId;
 
   const _SavedTab({
     required this.entries,
     required this.limit,
     required this.onSelect,
     this.onLoadMore,
+    this.retryingEntryId,
   });
 
   @override
@@ -528,6 +647,7 @@ class _SavedTab extends StatelessWidget {
         return _SavedAddressTile(
           entry: visible[i],
           onTap: () => onSelect(visible[i]),
+          isRetrying: retryingEntryId == visible[i].id,
         );
       },
     );
