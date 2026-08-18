@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +8,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/theme_mode_provider.dart';
 import '../../legal/legal_page_screen.dart';
 import '../../../core/widgets/app_form_widgets.dart';
+import '../../../core/widgets/otp_input.dart';
+import '../../../core/widgets/step_progress_bar.dart';
 import '../../auth/models/shop_user_model.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../auth/providers/cities_provider.dart';
@@ -159,6 +162,12 @@ class ProfileScreen extends ConsumerWidget {
                 iconBg: const Color(0xFF636366),
                 label: 'Đổi mật khẩu',
                 onTap: () => _showPasswordSheet(context, ref),
+              ),
+              _SettingsRow(
+                icon: Icons.phone_iphone_rounded,
+                iconBg: const Color(0xFF34C759),
+                label: 'Đổi số điện thoại',
+                onTap: () => _showChangePhoneSheet(context),
               ),
             ]),
 
@@ -524,6 +533,20 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
+  void _showChangePhoneSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _ChangePhoneSheet(
+        onSuccess: () {
+          if (context.mounted) {
+            AppSnackbar.success(context, 'Đổi số điện thoại thành công');
+          }
+        },
+      ),
+    );
+  }
+
   Future<void> _deleteAccount(BuildContext context, WidgetRef ref) async {
     final confirm1 = await showDialog<bool>(
       context: context,
@@ -803,6 +826,174 @@ class _SettingsRow extends StatelessWidget {
           ]),
         ),
       ),
+    );
+  }
+}
+
+// ─── Change phone sheet ─────────────────────────────────────────────────────────
+
+class _ChangePhoneSheet extends ConsumerStatefulWidget {
+  final VoidCallback onSuccess;
+  const _ChangePhoneSheet({required this.onSuccess});
+
+  @override
+  ConsumerState<_ChangePhoneSheet> createState() => _ChangePhoneSheetState();
+}
+
+class _ChangePhoneSheetState extends ConsumerState<_ChangePhoneSheet> {
+  final _phoneCtrl = TextEditingController();
+  final _otpCtl    = OtpInputController();
+
+  int    _step        = 1;
+  String _lockedPhone  = '';
+  int    _countdown   = 60;
+  Timer? _timer;
+
+  @override
+  void dispose() {
+    _phoneCtrl.dispose();
+    _otpCtl.dispose();
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startCountdown() {
+    _countdown = 60;
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (_countdown <= 0) { t.cancel(); return; }
+      setState(() => _countdown--);
+    });
+  }
+
+  Future<void> _sendOtp() async {
+    final phone = _phoneCtrl.text.trim();
+    if (phone.isEmpty) return;
+    final ok = await ref.read(authProvider.notifier).sendChangePhoneOtp(phone);
+    if (!mounted) return;
+    if (ok) {
+      setState(() {
+        _lockedPhone = phone;
+        _step        = 2;
+      });
+      _startCountdown();
+    } else {
+      setState(() {});
+    }
+  }
+
+  Future<void> _resend() async {
+    if (_countdown > 0) return;
+    final ok = await ref.read(authProvider.notifier).sendChangePhoneOtp(_lockedPhone);
+    if (ok) _startCountdown();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _verify() async {
+    if (_otpCtl.otp.length < 6) return;
+    final ok = await ref
+        .read(authProvider.notifier)
+        .verifyChangePhone(_lockedPhone, _otpCtl.otp);
+    if (!mounted) return;
+    if (ok) {
+      Navigator.pop(context);
+      widget.onSuccess();
+    } else {
+      setState(() {});
+      _otpCtl.clear();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = ref.watch(authProvider);
+    final c    = context.colors;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20, right: 20, top: 12,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+        Center(child: Container(
+            width: 36, height: 4,
+            decoration: BoxDecoration(color: c.divider,
+                borderRadius: BorderRadius.circular(2)))),
+        const SizedBox(height: 16),
+        const Text('Đổi số điện thoại',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 16),
+        StepProgressBar(currentStep: _step, totalSteps: 2),
+        const SizedBox(height: 20),
+
+        if (_step == 1) ...[
+          const AppLabel('Số điện thoại mới'),
+          const SizedBox(height: 8),
+          AppField(
+            controller: _phoneCtrl,
+            hint: '09xxxxxxxx',
+            keyboardType: TextInputType.phone,
+          ),
+          if (auth.error != null) ...[
+            const SizedBox(height: 14),
+            AppErrorBox(auth.error!),
+          ],
+          const SizedBox(height: 24),
+          AppButton(
+            label: 'Gửi mã OTP',
+            onPressed: _sendOtp,
+            isLoading: auth.isLoading,
+          ),
+        ] else ...[
+          Text.rich(TextSpan(
+            style: TextStyle(fontSize: 14, color: c.textSecondary),
+            children: [
+              const TextSpan(text: 'Nhập mã 6 số đã gửi tới '),
+              TextSpan(
+                text: _lockedPhone,
+                style: TextStyle(fontWeight: FontWeight.w700, color: c.textPrimary),
+              ),
+            ],
+          )),
+          const SizedBox(height: 20),
+          OtpInput(
+            controller: _otpCtl,
+            onChanged: (otp) {
+              if (otp.length == 6) _verify();
+            },
+          ),
+          if (auth.error != null) ...[
+            const SizedBox(height: 14),
+            AppErrorBox(auth.error!),
+          ],
+          const SizedBox(height: 24),
+          AppButton(
+            label: 'Xác nhận',
+            onPressed: _otpCtl.otp.length == 6 ? _verify : null,
+            isLoading: auth.isLoading,
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: _countdown > 0
+                ? Text(
+                    'Gửi lại sau $_countdown giây',
+                    style: TextStyle(fontSize: 14, color: c.textSecondary),
+                  )
+                : GestureDetector(
+                    onTap: _resend,
+                    child: const Text(
+                      'Gửi lại mã OTP',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary),
+                    ),
+                  ),
+          ),
+        ],
+      ]),
     );
   }
 }

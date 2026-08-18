@@ -171,6 +171,36 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<bool> sendChangePhoneOtp(String newPhone) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _api.post('/shop/auth/change-phone/send-otp', data: {'new_phone': newPhone});
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: parseApiError(e));
+      return false;
+    }
+  }
+
+  Future<bool> verifyChangePhone(String newPhone, String otp) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final res  = await _api.post('/shop/auth/change-phone/verify', data: {
+        'new_phone': newPhone,
+        'otp':       otp,
+      });
+      final user = ShopUserModel.fromJson(unwrap(res) as Map<String, dynamic>);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(AppConstants.userKey, jsonEncode(user.toJson()));
+      state = state.copyWith(user: user, isLoading: false, isInitialized: true);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: parseApiError(e));
+      return false;
+    }
+  }
+
   Future<void> refreshUser() async {
     if (state.token == null) return;
     try {

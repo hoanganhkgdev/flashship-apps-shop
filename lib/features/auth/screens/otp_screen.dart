@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_form_widgets.dart';
+import '../../../core/widgets/otp_input.dart';
 import '../../../core/widgets/step_progress_bar.dart';
 import '../providers/auth_provider.dart';
 
@@ -16,8 +17,7 @@ class OtpScreen extends ConsumerStatefulWidget {
 }
 
 class _OtpScreenState extends ConsumerState<OtpScreen> {
-  final List<TextEditingController> _ctls  = List.generate(6, (_) => TextEditingController());
-  final List<FocusNode>             _nodes = List.generate(6, (_) => FocusNode());
+  final _otpCtl = OtpInputController();
 
   int    _countdown = 60;
   Timer? _timer;
@@ -31,8 +31,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   @override
   void dispose() {
     _timer?.cancel();
-    for (final c in _ctls)  { c.dispose(); }
-    for (final n in _nodes) { n.dispose(); }
+    _otpCtl.dispose();
     super.dispose();
   }
 
@@ -45,14 +44,12 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     });
   }
 
-  String get _otp => _ctls.map((c) => c.text).join();
-
   Future<void> _verify() async {
-    if (_otp.length < 6) return;
+    if (_otpCtl.otp.length < 6) return;
     final data = widget.regData;
     final ok   = await ref.read(authProvider.notifier).verifyOtpAndRegister(
       phone:    data['phone']    as String,
-      otp:      _otp,
+      otp:      _otpCtl.otp,
       name:     data['name']     as String,
       password: data['password'] as String,
       address:  data['address']  as String?,
@@ -60,8 +57,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     );
     if (!ok && mounted) {
       setState(() {});
-      for (final c in _ctls) { c.clear(); }
-      _nodes[0].requestFocus();
+      _otpCtl.clear();
     }
   }
 
@@ -121,20 +117,11 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                     const SizedBox(height: 40),
 
                     // OTP boxes
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: List.generate(6, (i) => _OtpBox(
-                        controller: _ctls[i],
-                        focusNode:  _nodes[i],
-                        onChanged: (v) {
-                          if (v.isNotEmpty && i < 5) {
-                            _nodes[i + 1].requestFocus();
-                          } else if (v.isEmpty && i > 0) {
-                            _nodes[i - 1].requestFocus();
-                          }
-                          if (_otp.length == 6) _verify();
-                        },
-                      )),
+                    OtpInput(
+                      controller: _otpCtl,
+                      onChanged: (otp) {
+                        if (otp.length == 6) _verify();
+                      },
                     ),
 
                     if (auth.error != null) ...[
@@ -145,7 +132,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                     const SizedBox(height: 32),
                     AppButton(
                       label: 'Xác nhận',
-                      onPressed: _otp.length == 6 ? _verify : null,
+                      onPressed: _otpCtl.otp.length == 6 ? _verify : null,
                       isLoading: auth.isLoading,
                     ),
                     const SizedBox(height: 24),
@@ -174,63 +161,6 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _OtpBox extends StatelessWidget {
-  final TextEditingController controller;
-  final FocusNode             focusNode;
-  final void Function(String) onChanged;
-
-  const _OtpBox({
-    required this.controller,
-    required this.focusNode,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return SizedBox(
-      width: 46,
-      // Lắng nghe controller để đổi fillColor khi người dùng gõ — TextFormField
-      // tự vẽ lại text/border theo focus, nhưng không tự rebuild widget cha khi
-      // text đổi nên cần AnimatedBuilder để cập nhật màu "đã nhập".
-      child: AnimatedBuilder(
-        animation: controller,
-        builder: (context, _) {
-          final hasValue = controller.text.isNotEmpty;
-          return TextFormField(
-            controller: controller,
-            focusNode:  focusNode,
-            maxLength:  1,
-            textAlign:  TextAlign.center,
-            keyboardType: TextInputType.number,
-            style: const TextStyle(
-                fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-            decoration: InputDecoration(
-              counterText: '',
-              filled: true,
-              fillColor: hasValue ? c.primarySoft : c.surfaceAlt,
-              contentPadding: const EdgeInsets.symmetric(vertical: 14),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-                borderSide: const BorderSide(color: AppColors.primary, width: 2),
-              ),
-            ),
-            onChanged: onChanged,
-          );
-        },
       ),
     );
   }
