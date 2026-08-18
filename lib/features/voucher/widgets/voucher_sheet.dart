@@ -114,7 +114,7 @@ class _VoucherSheetState extends ConsumerState<VoucherSheet> {
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(AppRadius.pill)),
                   ),
                   child: _applying
                       ? const SizedBox(width: 16, height: 16,
@@ -203,7 +203,7 @@ class _VoucherSheetState extends ConsumerState<VoucherSheet> {
                                   elevation: 0,
                                   padding: const EdgeInsets.symmetric(horizontal: 14),
                                   shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8)),
+                                      borderRadius: BorderRadius.circular(AppRadius.pill)),
                                 ),
                                 child: const Text('Áp dụng',
                                     style: TextStyle(

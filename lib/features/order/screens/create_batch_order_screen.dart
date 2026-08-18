@@ -449,8 +449,12 @@ class _CreateBatchOrderScreenState
                 // ── Pickup ─────────────────────────────────────────────
                 _sectionHeader('Lấy hàng tại cửa hàng'),
                 Container(
-                  color: Colors.white,
+                  margin: const EdgeInsets.symmetric(horizontal: 12),
                   padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
                   child: Column(children: [
                     GestureDetector(
                       onTap: _pickPickupAddress,
@@ -475,8 +479,12 @@ class _CreateBatchOrderScreenState
                 // ── Cargo type ─────────────────────────────────────────
                 _sectionHeader('Loại hàng'),
                 Container(
-                  color: Colors.white,
+                  margin: const EdgeInsets.symmetric(horizontal: 12),
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
                   child: Row(
                     children: cargoTypes.map((c) {
                       final key = c.key, label = c.label;
@@ -581,8 +589,11 @@ class _CreateBatchOrderScreenState
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primary,
                         side: const BorderSide(color: AppColors.primary),
+                        // Giữ bo góc vừa phải (không bo tròn hoàn toàn như các
+                        // nút khác) — dạng viên thuốc dễ mất cảm giác "thêm mới"
+                        // cho một nút dài toàn chiều ngang.
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                            borderRadius: BorderRadius.circular(AppRadius.xl)),
                         minimumSize: const Size(double.infinity, 44),
                       ),
                     ),
@@ -699,7 +710,7 @@ class _CreateBatchOrderScreenState
                         backgroundColor: AppColors.primary,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
+                            borderRadius: BorderRadius.circular(AppRadius.pill)),
                       ),
                       child: _submitting
                           ? const SizedBox(width: 20, height: 20,
@@ -824,8 +835,12 @@ class _StopCard extends StatelessWidget {
     ];
 
     return Container(
-      color: Colors.white,
-      margin: const EdgeInsets.only(bottom: 2),
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 2),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onToggle,
         child: Padding(
@@ -890,11 +905,13 @@ class _StopCard extends StatelessWidget {
   // ── Mở rộng: header + đủ 5 field, viền primary nổi bật ──────────────────
   Widget _buildExpanded() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 2),
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 2),
       decoration: BoxDecoration(
         color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppColors.primary, width: 1.4),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

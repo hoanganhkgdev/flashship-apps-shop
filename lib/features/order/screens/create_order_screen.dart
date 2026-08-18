@@ -823,7 +823,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.12),
@@ -1205,7 +1205,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                             : _hasDetail
                                 ? AppColors.primary.withValues(alpha: 0.08)
                                 : const Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        borderRadius: BorderRadius.circular(24),
                         border: _showPhoneWarning
                             ? Border.all(
                                 color: AppColors.danger.withValues(alpha: 0.3))
@@ -1379,7 +1379,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
+                            borderRadius: BorderRadius.circular(AppRadius.pill)),
                       ),
                       child: _submitting
                           ? const SizedBox(width: 20, height: 20,
