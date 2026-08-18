@@ -317,6 +317,16 @@ class _OrderCard extends StatelessWidget {
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 
+  // Giả lập hiệu ứng "mờ 50%" bằng cách giảm alpha màu trực tiếp thay vì bọc
+  // Opacity — Opacity đổi giữa 1.0/<1.0 khi nhiều item trong ListView bị dựng
+  // lại đồng loạt (vd đổi tab lọc) có thể gây lỗi framework Flutter
+  // ("!semantics.parentDataDirty", có lúc lộ ra thành lỗi khác ở frame sau).
+  // Giảm alpha ở bước paint không tạo compositing layer nào nên tránh hẳn lớp
+  // bug này. Nền card luôn là c.surface nên kết quả thị giác gần như tương
+  // đương Opacity(0.5).
+  Color _fade(Color color) =>
+      order.isCancelled ? color.withValues(alpha: color.a * 0.5) : color;
+
   @override
   Widget build(BuildContext context) {
     final c       = context.colors;
@@ -349,136 +359,139 @@ class _OrderCard extends StatelessWidget {
             boxShadow: c.cardShadow,
           ),
           clipBehavior: Clip.antiAlias,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ── Dải accent trạng thái ─────────────────────────────────
-              Container(width: 4, color: accent),
-              Expanded(
-                // RepaintBoundary: Opacity đổi giữa 1.0/<1.0 trong danh sách
-                // cuộn có thể gây lỗi framework "!semantics.parentDataDirty"
-                // (bug Flutter đã biết) — cô lập layer để tránh semantics tree
-                // của thẻ này ảnh hưởng thẻ khác khi rebuild.
-                child: RepaintBoundary(
-                  child: Opacity(
-                    opacity: order.isCancelled ? 0.5 : 1,
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Row 1: status dot + label · fee
-                          Row(children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 9, vertical: 4),
-                              decoration: BoxDecoration(
-                                color:
-                                    accent.withValues(alpha: isDark ? 0.18 : 0.10),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child:
-                                  Row(mainAxisSize: MainAxisSize.min, children: [
-                                Container(
-                                  width: 6, height: 6,
-                                  decoration: BoxDecoration(
-                                      color: accent, shape: BoxShape.circle),
-                                ),
-                                const SizedBox(width: 5),
-                                Text(Fmt.orderStatus(order.status),
-                                    style: TextStyle(fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: accent)),
-                              ]),
+          // IntrinsicHeight: Row(crossAxisAlignment: stretch) cần chiều cao
+          // xác định để giãn các con — nhưng item trong ListView vốn cho
+          // chiều cao vô hạn (tự co theo nội dung), gây lỗi layout
+          // "BoxConstraints forces an infinite height" nếu không có dòng này.
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // ── Dải accent trạng thái — không bị làm mờ ─────────────
+                Container(width: 4, color: accent),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Row 1: status dot + label · fee
+                        Row(children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 9, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _fade(accent.withValues(
+                                  alpha: isDark ? 0.18 : 0.10)),
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                            const Spacer(),
-                            Text(Fmt.currency(order.shippingFee),
+                            child: Row(
+                                mainAxisSize: MainAxisSize.min, children: [
+                              Container(
+                                width: 6, height: 6,
+                                decoration: BoxDecoration(
+                                    color: _fade(accent), shape: BoxShape.circle),
+                              ),
+                              const SizedBox(width: 5),
+                              Text(Fmt.orderStatus(order.status),
+                                  style: TextStyle(fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: _fade(accent))),
+                            ]),
+                          ),
+                          const Spacer(),
+                          Text(Fmt.currency(order.shippingFee),
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: _fade(
+                                      dimmed ? c.textTertiary : c.primary),
+                                  decoration: dimmed
+                                      ? TextDecoration.lineThrough
+                                      : null)),
+                        ]),
+                        const SizedBox(height: 10),
+
+                        // Row 2: receiver + phone
+                        Row(children: [
+                          Icon(Icons.person_outline_rounded,
+                              size: 14, color: _fade(c.textTertiary)),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(receiver,
+                                maxLines: 1, overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: _fade(dimmed
+                                        ? c.textTertiary
+                                        : c.textPrimary))),
+                          ),
+                          if (order.deliveryPhone.isNotEmpty &&
+                              !order.isCancelled) ...[
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () => _call(order.deliveryPhone),
+                              child: Container(
+                                width: 22, height: 22,
+                                decoration: BoxDecoration(
+                                  color: c.primarySoft,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(Icons.call_rounded,
+                                    size: 12, color: c.primary),
+                              ),
+                            ),
+                          ],
+                        ]),
+                        const SizedBox(height: 5),
+
+                        // Row 3: address
+                        Row(children: [
+                          Icon(Icons.location_on_outlined,
+                              size: 14, color: _fade(c.textTertiary)),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(address,
+                                maxLines: 1, overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    color: dimmed ? c.textTertiary : c.primary,
-                                    decoration: dimmed
-                                        ? TextDecoration.lineThrough
-                                        : null)),
-                          ]),
-                          const SizedBox(height: 10),
+                                    fontSize: 12,
+                                    color: _fade(c.textSecondary))),
+                          ),
+                        ]),
+                        const SizedBox(height: 10),
 
-                          // Row 2: receiver + phone
-                          Row(children: [
-                            Icon(Icons.person_outline_rounded,
-                                size: 14, color: c.textTertiary),
-                            const SizedBox(width: 5),
-                            Expanded(
-                              child: Text(receiver,
-                                  maxLines: 1, overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: dimmed
-                                          ? c.textTertiary
-                                          : c.textPrimary)),
-                            ),
-                            if (order.deliveryPhone.isNotEmpty &&
-                                !order.isCancelled) ...[
-                              const SizedBox(width: 8),
-                              GestureDetector(
-                                onTap: () => _call(order.deliveryPhone),
-                                child: Container(
-                                  width: 22, height: 22,
-                                  decoration: BoxDecoration(
-                                    color: c.primarySoft,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(Icons.call_rounded,
-                                      size: 12, color: c.primary),
-                                ),
-                              ),
-                            ],
-                          ]),
-                          const SizedBox(height: 5),
+                        Divider(height: 1, color: _fade(c.divider)),
+                        const SizedBox(height: 10),
 
-                          // Row 3: address
-                          Row(children: [
-                            Icon(Icons.location_on_outlined,
-                                size: 14, color: c.textTertiary),
-                            const SizedBox(width: 5),
-                            Expanded(
-                              child: Text(address,
-                                  maxLines: 1, overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      fontSize: 12, color: c.textSecondary)),
-                            ),
-                          ]),
-                          const SizedBox(height: 10),
-
-                          Divider(height: 1, color: c.divider),
-                          const SizedBox(height: 10),
-
-                          // Row 4: chips + time
-                          Row(children: [
-                            _Chip(
-                                label: service.$1, color: service.$2, dimmed: dimmed),
+                        // Row 4: chips + time
+                        Row(children: [
+                          _Chip(
+                              label: service.$1,
+                              color: service.$2,
+                              dimmed: dimmed),
+                          const SizedBox(width: 6),
+                          _Chip(
+                              label: cargo.$1, color: cargo.$2, dimmed: dimmed),
+                          if (order.isBatch) ...[
                             const SizedBox(width: 6),
-                            _Chip(label: cargo.$1, color: cargo.$2, dimmed: dimmed),
-                            if (order.isBatch) ...[
-                              const SizedBox(width: 6),
-                              _Chip(label: '${order.stops.length} điểm',
-                                  color: c.success, dimmed: dimmed),
-                            ],
-                            const Spacer(),
-                            Icon(Icons.access_time_rounded,
-                                size: 12, color: c.textTertiary),
-                            const SizedBox(width: 3),
-                            Text(Fmt.timeAgo(order.createdAt),
-                                style:
-                                    TextStyle(fontSize: 12, color: c.textSecondary)),
-                          ]),
-                        ],
-                      ),
+                            _Chip(label: '${order.stops.length} điểm',
+                                color: c.success, dimmed: dimmed),
+                          ],
+                          const Spacer(),
+                          Icon(Icons.access_time_rounded,
+                              size: 12, color: _fade(c.textTertiary)),
+                          const SizedBox(width: 3),
+                          Text(Fmt.timeAgo(order.createdAt),
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: _fade(c.textSecondary))),
+                        ]),
+                      ],
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
