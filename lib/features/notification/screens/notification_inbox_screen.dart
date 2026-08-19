@@ -176,7 +176,7 @@ class _NotificationInboxScreenState
                               side: BorderSide(
                                   color: c.primary.withValues(alpha: 0.4)),
                               shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
+                                  borderRadius: BorderRadius.circular(AppRadius.md)),
                               minimumSize: const Size(double.infinity, 46),
                             ),
                             child: _loadingMore
@@ -272,26 +272,26 @@ class _GroupCardState extends State<_GroupCard> {
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
           color: c.danger.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppRadius.card),
         ),
         child: Icon(Icons.delete_outline_rounded, color: c.danger, size: 22),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         child: InkWell(
           onTap: widget.onTap,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppRadius.card),
           child: Container(
             decoration: BoxDecoration(
               color: unread
                   ? c.primary.withValues(alpha: context.isDark ? 0.08 : 0.04)
                   : c.surface,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: c.cardShadow,
-              border: unread
-                  ? Border.all(color: c.primary.withValues(alpha: 0.12))
-                  : null,
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              border: Border.all(
+                  color: unread
+                      ? c.primary.withValues(alpha: 0.25)
+                      : c.divider),
             ),
             child: Column(children: [
               // ── Main row ──
@@ -312,10 +312,10 @@ class _GroupCardState extends State<_GroupCard> {
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: const BorderRadius.only(
-                          topLeft:     Radius.circular(14),
-                          topRight:    Radius.circular(6),
-                          bottomLeft:  Radius.circular(6),
-                          bottomRight: Radius.circular(14),
+                          topLeft:     Radius.circular(AppRadius.card),
+                          topRight:    Radius.circular(AppRadius.sm),
+                          bottomLeft:  Radius.circular(AppRadius.sm),
+                          bottomRight: Radius.circular(AppRadius.card),
                         ),
                       ),
                       child: const Icon(Icons.notifications_rounded,

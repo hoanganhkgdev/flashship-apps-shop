@@ -46,16 +46,13 @@ class ProfileScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            // ── Hero header ─────────────────────────────────────────────
+            // ── Hero header — nền trung tính, không gradient ───────────────
             Container(
               width: double.infinity,
-              padding: EdgeInsets.fromLTRB(20, topPad + 16, 20, 28),
+              padding: EdgeInsets.fromLTRB(20, topPad + 16, 20, 24),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [c.primary, const Color(0xFFCC5A08)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: c.surface,
+                border: Border(bottom: BorderSide(color: c.divider)),
               ),
               child: Column(children: [
                 // Edit avatar
@@ -66,10 +63,8 @@ class ProfileScreen extends ConsumerWidget {
                       width: 80, height: 80,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: 0.2),
-                        border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.5),
-                            width: 2.5),
+                        color: c.surfaceAlt,
+                        border: Border.all(color: c.divider, width: 1.5),
                         image: user.avatarUrl != null
                             ? DecorationImage(
                                 image: NetworkImage(user.avatarUrl!),
@@ -79,8 +74,8 @@ class ProfileScreen extends ConsumerWidget {
                       child: user.avatarUrl == null
                           ? Center(
                               child: Text(user.initials,
-                                  style: const TextStyle(
-                                      color: Colors.white,
+                                  style: TextStyle(
+                                      color: c.textPrimary,
                                       fontSize: 28,
                                       fontWeight: FontWeight.w800)))
                           : null,
@@ -88,10 +83,9 @@ class ProfileScreen extends ConsumerWidget {
                     Container(
                       width: 24, height: 24,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: c.surface,
                         shape: BoxShape.circle,
-                        border: Border.all(
-                            color: c.primary.withValues(alpha: 0.3), width: 1),
+                        border: Border.all(color: c.divider, width: 1),
                       ),
                       child: Icon(Icons.camera_alt_rounded,
                           size: 12, color: c.primary),
@@ -100,27 +94,27 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(user.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white)),
+                        color: c.textPrimary)),
                 const SizedBox(height: 4),
                 Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.phone_rounded,
-                      size: 12, color: Colors.white70),
+                  Icon(Icons.phone_rounded,
+                      size: 12, color: c.textTertiary),
                   const SizedBox(width: 4),
                   Text(user.phone,
-                      style: const TextStyle(
-                          fontSize: 13, color: Colors.white70)),
+                      style: TextStyle(
+                          fontSize: 13, color: c.textSecondary)),
                   if (user.cityName?.isNotEmpty == true) ...[
-                    const Text('  ·  ',
-                        style: TextStyle(color: Colors.white38)),
-                    const Icon(Icons.location_on_rounded,
-                        size: 12, color: Colors.white70),
+                    Text('  ·  ',
+                        style: TextStyle(color: c.textTertiary)),
+                    Icon(Icons.location_on_rounded,
+                        size: 12, color: c.textTertiary),
                     const SizedBox(width: 2),
                     Text(user.cityName!,
-                        style: const TextStyle(
-                            fontSize: 13, color: Colors.white70)),
+                        style: TextStyle(
+                            fontSize: 13, color: c.textSecondary)),
                   ],
                 ]),
 
@@ -685,27 +679,29 @@ class _HeroStat extends StatelessWidget {
   const _HeroStat({required this.label, required this.value});
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Column(children: [
-          Text(value,
-              style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white)),
-          const SizedBox(height: 2),
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 11, color: Colors.white70)),
-        ]),
-      );
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(children: [
+        Text(value,
+            style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: c.textPrimary)),
+        const SizedBox(height: 2),
+        Text(label,
+            style: TextStyle(fontSize: 11, color: c.textSecondary)),
+      ]),
+    );
+  }
 }
 
 class _HeroDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         width: 1, height: 32,
-        color: Colors.white.withValues(alpha: 0.25));
+        color: context.colors.divider);
 }
 
 // ─── Section label ────────────────────────────────────────────────────────────
@@ -740,7 +736,7 @@ class _SettingsCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        boxShadow: c.cardShadow,
+        border: Border.all(color: c.divider),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppRadius.card),
@@ -774,7 +770,7 @@ class _SupportSection extends ConsumerWidget {
         decoration: BoxDecoration(
           color: c.surface,
           borderRadius: BorderRadius.circular(AppRadius.card),
-          boxShadow: c.cardShadow,
+          border: Border.all(color: c.divider),
         ),
         child: Center(
           child: SizedBox(

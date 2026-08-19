@@ -89,7 +89,7 @@ class AddressBookScreen extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
         title: const Text('Xoá địa chỉ?',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
         content: Text('Xoá "${entry.displayName}" khỏi sổ địa chỉ?',
@@ -359,7 +359,7 @@ class _AddAddressDialogScreenState
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
         ),
         child: _loading
             ? const SizedBox(width: 16, height: 16,
