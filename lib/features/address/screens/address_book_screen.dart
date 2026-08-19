@@ -107,7 +107,10 @@ class AddressBookScreen extends ConsumerWidget {
       ),
     );
     if (ok == true) {
-      ref.read(addressProvider.notifier).delete(entry.id);
+      final success = await ref.read(addressProvider.notifier).delete(entry.id);
+      if (!success && context.mounted) {
+        AppSnackbar.error(context, 'Không thể xoá địa chỉ. Vui lòng thử lại.');
+      }
     }
   }
 }
@@ -250,6 +253,7 @@ class _AddAddressDialogScreenState
   double? _pickedLat;
   double? _pickedLng;
   bool _loading = false;
+  String? _error;
 
   @override
   void initState() {
@@ -290,7 +294,7 @@ class _AddAddressDialogScreenState
   Future<void> _submit() async {
     if (_name.text.trim().isEmpty || _phone.text.trim().isEmpty ||
         _pickedAddress.isEmpty) { return; }
-    setState(() => _loading = true);
+    setState(() { _loading = true; _error = null; });
     bool ok;
     if (widget.initial != null) {
       ok = await ref.read(addressProvider.notifier).update(
@@ -313,7 +317,15 @@ class _AddAddressDialogScreenState
       );
       ok = entry != null;
     }
-    if (mounted) { Navigator.of(context).pop(ok); }
+    if (!mounted) return;
+    if (ok) {
+      Navigator.of(context).pop(true);
+    } else {
+      setState(() {
+        _loading = false;
+        _error   = 'Không thể lưu địa chỉ. Vui lòng thử lại.';
+      });
+    }
   }
 
   @override
@@ -330,6 +342,11 @@ class _AddAddressDialogScreenState
         _field(_phone, 'Số điện thoại *', keyboard: TextInputType.phone),
         const SizedBox(height: 10),
         _addressPickerRow(),
+        if (_error != null) ...[
+          const SizedBox(height: 10),
+          Text(_error!,
+              style: const TextStyle(fontSize: 12, color: AppColors.danger)),
+        ],
       ]),
     ),
     actions: [
