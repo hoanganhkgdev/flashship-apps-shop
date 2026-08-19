@@ -59,20 +59,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Logo nhỏ ──────────────────────────────────────────────
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
-                child: Center(
-                  child: Image.asset('assets/images/logo.png',
-                      width: 20, height: 20, color: Colors.white),
-                ),
-              ),
-              const SizedBox(height: AppSpace.xl),
+              // ── Wordmark ──────────────────────────────────────────────
+              const Text('FLASH SHOP',
+                  style: TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w800,
+                      letterSpacing: 1.2, color: AppColors.primary)),
+              const SizedBox(height: AppSpace.lg),
 
               // ── Heading ───────────────────────────────────────────────
               const Text('Đăng nhập',

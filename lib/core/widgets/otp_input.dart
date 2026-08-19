@@ -62,11 +62,10 @@ class _OtpBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    // Dạng gạch chân (không khung/nền) — enabledBorder/focusedBorder của
-    // InputDecoration đã tự chuyển đổi theo focus, không cần tự theo dõi
-    // focus/text thủ công như bản khung viền trước đây.
+    // Ô vuông nhỏ viền mảnh, nền trắng — rõ ràng dễ đọc/dễ gõ, không cần
+    // hiệu ứng màu mè (thay bản gạch chân trước đó).
     return SizedBox(
-      width: 42,
+      width: 44, height: 48,
       child: TextFormField(
         controller: controller,
         focusNode:  focusNode,
@@ -74,18 +73,23 @@ class _OtpBox extends StatelessWidget {
         textAlign:  TextAlign.center,
         keyboardType: TextInputType.number,
         style: const TextStyle(
-            fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
         decoration: InputDecoration(
           counterText: '',
-          contentPadding: const EdgeInsets.only(bottom: 10),
-          border: UnderlineInputBorder(
-            borderSide: BorderSide(color: c.divider, width: 1.6),
+          filled: true,
+          fillColor: c.surface,
+          contentPadding: EdgeInsets.zero,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: c.divider, width: 1),
           ),
-          enabledBorder: UnderlineInputBorder(
-            borderSide: BorderSide(color: c.divider, width: 1.6),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: c.divider, width: 1),
           ),
-          focusedBorder: const UnderlineInputBorder(
-            borderSide: BorderSide(color: AppColors.primary, width: 2.4),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: c.primary, width: 1.5),
           ),
         ),
         onChanged: onChanged,
