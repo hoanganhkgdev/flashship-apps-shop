@@ -338,7 +338,7 @@ class _CreateBatchOrderScreenState
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
         title: const Text('Huỷ đặt đơn gộp?',
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
         content: Text(
@@ -505,7 +505,8 @@ class _CreateBatchOrderScreenState
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(AppRadius.card),
+                    border: Border.all(color: context.colors.divider),
                   ),
                   child: Column(children: [
                     GestureDetector(
@@ -535,7 +536,8 @@ class _CreateBatchOrderScreenState
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(AppRadius.card),
+                    border: Border.all(color: context.colors.divider),
                   ),
                   child: Row(
                     children: cargoTypes.map((c) {
@@ -890,7 +892,8 @@ class _StopCard extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(12, 0, 12, 2),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: AppColors.divider),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -960,7 +963,7 @@ class _StopCard extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(12, 0, 12, 2),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: AppColors.primary, width: 1.4),
       ),
       clipBehavior: Clip.antiAlias,

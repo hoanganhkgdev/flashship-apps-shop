@@ -419,7 +419,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl))),
       builder: (_) => VoucherSheet(fee: _fee!),
     );
     if (result != null && mounted) {
@@ -562,7 +562,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
             context: context,
             builder: (ctx) => AlertDialog(
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
+                  borderRadius: BorderRadius.circular(AppRadius.lg)),
               title: const Row(children: [
                 Icon(Icons.bookmark_add_outlined,
                     color: AppColors.primary, size: 22),
@@ -628,7 +628,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl))),
       builder: (ctx) => _DetailSheet(
         cargo:        cargo,
         isOutbound:   _isOutbound,
@@ -678,7 +678,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
         title: const Text('Huỷ đặt đơn?',
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
         content: const Text('Thông tin bạn đã nhập sẽ không được lưu.',
@@ -823,14 +823,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 14,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(AppRadius.card),
+                  boxShadow: context.colors.cardShadow,
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -1010,11 +1004,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(AppRadius.xl),
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.15),
-                          blurRadius: 8),
-                    ],
+                    boxShadow: context.colors.cardShadow,
                   ),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Container(
@@ -1060,11 +1050,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.15),
-                        blurRadius: 8),
-                  ],
+                  boxShadow: context.colors.cardShadow,
                 ),
                 child: const Icon(Icons.my_location_rounded,
                     color: AppColors.primary, size: 20),
@@ -1205,7 +1191,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                             : _hasDetail
                                 ? AppColors.primary.withValues(alpha: 0.08)
                                 : const Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(24),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                         border: _showPhoneWarning
                             ? Border.all(
                                 color: AppColors.danger.withValues(alpha: 0.3))
@@ -1530,7 +1516,7 @@ class _DetailSheetState extends State<_DetailSheet> {
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
