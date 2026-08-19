@@ -52,7 +52,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       resizeToAvoidBottomInset: false,
-      body: SafeArea(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFFFF6F0), Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            stops: [0.0, 0.55],
+          ),
+        ),
+        child: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(
               AppSpace.xl, AppSpace.xxl, AppSpace.xl, bottom + AppSpace.xxl),
@@ -179,6 +188,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ]),
             ],
           ),
+        ),
         ),
       ),
     );

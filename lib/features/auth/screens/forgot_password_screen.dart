@@ -126,7 +126,16 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       resizeToAvoidBottomInset: false,
-      body: SingleChildScrollView(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFFFF6F0), Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            stops: [0.0, 0.55],
+          ),
+        ),
+        child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(28, safeT + 24, 28, bottom + safeB + 32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -335,6 +344,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               ),
             ],
           ],
+        ),
         ),
       ),
     );

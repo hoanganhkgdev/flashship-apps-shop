@@ -83,7 +83,16 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFFFF6F0), Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            stops: [0.0, 0.55],
+          ),
+        ),
+        child: SafeArea(
         child: Column(
           children: [
             Padding(
@@ -175,6 +184,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
               ),
             ),
           ],
+        ),
         ),
       ),
     );
