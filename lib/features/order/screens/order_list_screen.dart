@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_form_widgets.dart';
+import '../../../core/widgets/status_badge.dart';
 import '../models/cargo_type.dart';
 import '../models/order_model.dart';
 import '../providers/order_provider.dart';
@@ -258,8 +259,8 @@ class _ActiveSummary extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: c.cardShadow,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: c.divider),
       ),
       child: Row(
         children: nonZero.map((item) {
@@ -339,7 +340,6 @@ class _OrderCard extends StatelessWidget {
     final service = _serviceMeta[order.shopServiceType]
         ?? ('Giao đến', const Color(0xFF3B82F6));
     final dimmed  = order.isCancelled;
-    final isDark  = context.isDark;
 
     final receiver = [
       if (order.receiverName?.isNotEmpty == true) order.receiverName!,
@@ -348,15 +348,15 @@ class _OrderCard extends StatelessWidget {
 
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(AppRadius.card),
       child: InkWell(
         onTap: () => context.push('/order/${order.code}'),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         child: Container(
           decoration: BoxDecoration(
             color: c.surface,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: c.cardShadow,
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            border: Border.all(color: c.divider),
           ),
           clipBehavior: Clip.antiAlias,
           // IntrinsicHeight: Row(crossAxisAlignment: stretch) cần chiều cao
@@ -375,30 +375,11 @@ class _OrderCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Row 1: status dot + label · fee
+                        // Row 1: status badge · fee
                         Row(children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 9, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: _fade(accent.withValues(
-                                  alpha: isDark ? 0.18 : 0.10)),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                                mainAxisSize: MainAxisSize.min, children: [
-                              Container(
-                                width: 6, height: 6,
-                                decoration: BoxDecoration(
-                                    color: _fade(accent), shape: BoxShape.circle),
-                              ),
-                              const SizedBox(width: 5),
-                              Text(Fmt.orderStatus(order.status),
-                                  style: TextStyle(fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: _fade(accent))),
-                            ]),
-                          ),
+                          StatusBadge(
+                              label: Fmt.orderStatus(order.status),
+                              color: _fade(accent)),
                           const Spacer(),
                           Text(Fmt.currency(order.shippingFee),
                               style: TextStyle(

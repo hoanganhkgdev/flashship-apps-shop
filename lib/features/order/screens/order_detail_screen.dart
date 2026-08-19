@@ -237,7 +237,7 @@ class _State extends ConsumerState<OrderDetailScreen>
         final c = ctx.colors;
         return Dialog(
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20)),
+              borderRadius: BorderRadius.circular(AppRadius.lg)),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -460,7 +460,7 @@ class _Body extends StatelessWidget {
                     foregroundColor: c.danger,
                     side: BorderSide(color: c.danger),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+                        borderRadius: BorderRadius.circular(AppRadius.md)),
                   ),
                   child: cancelling
                       ? SizedBox(width: 18, height: 18,
@@ -488,7 +488,7 @@ class _Body extends StatelessWidget {
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+                        borderRadius: BorderRadius.circular(AppRadius.md)),
                   ),
                   icon: const Icon(Icons.star_rounded, size: 18),
                   label: const Text('Đánh giá tài xế',
@@ -534,7 +534,7 @@ class _Body extends StatelessWidget {
                     foregroundColor: c.primary,
                     side: BorderSide(color: c.primary),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+                        borderRadius: BorderRadius.circular(AppRadius.md)),
                   ),
                   icon: const Icon(Icons.replay_rounded, size: 18),
                   label: const Text('Đặt lại đơn tương tự',
@@ -1339,7 +1339,7 @@ class _MarkDeliveredButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           color: c.surface,
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(color: c.primary, width: 1.4),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -1743,7 +1743,7 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
       child: Container(
         decoration: BoxDecoration(
           color: c.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
         ),
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
         child: SingleChildScrollView(
@@ -1820,7 +1820,7 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
                               ? c.warning.withValues(alpha: 0.12)
                               : c.danger.withValues(alpha: 0.10))
                           : c.surfaceAlt,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                       border: Border.all(
                         color: selected
                             ? (_rating >= 4 ? c.warning : c.danger)
@@ -1878,7 +1878,7 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                      borderRadius: BorderRadius.circular(AppRadius.md)),
                 ),
                 child: _submitting
                     ? const SizedBox(width: 20, height: 20,
@@ -1910,7 +1910,7 @@ class _FlatCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.colors.surface,
           borderRadius: BorderRadius.circular(AppRadius.card),
-          boxShadow: context.colors.cardShadow,
+          border: Border.all(color: context.colors.divider),
         ),
         child: child,
       );
