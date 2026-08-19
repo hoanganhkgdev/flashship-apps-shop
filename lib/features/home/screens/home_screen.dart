@@ -7,6 +7,9 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/store_launcher.dart';
 import '../../../core/widgets/app_form_widgets.dart';
+import '../../../core/widgets/quick_action_bar.dart';
+import '../../../core/widgets/stat_row.dart';
+import '../../../core/widgets/status_badge.dart';
 import '../../address/models/address_entry.dart';
 import '../../address/providers/address_provider.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -160,76 +163,41 @@ class _DashboardTab extends ConsumerWidget {
             // ── Banner nhắc cập nhật (không bắt buộc) ─────────────────────
             const SliverToBoxAdapter(child: _SoftUpdateBanner()),
 
-            // ── Banner thông báo/khuyến mãi ───────────────────────────────
-            const SliverToBoxAdapter(child: _HomeBannerSection()),
-
-            // ── Service cards ────────────────────────────────────────────
+            // ── Dịch vụ (quick actions) ───────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-                child: Row(children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: context.colors.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(Icons.apps_rounded,
-                        size: 15, color: context.colors.primary),
-                  ),
-                  const SizedBox(width: 8),
-                  Text('Dịch vụ',
-                      style: TextStyle(fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                          color: context.colors.textPrimary)),
-                ]),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: Text('Dịch vụ',
+                    style: TextStyle(fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: context.colors.textPrimary)),
               ),
             ),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                child: Column(children: [
-                  // Giao đơn: [shop] → [khách hàng]
-                  _ServiceCard(
-                    secondIcon:  Icons.person_rounded,
-                    secondBg:    c.successSoft,
-                    secondColor: c.success,
-                    shopFirst:   true,
-                    title: 'Giao đơn',
-                    sub:   'Lấy tại shop, giao cho khách hàng',
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                child: QuickActionBar(items: [
+                  QuickAction(
+                    icon:  Icons.local_shipping_outlined,
+                    color: c.success,
+                    label: 'Giao đơn',
                     onTap: () => context.push('/create-order', extra: true),
                   ),
-                  const SizedBox(height: 10),
-                  // Lấy hộ: [điểm ngoài] → [shop] — ngược chiều Giao đơn
-                  _ServiceCard(
-                    secondIcon:  Icons.location_on_rounded,
-                    secondBg:    c.infoSoft,
-                    secondColor: c.info,
-                    shopFirst:   false,
-                    title: 'Lấy hộ',
-                    sub:   'Shipper đến lấy đồ, mang về shop',
+                  QuickAction(
+                    icon:  Icons.location_on_outlined,
+                    color: c.info,
+                    label: 'Lấy hộ',
                     onTap: () => context.push('/create-order', extra: false),
                   ),
-                  const SizedBox(height: 10),
-                  // Đơn gộp: [shop] → [điểm đến]
-                  _ServiceCard(
-                    secondIcon:  Icons.location_on_rounded,
-                    secondBg:    c.successSoft,
-                    secondColor: c.success,
-                    shopFirst:   true,
-                    title: 'Đơn gộp',
-                    sub:   'Gộp nhiều đơn, giao nhiều nơi 1 lần',
+                  QuickAction(
+                    icon:  Icons.layers_outlined,
+                    color: c.success,
+                    label: 'Đơn gộp',
                     onTap: () => context.push('/create-batch'),
                   ),
                 ]),
               ),
             ),
-
-            // ── Địa chỉ thường dùng ───────────────────────────────────────
-            const SliverToBoxAdapter(child: _FrequentAddressSection()),
-
-            // ── Voucher section ──────────────────────────────────────────
-            const SliverToBoxAdapter(child: _VoucherSection()),
 
             // ── Active orders ────────────────────────────────────────────
             if (trueActiveCount > 0) ...[
@@ -250,7 +218,7 @@ class _DashboardTab extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: c.surface,
                     borderRadius: BorderRadius.circular(AppRadius.card),
-                    boxShadow: c.cardShadow,
+                    border: Border.all(color: c.divider),
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: Column(
@@ -296,6 +264,15 @@ class _DashboardTab extends ConsumerWidget {
               SliverToBoxAdapter(child: _EmptyOrders()),
             ],
 
+            // ── Banner thông báo/khuyến mãi (không phải ưu tiên chính) ────
+            const SliverToBoxAdapter(child: _HomeBannerSection()),
+
+            // ── Địa chỉ thường dùng ───────────────────────────────────────
+            const SliverToBoxAdapter(child: _FrequentAddressSection()),
+
+            // ── Voucher section ──────────────────────────────────────────
+            const SliverToBoxAdapter(child: _VoucherSection()),
+
             const SliverToBoxAdapter(child: SizedBox(height: 40)),
           ],
         ),
@@ -322,243 +299,80 @@ class _Header extends ConsumerWidget {
     final unread = ref.watch(unreadCountProvider).valueOrNull ?? 0;
     final c      = context.colors;
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [c.primary, AppColors.primaryDark],
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // ── Tên shop + bell ────────────────────────────────────────
-            Row(children: [
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Xin chào,',
-                      style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.85),
-                          fontSize: 12, fontWeight: FontWeight.w500)),
-                  const SizedBox(height: 2),
-                  Text(shopName,
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w800,
-                          color: Colors.white, letterSpacing: -0.3),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                  if (shopAddress.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Row(mainAxisSize: MainAxisSize.min, children: [
-                      const Icon(Icons.location_on_rounded,
-                          size: 12, color: Colors.white70),
-                      const SizedBox(width: 2),
-                      Flexible(child: Text(shopAddress,
-                          maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 12,
-                              color: Colors.white.withValues(alpha: 0.75)))),
-                    ]),
-                  ],
-                ]),
-              ),
-              // ── Bell icon với badge ──────────────────────────────────
-              GestureDetector(
-                onTap: () => context.push('/notifications'),
-                child: Stack(clipBehavior: Clip.none, children: [
-                  Container(
-                    width: 40, height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.notifications_outlined,
-                        color: Colors.white, size: 22),
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // ── Tên shop + bell ────────────────────────────────────────
+          Row(children: [
+            Expanded(
+              child: Text(shopName,
+                  style: TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w800,
+                      color: c.textPrimary, letterSpacing: -0.3),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+            // ── Bell icon với badge ──────────────────────────────────
+            GestureDetector(
+              onTap: () => context.push('/notifications'),
+              child: Stack(clipBehavior: Clip.none, children: [
+                Container(
+                  width: 38, height: 38,
+                  decoration: BoxDecoration(
+                    color: c.surfaceAlt,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
-                  if (unread > 0)
-                    Positioned(
-                      top: -4, right: -4,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 5, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: c.danger,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(unread > 99 ? '99+' : '$unread',
-                            style: const TextStyle(
-                                fontSize: 10, fontWeight: FontWeight.w700,
-                                color: Colors.white)),
+                  child: Icon(Icons.notifications_outlined,
+                      color: c.textPrimary, size: 20),
+                ),
+                if (unread > 0)
+                  Positioned(
+                    top: -4, right: -4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: c.danger,
+                        borderRadius: BorderRadius.circular(8),
                       ),
+                      child: Text(unread > 99 ? '99+' : '$unread',
+                          style: const TextStyle(
+                              fontSize: 10, fontWeight: FontWeight.w700,
+                              color: Colors.white)),
                     ),
-                ]),
+                  ),
+              ]),
+            ),
+          ]),
+          if (shopAddress.isNotEmpty) ...[
+            const SizedBox(height: 3),
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.location_on_rounded, size: 12, color: c.textTertiary),
+              const SizedBox(width: 2),
+              Flexible(child: Text(shopAddress,
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: c.textSecondary))),
+            ]),
+          ],
+
+          // ── Stats hôm nay ──────────────────────────────────────────
+          if (today != null) ...[
+            const SizedBox(height: 16),
+            StatRow(items: [
+              StatItem(value: '${today!.orders}', label: 'Đơn hôm nay'),
+              StatItem(value: '${today!.active}', label: 'Đang chạy'),
+              StatItem(
+                value: today!.revenue >= 1000
+                    ? '${(today!.revenue / 1000).toStringAsFixed(0)}K'
+                    : '${today!.revenue}đ',
+                label: 'Doanh thu',
               ),
             ]),
-
-            // ── Stats hôm nay ──────────────────────────────────────────
-            if (today != null) ...[
-              const SizedBox(height: 14),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(children: [
-                  _TodayStat(label: 'Đơn hôm nay', value: '${today!.orders}'),
-                  _divider(),
-                  _TodayStat(label: 'Đang chạy',   value: '${today!.active}'),
-                  _divider(),
-                  _TodayStat(
-                    label: 'Doanh thu',
-                    value: today!.revenue >= 1000
-                        ? '${(today!.revenue / 1000).toStringAsFixed(0)}K'
-                        : '${today!.revenue}đ',
-                  ),
-                ]),
-              ),
-            ],
-          ]),
-        ),
-      ),
-    );
-  }
-
-  Widget _divider() => Container(
-      width: 1, height: 28,
-      color: Colors.white.withValues(alpha: 0.25),
-      margin: const EdgeInsets.symmetric(horizontal: 12));
-}
-
-class _TodayStat extends StatelessWidget {
-  final String label, value;
-  const _TodayStat({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) => Expanded(
-    child: Column(children: [
-      Text(value,
-          style: const TextStyle(
-              fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
-      const SizedBox(height: 2),
-      Text(label,
-          style: TextStyle(
-              fontSize: 10, color: Colors.white.withValues(alpha: 0.8))),
-    ]),
-  );
-}
-
-// ─── Service Card ─────────────────────────────────────────────────────────────
-
-// Thẻ dịch vụ full-width: sơ đồ luồng 2 icon (vai trò "shop" dùng chung +
-// vai trò còn lại đổi theo dịch vụ) nối bằng đường nét đứt, thứ tự trái→phải
-// theo đúng chiều nghiệp vụ thật (vd Lấy hộ đảo ngược so với Giao đơn).
-class _ServiceCard extends StatelessWidget {
-  final IconData secondIcon;
-  final Color    secondBg;
-  final Color    secondColor;
-  final bool     shopFirst;
-  final String   title, sub;
-  final VoidCallback onTap;
-
-  const _ServiceCard({
-    required this.secondIcon,
-    required this.secondBg,
-    required this.secondColor,
-    required this.shopFirst,
-    required this.title,
-    required this.sub,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final shopIcon = _RoleIcon(
-        icon: Icons.storefront_rounded, bg: c.primarySoft, color: c.primary);
-    final otherIcon = _RoleIcon(icon: secondIcon, bg: secondBg, color: secondColor);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 76,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: c.surface,
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: c.cardShadow,
-        ),
-        child: Row(children: [
-          Row(mainAxisSize: MainAxisSize.min, children: [
-            shopFirst ? shopIcon : otherIcon,
-            SizedBox(
-                width: 28, height: 14,
-                child: Center(child: _DashedConnector(color: c.divider))),
-            shopFirst ? otherIcon : shopIcon,
-          ]),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(title,
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800,
-                        color: c.textPrimary)),
-                const SizedBox(height: 3),
-                Text(sub,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 12, color: c.textSecondary)),
-              ],
-            ),
-          ),
-          Icon(Icons.chevron_right_rounded, color: c.textTertiary, size: 22),
+          ],
         ]),
       ),
     );
-  }
-}
-
-class _RoleIcon extends StatelessWidget {
-  final IconData icon;
-  final Color    bg, color;
-  const _RoleIcon({required this.icon, required this.bg, required this.color});
-
-  @override
-  Widget build(BuildContext context) => Container(
-        width: 36, height: 36,
-        decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
-        alignment: Alignment.center,
-        child: Icon(icon, color: color, size: 18),
-      );
-}
-
-class _DashedConnector extends StatelessWidget {
-  final Color color;
-  const _DashedConnector({required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      const dashWidth = 3.0;
-      const dashGap = 3.0;
-      final count =
-          (constraints.maxWidth / (dashWidth + dashGap)).floor().clamp(1, 20);
-      return Row(
-        children: List.generate(
-          count,
-          (_) => Expanded(
-            child: Container(
-              height: 1.4,
-              margin: const EdgeInsets.symmetric(horizontal: dashGap / 2),
-              color: color,
-            ),
-          ),
-        ),
-      );
-    });
   }
 }
 
@@ -570,12 +384,10 @@ class _DashedConnector extends StatelessWidget {
 class _BannerItem {
   final IconData icon;
   final String   title;
-  final String   subtitle;
   final String   route;
   const _BannerItem({
     required this.icon,
     required this.title,
-    required this.subtitle,
     required this.route,
   });
 }
@@ -583,8 +395,7 @@ class _BannerItem {
 const _homeBanners = <_BannerItem>[
   _BannerItem(
     icon: Icons.campaign_rounded,
-    title: 'Ưu đãi phí giao hàng tuần này',
-    subtitle: 'Giảm đến 15% cho đơn nội thành, xem chi tiết ngay',
+    title: 'Ưu đãi phí giao hàng tuần này — giảm đến 15% cho đơn nội thành',
     route: '/notifications',
   ),
 ];
@@ -667,16 +478,16 @@ class _HomeBannerSection extends StatelessWidget {
 
     if (_homeBanners.length == 1) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
         child: _BannerCard(item: _homeBanners.first),
       );
     }
 
     return SizedBox(
-      height: 78,
+      height: 64,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
         itemCount: _homeBanners.length,
         separatorBuilder: (_, __) => const SizedBox(width: 10),
         itemBuilder: (_, i) => SizedBox(
@@ -688,6 +499,8 @@ class _HomeBannerSection extends StatelessWidget {
   }
 }
 
+// Thu gọn thành 1 dòng mỏng — banner khuyến mãi không phải ưu tiên hàng đầu
+// của công cụ vận hành, chỉ cần đủ nhận diện, không chiếm nhiều diện tích.
 class _BannerCard extends StatelessWidget {
   final _BannerItem item;
   const _BannerCard({required this.item});
@@ -698,37 +511,23 @@ class _BannerCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => context.push(item.route),
       child: Container(
-        padding: const EdgeInsets.all(AppSpace.md),
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: c.primarySoft,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
+          color: c.surface,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: c.divider),
         ),
         child: Row(children: [
-          Container(
-            width: 40, height: 40,
-            decoration: BoxDecoration(color: c.primary, shape: BoxShape.circle),
-            alignment: Alignment.center,
-            child: Icon(item.icon, color: Colors.white, size: 20),
-          ),
-          const SizedBox(width: AppSpace.md),
+          Icon(item.icon, color: c.primary, size: 15),
+          const SizedBox(width: 8),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(item.title,
-                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
-                        color: c.textPrimary)),
-                const SizedBox(height: 2),
-                Text(item.subtitle,
-                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 12, color: c.textSecondary)),
-              ],
-            ),
+            child: Text(item.title,
+                maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                    color: c.textPrimary)),
           ),
-          const SizedBox(width: AppSpace.sm),
-          Icon(Icons.chevron_right_rounded, color: c.primary),
+          Icon(Icons.chevron_right_rounded, color: c.textTertiary, size: 16),
         ]),
       ),
     );
@@ -801,7 +600,7 @@ class _AddressChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: c.surface,
-          borderRadius: BorderRadius.circular(99),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(color: c.divider),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -908,18 +707,9 @@ class _OrderCard extends StatelessWidget {
                     ]),
                   ] else ...[
                     Row(children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: statusColor.withValues(
-                              alpha: context.isDark ? 0.18 : 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(Fmt.orderStatus(order.status),
-                            style: TextStyle(fontSize: 11,
-                                fontWeight: FontWeight.w600, color: statusColor)),
-                      ),
+                      StatusBadge(
+                          label: Fmt.orderStatus(order.status),
+                          color: statusColor),
                       const Spacer(),
                       Text(Fmt.timeAgo(order.createdAt),
                           style: TextStyle(
@@ -1039,7 +829,7 @@ class _EmptyOrders extends StatelessWidget {
         decoration: BoxDecoration(
             color: c.surface,
             borderRadius: BorderRadius.circular(AppRadius.card),
-            boxShadow: c.cardShadow),
+            border: Border.all(color: c.divider)),
         child: Column(children: [
           Icon(Icons.inventory_2_outlined, size: 48,
               color: c.textTertiary.withValues(alpha: 0.5)),
