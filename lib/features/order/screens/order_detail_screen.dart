@@ -433,7 +433,7 @@ class _Body extends StatelessWidget {
           // ── Route ─────────────────────────────────────────────────────
           // Batch: stops list / Single: route card
           if (order.isBatch && order.stops.isNotEmpty) ...[
-            _StopsCard(order: order),
+            _StopsCard(order: order, onStopDelivered: onRefresh),
           ] else
             _RouteCard(order: order),
           const SizedBox(height: 12),
@@ -1090,15 +1090,68 @@ class _DriverMapCardState extends State<_DriverMapCard> {
 
 // ─── Stops Card (batch orders) ───────────────────────────────────────────────
 
-class _StopsCard extends StatelessWidget {
+class _StopsCard extends ConsumerStatefulWidget {
   final OrderModel order;
-  const _StopsCard({required this.order});
+  final Future<void> Function() onStopDelivered;
+  const _StopsCard({required this.order, required this.onStopDelivered});
+
+  @override
+  ConsumerState<_StopsCard> createState() => _StopsCardState();
+}
+
+class _StopsCardState extends ConsumerState<_StopsCard> {
+  // Seq đang gọi API deliver — cho phép nhiều điểm loading độc lập, chỉ hiện
+  // spinner trên đúng nút vừa bấm thay vì che cả màn hình.
+  final Set<int> _deliveringSeqs = {};
+
+  Future<void> _markDelivered(int seq) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xác nhận giao hàng',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+        content: Text('Xác nhận đã giao điểm $seq?',
+            style: TextStyle(fontSize: 14, color: ctx.colors.textSecondary)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Không')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: ctx.colors.primary),
+            child: const Text('Xác nhận',
+                style: TextStyle(fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _deliveringSeqs.add(seq));
+    try {
+      await ref.read(apiClientProvider).post(
+          '/shop/orders/${widget.order.code}/stops/$seq/deliver');
+      await widget.onStopDelivered();
+    } catch (e) {
+      if (mounted) {
+        AppSnackbar.error(context,
+            parseApiError(e, fallback: 'Không thể đánh dấu đã giao. Thử lại sau.'));
+      }
+    } finally {
+      if (mounted) setState(() => _deliveringSeqs.remove(seq));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final c         = context.colors;
+    final order     = widget.order;
     final stops     = order.stops;
     final delivered = stops.where((s) => s['delivered_at'] != null).length;
+    // Chỉ shop tự đánh dấu được khi đơn còn đang xử lý — đơn đã hoàn thành/
+    // huỷ hoặc không phải đơn gộp thì không hiện nút (order.isBatch đã được
+    // đảm bảo bởi nơi khởi tạo _StopsCard, kiểm tra lại ở đây cho chắc chắn).
+    final canMarkDelivered =
+        order.isBatch && _activeStatuses.contains(order.status);
 
     return _FlatCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1113,6 +1166,7 @@ class _StopsCard extends StatelessWidget {
           final i    = e.key;
           final stop = e.value;
           final isDone = stop['delivered_at'] != null;
+          final seq    = (stop['seq'] as num).toInt();
           final fee    = (stop['fee'] as num?)?.toInt();
           final phone  = stop['phone'] as String? ?? '';
           final addr   = stop['address'] as String? ?? '';
@@ -1194,6 +1248,12 @@ class _StopsCard extends StatelessWidget {
                       style: TextStyle(
                           fontSize: 11, color: c.success),
                     ),
+                  ] else if (canMarkDelivered) ...[
+                    const SizedBox(height: 8),
+                    _MarkDeliveredButton(
+                      loading: _deliveringSeqs.contains(seq),
+                      onTap: () => _markDelivered(seq),
+                    ),
                   ],
                 ],
               )),
@@ -1226,6 +1286,42 @@ class _StopsCard extends StatelessWidget {
       final dt = DateTime.parse(iso).toLocal();
       return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
     } catch (_) { return ''; }
+  }
+}
+
+class _MarkDeliveredButton extends StatelessWidget {
+  final bool loading;
+  final VoidCallback onTap;
+  const _MarkDeliveredButton({required this.loading, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return GestureDetector(
+      onTap: loading ? null : onTap,
+      child: Container(
+        height: 30,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: c.surface,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: c.primary, width: 1.4),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (loading)
+            SizedBox(
+              width: 13, height: 13,
+              child: CircularProgressIndicator(strokeWidth: 2, color: c.primary),
+            )
+          else
+            Icon(Icons.check_rounded, size: 15, color: c.primary),
+          const SizedBox(width: 6),
+          Text('Đánh dấu đã giao',
+              style: TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.w700, color: c.primary)),
+        ]),
+      ),
+    );
   }
 }
 
