@@ -5,7 +5,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_form_widgets.dart';
-import '../../../core/widgets/status_badge.dart';
 import '../models/cargo_type.dart';
 import '../models/order_model.dart';
 import '../providers/order_provider.dart';
@@ -346,133 +345,148 @@ class _OrderCard extends StatelessWidget {
       order.deliveryPhone,
     ].join(' · ');
 
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(AppRadius.card),
-      child: InkWell(
-        onTap: () => context.push('/order/${order.code}'),
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        child: Container(
-          decoration: BoxDecoration(
-            color: c.surface,
-            borderRadius: BorderRadius.circular(AppRadius.card),
-            boxShadow: c.cardShadow,
-          ),
-          clipBehavior: Clip.antiAlias,
-          // IntrinsicHeight: Row(crossAxisAlignment: stretch) cần chiều cao
-          // xác định để giãn các con — nhưng item trong ListView vốn cho
-          // chiều cao vô hạn (tự co theo nội dung), gây lỗi layout
-          // "BoxConstraints forces an infinite height" nếu không có dòng này.
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // ── Dải accent trạng thái — không bị làm mờ ─────────────
-                Container(width: 4, color: accent),
+    // Icon loại hàng trong ô tròn màu — thay dải màu trái, đồng bộ
+    // ActiveOrderCard/CompletedOrderCard của app driver.
+    return GestureDetector(
+      onTap: () => context.push('/order/${order.code}'),
+      child: Container(
+        decoration: BoxDecoration(
+          color: c.surface,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          boxShadow: c.cardShadow,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Row 1: icon + trạng thái (chấm màu) · phí
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Container(
+                  width: 42, height: 42,
+                  decoration: BoxDecoration(
+                    color: _fade(cargoMeta.color)
+                        .withValues(alpha: context.isDark ? 0.18 : 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(cargoMeta.icon,
+                      color: _fade(cargoMeta.color), size: 20),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Row 1: status badge · fee
-                        Row(children: [
-                          StatusBadge(
-                              label: Fmt.orderStatus(order.status),
-                              color: _fade(accent)),
-                          const Spacer(),
-                          Text(Fmt.currency(order.shippingFee),
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  color: _fade(
-                                      dimmed ? c.textTertiary : c.primary),
-                                  decoration: dimmed
-                                      ? TextDecoration.lineThrough
-                                      : null)),
-                        ]),
-                        const SizedBox(height: 10),
-
-                        // Row 2: receiver + phone
-                        Row(children: [
-                          Icon(Icons.person_outline_rounded,
-                              size: 14, color: _fade(c.textTertiary)),
-                          const SizedBox(width: 5),
-                          Expanded(
-                            child: Text(receiver,
-                                maxLines: 1, overflow: TextOverflow.ellipsis,
-                                style: TextStyle(fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: _fade(dimmed
-                                        ? c.textTertiary
-                                        : c.textPrimary))),
-                          ),
-                          if (order.deliveryPhone.isNotEmpty &&
-                              !order.isCancelled) ...[
-                            const SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: () => _call(order.deliveryPhone),
-                              child: Container(
-                                width: 22, height: 22,
-                                decoration: BoxDecoration(
-                                  color: c.primarySoft,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(Icons.call_rounded,
-                                    size: 12, color: c.primary),
-                              ),
-                            ),
-                          ],
-                        ]),
-                        const SizedBox(height: 5),
-
-                        // Row 3: address
-                        Row(children: [
-                          Icon(Icons.location_on_outlined,
-                              size: 14, color: _fade(c.textTertiary)),
-                          const SizedBox(width: 5),
-                          Expanded(
-                            child: Text(address,
-                                maxLines: 1, overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: _fade(c.textSecondary))),
-                          ),
-                        ]),
-                        const SizedBox(height: 10),
-
-                        Divider(height: 1, color: _fade(c.divider)),
-                        const SizedBox(height: 10),
-
-                        // Row 4: chips + time
-                        Row(children: [
-                          _Chip(
-                              label: service.$1,
-                              color: service.$2,
-                              dimmed: dimmed),
-                          const SizedBox(width: 6),
-                          _Chip(
-                              label: cargo.$1, color: cargo.$2, dimmed: dimmed),
-                          if (order.isBatch) ...[
-                            const SizedBox(width: 6),
-                            _Chip(label: '${order.stops.length} điểm',
-                                color: c.success, dimmed: dimmed),
-                          ],
-                          const Spacer(),
-                          Icon(Icons.access_time_rounded,
-                              size: 12, color: _fade(c.textTertiary)),
-                          const SizedBox(width: 3),
-                          Text(Fmt.timeAgo(order.createdAt),
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  color: _fade(c.textSecondary))),
-                        ]),
-                      ],
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(cargo.$1,
+                          style: TextStyle(fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: _fade(dimmed
+                                  ? c.textTertiary
+                                  : c.textPrimary))),
+                      const SizedBox(height: 3),
+                      Row(mainAxisSize: MainAxisSize.min, children: [
+                        Container(
+                          width: 6, height: 6,
+                          decoration: BoxDecoration(
+                              color: _fade(accent), shape: BoxShape.circle),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(Fmt.orderStatus(order.status),
+                            style: TextStyle(fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: _fade(accent))),
+                      ]),
+                    ],
                   ),
                 ),
-              ],
-            ),
+                Text(Fmt.currency(order.shippingFee),
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: _fade(
+                            dimmed ? c.textTertiary : c.primary),
+                        decoration: dimmed
+                            ? TextDecoration.lineThrough
+                            : null)),
+              ]),
+              const SizedBox(height: 12),
+
+              // Row 2: receiver + phone
+              Row(children: [
+                Icon(Icons.person_outline_rounded,
+                    size: 14, color: _fade(c.textTertiary)),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(receiver,
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: _fade(dimmed
+                              ? c.textTertiary
+                              : c.textPrimary))),
+                ),
+                if (order.deliveryPhone.isNotEmpty &&
+                    !order.isCancelled) ...[
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => _call(order.deliveryPhone),
+                    child: Container(
+                      width: 22, height: 22,
+                      decoration: BoxDecoration(
+                        color: c.primarySoft,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.call_rounded,
+                          size: 12, color: c.primary),
+                    ),
+                  ),
+                ],
+              ]),
+              const SizedBox(height: 5),
+
+              // Row 3: address
+              Row(children: [
+                Icon(Icons.location_on_outlined,
+                    size: 14, color: _fade(c.textTertiary)),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(address,
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: _fade(c.textSecondary))),
+                ),
+              ]),
+              const SizedBox(height: 10),
+
+              Divider(height: 1, color: _fade(c.divider)),
+              const SizedBox(height: 10),
+
+              // Row 4: chips + time
+              Row(children: [
+                _Chip(
+                    label: service.$1,
+                    color: service.$2,
+                    dimmed: dimmed),
+                const SizedBox(width: 6),
+                _Chip(
+                    label: cargo.$1, color: cargo.$2, dimmed: dimmed),
+                if (order.isBatch) ...[
+                  const SizedBox(width: 6),
+                  _Chip(label: '${order.stops.length} điểm',
+                      color: c.success, dimmed: dimmed),
+                ],
+                const Spacer(),
+                Icon(Icons.access_time_rounded,
+                    size: 12, color: _fade(c.textTertiary)),
+                const SizedBox(width: 3),
+                Text(Fmt.timeAgo(order.createdAt),
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: _fade(c.textSecondary))),
+              ]),
+            ],
           ),
         ),
       ),
