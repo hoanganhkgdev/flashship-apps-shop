@@ -206,17 +206,11 @@ class _PhoneFieldState extends State<PhoneField> {
           fontSize: 15,
           fontWeight: FontWeight.w400,
         ),
+        // Chỉ phục vụ thị trường Việt Nam — bỏ mã vùng "+84", dùng icon điện
+        // thoại đơn giản thay vì hiện mã vùng không cần thiết.
         prefixIcon: Padding(
-          padding: const EdgeInsets.only(left: 20, right: 12),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Text('+84',
-                style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: c.textPrimary)),
-            const SizedBox(width: 12),
-            Container(width: 1.4, height: 20, color: c.divider),
-          ]),
+          padding: const EdgeInsets.only(left: 14, right: 8),
+          child: Icon(Icons.phone_outlined, size: 20, color: c.textSecondary),
         ),
         prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
         filled: true,
