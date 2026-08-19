@@ -499,6 +499,19 @@ class _Body extends StatelessWidget {
             ),
           ],
 
+          // Nút đánh giá bị ẩn do quá 24h (canRate == false) nhưng chưa từng
+          // đánh giá — báo lý do thay vì im lặng không hiện gì, tránh shop
+          // tưởng app thiếu tính năng.
+          if (!order.canRate &&
+              order.isCompleted &&
+              order.driverRating == null &&
+              order.completedAt != null &&
+              DateTime.now().difference(order.completedAt!).inHours > 24) ...[
+            const SizedBox(height: 12),
+            Text('Đã quá thời hạn đánh giá (24 giờ sau khi hoàn thành)',
+                style: TextStyle(fontSize: 12, color: c.textSecondary)),
+          ],
+
           if (order.driverRating != null) ...[
             const SizedBox(height: 12),
             _RatingDisplay(rating: order.driverRating!),

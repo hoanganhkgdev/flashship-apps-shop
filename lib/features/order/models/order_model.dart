@@ -77,6 +77,7 @@ class OrderModel {
   final List<Map<String, dynamic>> stops;
   final DateTime? scheduledAt;
   final DateTime createdAt;
+  final DateTime? completedAt;
   final DriverInfo? driver;
   final TrackingInfo? tracking;
 
@@ -114,6 +115,7 @@ class OrderModel {
     this.stops = const [],
     this.scheduledAt,
     required this.createdAt,
+    this.completedAt,
     this.driver,
     this.tracking,
   });
@@ -155,6 +157,9 @@ class OrderModel {
         ? DateTime.tryParse(j['scheduled_at'] as String)
         : null,
     createdAt: DateTime.parse(j['created_at'] as String),
+    completedAt: j['completed_at'] != null
+        ? DateTime.tryParse(j['completed_at'] as String)
+        : null,
     driver: j['driver'] != null
         ? DriverInfo.fromJson(j['driver'] as Map<String, dynamic>)
         : null,
@@ -167,7 +172,11 @@ class OrderModel {
   bool get isCompleted => status == 'completed';
   bool get isCancelled => status == 'cancelled';
   bool get canCancel   => status == 'pending';
-  bool get canRate     => isCompleted && driverRating == null;
+  bool get canRate {
+    if (!isCompleted || driverRating != null) return false;
+    if (completedAt == null) return true; // đơn cũ trước khi có field này, không chặn
+    return DateTime.now().difference(completedAt!).inHours <= 24;
+  }
 
   OrderModel copyWith({
     String? status,
@@ -193,6 +202,7 @@ class OrderModel {
     shopServiceType: shopServiceType,
     stops: stops ?? this.stops,
     scheduledAt: scheduledAt, createdAt: createdAt,
+    completedAt: completedAt,
     driver: driver ?? this.driver,
     tracking: tracking,
   );
