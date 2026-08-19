@@ -104,7 +104,7 @@ class VoucherCard extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         boxShadow: c.cardShadow,
       ),
       clipBehavior: Clip.antiAlias,
