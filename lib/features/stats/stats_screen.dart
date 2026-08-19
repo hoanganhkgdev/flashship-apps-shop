@@ -17,12 +17,8 @@ const _periods = [
 
 final _statsProvider =
     FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, period) async {
-  // TODO: backend GET /shop/orders/stats (Modules/Shop/app/Http/Controllers/
-  // OrderController.php:51) chưa nhận tham số khoảng thời gian — hiện luôn trả
-  // dữ liệu all-time + "daily" cố định 7 ngày gần nhất, `period` không ảnh
-  // hưởng kết quả. Khi backend hỗ trợ (vd ?period=today|week|month), đổi dòng
-  // dưới thành: .get('/shop/orders/stats', params: {'period': period}).
-  final res = await ref.read(apiClientProvider).get('/shop/orders/stats');
+  final res = await ref.read(apiClientProvider)
+      .get('/shop/orders/stats', params: {'period': period});
   return unwrap(res) as Map<String, dynamic>;
 });
 
