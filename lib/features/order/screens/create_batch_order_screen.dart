@@ -51,7 +51,8 @@ class _Stop {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 class CreateBatchOrderScreen extends ConsumerStatefulWidget {
-  const CreateBatchOrderScreen({super.key});
+  final Map<String, dynamic>? reorderFrom;
+  const CreateBatchOrderScreen({super.key, this.reorderFrom});
 
   @override
   ConsumerState<CreateBatchOrderScreen> createState() =>
@@ -91,7 +92,13 @@ class _CreateBatchOrderScreenState
   void initState() {
     super.initState();
     _expandedStopId = _stops.first.id;
-    WidgetsBinding.instance.addPostFrameCallback((_) => _prefill());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.reorderFrom != null) {
+        _prefillFromReorder(widget.reorderFrom!);
+      } else {
+        _prefill();
+      }
+    });
   }
 
   void _prefill() {
@@ -102,6 +109,51 @@ class _CreateBatchOrderScreenState
       _pickupAddrCtrl.text = user.address!;
       _geocodePickup(user.address!);
     }
+  }
+
+  // Điền lại toàn bộ màn từ 1 đơn gộp cũ (nút "Đặt lại đơn tương tự" ở màn
+  // chi tiết đơn) — xem _reorderBatchExtra() trong order_detail_screen.dart.
+  void _prefillFromReorder(Map<String, dynamic> r) {
+    final user = ref.read(authProvider).user;
+
+    // Dựng danh sách _Stop mới TRƯỚC (ngoài setState) — mỗi _Stop tự sinh id
+    // mới qua constructor hiện có, KHÔNG copy id cũ từ đơn gốc để tránh trùng
+    // key với ReorderableListView.
+    final stopsData = (r['stops'] as List?) ?? [];
+    final newStops = <_Stop>[];
+    for (final raw in stopsData) {
+      final data = raw as Map<String, dynamic>;
+      final stop = _Stop();
+      stop.addressCtrl.text = data['address'] as String? ?? '';
+      stop.phoneCtrl.text   = data['phone']   as String? ?? '';
+      stop.nameCtrl.text    = data['name']    as String? ?? '';
+      final cod = data['codAmount'] as num?;
+      if (cod != null) stop.codCtrl.text = cod.toInt().toString();
+      stop.noteCtrl.text = data['note'] as String? ?? '';
+      stop.lat = (data['lat'] as num?)?.toDouble();
+      stop.lng = (data['lng'] as num?)?.toDouble();
+      newStops.add(stop);
+    }
+
+    if (!mounted) return;
+    setState(() {
+      // SĐT lấy hàng không có trong dữ liệu reorder (batch luôn lấy tại
+      // chính shop) — điền lại từ hồ sơ giống _prefill().
+      if (user != null) _pickupPhoneCtrl.text = user.phone;
+      _pickupAddrCtrl.text = r['pickupAddr'] as String? ?? '';
+      _pickupLat = (r['pickupLat'] as num?)?.toDouble();
+      _pickupLng = (r['pickupLng'] as num?)?.toDouble();
+      _cargoType = r['cargoType'] as String? ?? 'food';
+      if (newStops.isNotEmpty) {
+        for (final s in _stops) { s.dispose(); }
+        _stops
+          ..clear()
+          ..addAll(newStops);
+        _expandedStopId = null;
+      }
+    });
+
+    _estimateAll();
   }
 
   Future<void> _geocodePickup(String address) async {

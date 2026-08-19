@@ -91,7 +91,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           onUnlocked: () => ref.read(pinLockPassedProvider.notifier).state = true,
         ),
       ),
-      GoRoute(path: '/create-batch', builder: (_, __) => const CreateBatchOrderScreen()),
+      GoRoute(
+        path: '/create-batch',
+        builder: (_, state) {
+          final extra = state.extra;
+          if (extra is Map<String, dynamic>) {
+            return CreateBatchOrderScreen(reorderFrom: extra);
+          }
+          return const CreateBatchOrderScreen();
+        },
+      ),
       GoRoute(
         path: '/create-order',
         builder: (_, state) {
