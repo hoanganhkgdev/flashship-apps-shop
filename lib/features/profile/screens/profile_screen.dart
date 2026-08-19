@@ -46,98 +46,113 @@ class ProfileScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            // ── Hero header — nền trung tính, không gradient ───────────────
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.fromLTRB(20, topPad + 16, 20, 24),
-              decoration: BoxDecoration(
-                color: c.surface,
-                border: Border(bottom: BorderSide(color: c.divider)),
-              ),
-              child: Column(children: [
-                // Edit avatar
-                GestureDetector(
-                  onTap: () => _pickAvatar(context, ref),
-                  child: Stack(alignment: Alignment.bottomRight, children: [
-                    Container(
-                      width: 80, height: 80,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: c.surfaceAlt,
-                        border: Border.all(color: c.divider, width: 1.5),
-                        image: user.avatarUrl != null
-                            ? DecorationImage(
-                                image: NetworkImage(user.avatarUrl!),
-                                fit: BoxFit.cover)
-                            : null,
-                      ),
-                      child: user.avatarUrl == null
-                          ? Center(
-                              child: Text(user.initials,
-                                  style: TextStyle(
-                                      color: c.textPrimary,
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.w800)))
-                          : null,
-                    ),
-                    Container(
-                      width: 24, height: 24,
-                      decoration: BoxDecoration(
-                        color: c.surface,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: c.divider, width: 1),
-                      ),
-                      child: Icon(Icons.camera_alt_rounded,
-                          size: 12, color: c.primary),
-                    ),
-                  ]),
+            // ── Hero header — gradient cam + thẻ thống kê trắng nổi đè
+            // xuống nội dung dưới, đồng bộ ProfileHeader của app driver ────
+            Stack(clipBehavior: Clip.none, children: [
+              Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFCC5A08), Color(0xFFE8720C), Color(0xFFF59E30)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
-                const SizedBox(height: 12),
-                Text(user.name,
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: c.textPrimary)),
-                const SizedBox(height: 4),
-                Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.phone_rounded,
-                      size: 12, color: c.textTertiary),
-                  const SizedBox(width: 4),
-                  Text(user.phone,
-                      style: TextStyle(
-                          fontSize: 13, color: c.textSecondary)),
-                  if (user.cityName?.isNotEmpty == true) ...[
-                    Text('  ·  ',
-                        style: TextStyle(color: c.textTertiary)),
-                    Icon(Icons.location_on_rounded,
-                        size: 12, color: c.textTertiary),
-                    const SizedBox(width: 2),
-                    Text(user.cityName!,
+                padding: EdgeInsets.fromLTRB(20, topPad + 20, 20, 80),
+                child: Column(children: [
+                  // Edit avatar
+                  GestureDetector(
+                    onTap: () => _pickAvatar(context, ref),
+                    child: Stack(children: [
+                      Container(
+                        width: 86, height: 86,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                        ),
+                        child: ClipOval(
+                          child: user.avatarUrl != null
+                              ? Image.network(user.avatarUrl!, fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      _AvatarInitials(initials: user.initials))
+                              : _AvatarInitials(initials: user.initials),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 0, right: 0,
+                        child: Container(
+                          width: 24, height: 24,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                                color: c.primary.withValues(alpha: 0.3), width: 1.5),
+                          ),
+                          child: Icon(Icons.camera_alt_rounded,
+                              size: 13, color: c.primary),
+                        ),
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(user.name,
+                      style: const TextStyle(
+                          fontSize: 19, fontWeight: FontWeight.w800,
+                          color: Colors.white, letterSpacing: -0.3)),
+                  const SizedBox(height: 4),
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.phone_rounded,
+                        size: 12, color: Colors.white.withValues(alpha: 0.82)),
+                    const SizedBox(width: 4),
+                    Text(user.phone,
                         style: TextStyle(
-                            fontSize: 13, color: c.textSecondary)),
-                  ],
+                            fontSize: 13, color: Colors.white.withValues(alpha: 0.82))),
+                    if (user.cityName?.isNotEmpty == true) ...[
+                      Text('  ·  ',
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.6))),
+                      Icon(Icons.location_on_rounded,
+                          size: 12, color: Colors.white.withValues(alpha: 0.75)),
+                      const SizedBox(width: 2),
+                      Text(user.cityName!,
+                          style: TextStyle(
+                              fontSize: 13, color: Colors.white.withValues(alpha: 0.75))),
+                    ],
+                  ]),
                 ]),
+              ),
 
-                const SizedBox(height: 20),
-
-                // Stats row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
+              // ── Thẻ thống kê trắng nổi ──────────────────────────────────
+              Positioned(
+                left: 16, right: 16, bottom: -44,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.07),
+                          blurRadius: 16, offset: const Offset(0, 4)),
+                    ],
+                  ),
+                  child: Row(children: [
                     _HeroStat(label: 'Tổng đơn',
-                        value: orders.length.toString()),
+                        value: orders.length.toString(),
+                        icon: Icons.receipt_long_rounded, color: c.primary),
                     _HeroDivider(),
                     _HeroStat(label: 'Hoàn thành',
-                        value: completed.toString()),
+                        value: completed.toString(),
+                        icon: Icons.done_all_rounded, color: c.success),
                     _HeroDivider(),
                     _HeroStat(label: 'Đang chạy',
-                        value: active.toString()),
-                  ],
+                        value: active.toString(),
+                        icon: Icons.local_shipping_rounded, color: c.info),
+                  ]),
                 ),
-              ]),
-            ),
+              ),
+            ]),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 60),
 
             // ── Section: Cửa hàng ────────────────────────────────────────
             _SectionLabel('CỬA HÀNG'),
@@ -675,19 +690,36 @@ class ProfileScreen extends ConsumerWidget {
 // ─── Hero stat item ───────────────────────────────────────────────────────────
 
 class _HeroStat extends StatelessWidget {
-  final String label, value;
-  const _HeroStat({required this.label, required this.value});
+  final String   label, value;
+  final IconData icon;
+  final Color    color;
+  const _HeroStat({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(children: [
+    return Expanded(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 36, height: 36,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 18, color: color),
+        ),
+        const SizedBox(height: 6),
         Text(value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
                 color: c.textPrimary)),
         const SizedBox(height: 2),
         Text(label,
@@ -700,8 +732,24 @@ class _HeroStat extends StatelessWidget {
 class _HeroDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
-        width: 1, height: 32,
+        width: 1, height: 36,
         color: context.colors.divider);
+}
+
+class _AvatarInitials extends StatelessWidget {
+  final String initials;
+  const _AvatarInitials({required this.initials});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        color: AppColors.primaryDark,
+        alignment: Alignment.center,
+        child: Text(initials,
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 26,
+                fontWeight: FontWeight.w800)),
+      );
 }
 
 // ─── Section label ────────────────────────────────────────────────────────────
