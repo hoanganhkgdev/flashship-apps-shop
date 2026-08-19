@@ -175,10 +175,19 @@ class NotificationNotifier extends StateNotifier<List<NotificationItem>> {
     _patchAllRead();
   }
 
-  void delete(String id) {
+  Future<bool> delete(String id) async {
+    final backup = state;
     state = state.where((n) => n.id != id).toList();
     _saveLocal();
-    _deleteOnServer(id);
+    final ok = await _deleteOnServer(id);
+    if (!ok) {
+      // Xoá server thất bại — khôi phục lại state cũ, không để item "biến mất"
+      // cục bộ trong khi vẫn còn tồn tại thật trên server (refresh() sau đó
+      // sẽ lại kéo nó về nếu không khôi phục ở đây).
+      state = backup;
+      _saveLocal();
+    }
+    return ok;
   }
 
   Future<void> _patchRead(String id) async {
@@ -195,10 +204,13 @@ class NotificationNotifier extends StateNotifier<List<NotificationItem>> {
     } catch (_) {}
   }
 
-  Future<void> _deleteOnServer(String id) async {
+  Future<bool> _deleteOnServer(String id) async {
     try {
       await _ref.read(apiClientProvider).delete('/shop/notifications/$id');
-    } catch (_) {}
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   // ── Local persistence (offline cache) ───────────────────────────────────

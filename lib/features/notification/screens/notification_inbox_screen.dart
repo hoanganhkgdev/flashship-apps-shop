@@ -206,11 +206,20 @@ class _NotificationInboxScreenState
                             context.push('/order/${g.orderCode}');
                           }
                         },
-                        onDismiss: () {
+                        onDismiss: () async {
+                          final notifier = ref.read(notificationProvider.notifier);
+                          // Xoá tuần tự (không Future.wait song song) — mỗi
+                          // delete() backup/restore toàn bộ state, chạy song
+                          // song có thể khiến 2 lần restore chồng lấn nhau
+                          // nếu nhiều item trong cùng nhóm cùng thất bại.
+                          var allOk = true;
                           for (final n in g.items) {
-                            ref
-                                .read(notificationProvider.notifier)
-                                .delete(n.id);
+                            final ok = await notifier.delete(n.id);
+                            if (!ok) allOk = false;
+                          }
+                          if (!allOk && context.mounted) {
+                            AppSnackbar.error(context,
+                                'Không thể xoá thông báo, vui lòng thử lại.');
                           }
                         },
                       );
