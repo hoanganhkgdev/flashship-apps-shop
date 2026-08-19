@@ -87,6 +87,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void dispose() {
     NotificationService.onIncomingNotification = null;
+    NotificationService.onOrderTap = null;
+    NotificationService.onTokenRefresh = null;
     super.dispose();
   }
 
@@ -181,27 +183,39 @@ class _DashboardTab extends ConsumerWidget {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                child: Row(children: [
-                  Expanded(child: _ServiceCard(
-                    icon: Icons.arrow_outward_rounded,
-                    title: 'Giao đơn', sub: 'Shop → Khách',
-                    color: c.primary,
+                child: Column(children: [
+                  // Giao đơn: [shop] → [khách hàng]
+                  _ServiceCard(
+                    secondIcon:  Icons.person_rounded,
+                    secondBg:    c.successSoft,
+                    secondColor: c.success,
+                    shopFirst:   true,
+                    title: 'Giao đơn',
+                    sub:   'Lấy tại shop, giao cho khách hàng',
                     onTap: () => context.push('/create-order', extra: true),
-                  )),
-                  const SizedBox(width: 10),
-                  Expanded(child: _ServiceCard(
-                    icon: Icons.move_to_inbox_rounded,
-                    title: 'Lấy hộ', sub: 'Ngoài → Shop',
-                    color: c.info,
+                  ),
+                  const SizedBox(height: 10),
+                  // Lấy hộ: [điểm ngoài] → [shop] — ngược chiều Giao đơn
+                  _ServiceCard(
+                    secondIcon:  Icons.location_on_rounded,
+                    secondBg:    c.infoSoft,
+                    secondColor: c.info,
+                    shopFirst:   false,
+                    title: 'Lấy hộ',
+                    sub:   'Shipper đến lấy đồ, mang về shop',
                     onTap: () => context.push('/create-order', extra: false),
-                  )),
-                  const SizedBox(width: 10),
-                  Expanded(child: _ServiceCard(
-                    icon: Icons.route_rounded,
-                    title: 'Đơn gộp', sub: 'Nhiều điểm giao',
-                    color: c.success,
+                  ),
+                  const SizedBox(height: 10),
+                  // Đơn gộp: [shop] → [điểm đến]
+                  _ServiceCard(
+                    secondIcon:  Icons.location_on_rounded,
+                    secondBg:    c.successSoft,
+                    secondColor: c.success,
+                    shopFirst:   true,
+                    title: 'Đơn gộp',
+                    sub:   'Gộp nhiều đơn, giao nhiều nơi 1 lần',
                     onTap: () => context.push('/create-batch'),
-                  )),
+                  ),
                 ]),
               ),
             ),
@@ -432,55 +446,114 @@ class _TodayStat extends StatelessWidget {
 
 // ─── Service Card ─────────────────────────────────────────────────────────────
 
+// Thẻ dịch vụ full-width: sơ đồ luồng 2 icon (vai trò "shop" dùng chung +
+// vai trò còn lại đổi theo dịch vụ) nối bằng đường nét đứt, thứ tự trái→phải
+// theo đúng chiều nghiệp vụ thật (vd Lấy hộ đảo ngược so với Giao đơn).
 class _ServiceCard extends StatelessWidget {
-  final IconData icon;
-  final String title, sub;
-  final Color color;
+  final IconData secondIcon;
+  final Color    secondBg;
+  final Color    secondColor;
+  final bool     shopFirst;
+  final String   title, sub;
   final VoidCallback onTap;
 
   const _ServiceCard({
-    required this.icon, required this.title, required this.sub,
-    required this.color, required this.onTap,
+    required this.secondIcon,
+    required this.secondBg,
+    required this.secondColor,
+    required this.shopFirst,
+    required this.title,
+    required this.sub,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final shopIcon = _RoleIcon(
+        icon: Icons.storefront_rounded, bg: c.primarySoft, color: c.primary);
+    final otherIcon = _RoleIcon(icon: secondIcon, bg: secondBg, color: secondColor);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(14),
+        height: 76,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
           color: c.surface,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
+          borderRadius: BorderRadius.circular(22),
           boxShadow: c.cardShadow,
         ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Container(
-              width: 40, height: 40,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: context.isDark ? 0.18 : 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              alignment: Alignment.center,
-              child: Icon(icon, color: color, size: 22),
-            ),
-            Icon(Icons.arrow_forward_rounded, color: color, size: 16),
+        child: Row(children: [
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            shopFirst ? shopIcon : otherIcon,
+            SizedBox(
+                width: 28, height: 14,
+                child: Center(child: _DashedConnector(color: c.divider))),
+            shopFirst ? otherIcon : shopIcon,
           ]),
-          const SizedBox(height: 10),
-          Text(title,
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800,
-                  color: color)),
-          const SizedBox(height: 2),
-          Text(sub,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  fontSize: 10, color: c.textSecondary)),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(title,
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800,
+                        color: c.textPrimary)),
+                const SizedBox(height: 3),
+                Text(sub,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12, color: c.textSecondary)),
+              ],
+            ),
+          ),
+          Icon(Icons.chevron_right_rounded, color: c.textTertiary, size: 22),
         ]),
       ),
     );
+  }
+}
+
+class _RoleIcon extends StatelessWidget {
+  final IconData icon;
+  final Color    bg, color;
+  const _RoleIcon({required this.icon, required this.bg, required this.color});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 36, height: 36,
+        decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+        alignment: Alignment.center,
+        child: Icon(icon, color: color, size: 18),
+      );
+}
+
+class _DashedConnector extends StatelessWidget {
+  final Color color;
+  const _DashedConnector({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      const dashWidth = 3.0;
+      const dashGap = 3.0;
+      final count =
+          (constraints.maxWidth / (dashWidth + dashGap)).floor().clamp(1, 20);
+      return Row(
+        children: List.generate(
+          count,
+          (_) => Expanded(
+            child: Container(
+              height: 1.4,
+              margin: const EdgeInsets.symmetric(horizontal: dashGap / 2),
+              color: color,
+            ),
+          ),
+        ),
+      );
+    });
   }
 }
 
