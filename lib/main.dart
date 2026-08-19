@@ -3,13 +3,13 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'core/api/api_client.dart';
 import 'core/api/session_expired_notifier.dart';
 import 'core/router/app_router.dart';
 import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_mode_provider.dart';
+import 'core/utils/store_launcher.dart';
 import 'core/widgets/app_form_widgets.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/order/providers/order_provider.dart';
@@ -169,7 +169,7 @@ class _FlashShipShopAppState extends ConsumerState<FlashShipShopApp>
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: () => _openStore(v.storeUrl),
+                  onPressed: () => openStore(v.storeUrl),
                   style: FilledButton.styleFrom(
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
                   ),
@@ -182,14 +182,6 @@ class _FlashShipShopAppState extends ConsumerState<FlashShipShopApp>
         );
       },
     );
-  }
-
-  Future<void> _openStore(String? url) async {
-    if (url == null || url.isEmpty) return;
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
   }
 
   @override

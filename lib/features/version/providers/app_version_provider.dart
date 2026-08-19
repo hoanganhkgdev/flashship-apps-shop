@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_constants.dart';
 
 class AppVersionState {
@@ -9,6 +10,7 @@ class AppVersionState {
   final bool needsForceUpdate;
   final bool needsSoftUpdate;
   final String? storeUrl;
+  final String? latestVersion;
   final String message;
 
   const AppVersionState({
@@ -16,6 +18,7 @@ class AppVersionState {
     this.needsForceUpdate = false,
     this.needsSoftUpdate  = false,
     this.storeUrl,
+    this.latestVersion,
     this.message = 'Vui lòng cập nhật ứng dụng để tiếp tục sử dụng.',
   });
 }
@@ -51,6 +54,7 @@ class AppVersionNotifier extends StateNotifier<AppVersionState> {
         needsForceUpdate: needsForce,
         needsSoftUpdate:  needsSoft,
         storeUrl:         storeUrl,
+        latestVersion:    latestVersion,
         message: forceMessage.isNotEmpty ? forceMessage : 'Vui lòng cập nhật ứng dụng để tiếp tục sử dụng.',
       );
     } catch (_) {
@@ -78,4 +82,33 @@ class AppVersionNotifier extends StateNotifier<AppVersionState> {
 final appVersionProvider =
     StateNotifierProvider<AppVersionNotifier, AppVersionState>(
   (ref) => AppVersionNotifier(),
+);
+
+// ─── Đã ẩn banner nhắc cập nhật mềm cho phiên bản nào ──────────────────────────
+//
+// Lưu latest_version đã bị bấm "Để sau" — banner chỉ ẩn cho ĐÚNG phiên bản đó,
+// nếu backend công bố bản mới hơn nữa thì latestVersion đổi khác, so sánh lệch
+// nên banner hiện lại bình thường.
+const _kDismissedSoftUpdateVersionKey = 'dismissed_soft_update_version';
+
+class DismissedSoftUpdateNotifier extends StateNotifier<String?> {
+  DismissedSoftUpdateNotifier() : super(null) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getString(_kDismissedSoftUpdateVersionKey);
+  }
+
+  Future<void> dismiss(String version) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kDismissedSoftUpdateVersionKey, version);
+    state = version;
+  }
+}
+
+final dismissedSoftUpdateVersionProvider =
+    StateNotifierProvider<DismissedSoftUpdateNotifier, String?>(
+  (ref) => DismissedSoftUpdateNotifier(),
 );

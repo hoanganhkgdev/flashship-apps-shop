@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/store_launcher.dart';
 import '../../../core/widgets/app_form_widgets.dart';
 import '../../address/models/address_entry.dart';
 import '../../address/providers/address_provider.dart';
@@ -18,6 +19,7 @@ import '../../order/screens/order_list_screen.dart';
 import '../../profile/screens/profile_screen.dart';
 import '../../stats/stats_screen.dart';
 import '../providers/today_stats_provider.dart';
+import '../../version/providers/app_version_provider.dart';
 import '../../voucher/voucher_provider.dart';
 import '../../voucher/widgets/voucher_card.dart';
 
@@ -154,6 +156,9 @@ class _DashboardTab extends ConsumerWidget {
                 today:       todayAsync.valueOrNull,
               ),
             ),
+
+            // ── Banner nhắc cập nhật (không bắt buộc) ─────────────────────
+            const SliverToBoxAdapter(child: _SoftUpdateBanner()),
 
             // ── Banner thông báo/khuyến mãi ───────────────────────────────
             const SliverToBoxAdapter(child: _HomeBannerSection()),
@@ -583,6 +588,75 @@ const _homeBanners = <_BannerItem>[
     route: '/notifications',
   ),
 ];
+
+// ─── Banner nhắc cập nhật mềm ───────────────────────────────────────────────
+//
+// Khác dialog "Cập nhật bắt buộc" (main.dart) — không chặn thao tác, có thể
+// bấm "Để sau" để ẩn cho đúng phiên bản này (xem dismissedSoftUpdateVersionProvider).
+class _SoftUpdateBanner extends ConsumerWidget {
+  const _SoftUpdateBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final version           = ref.watch(appVersionProvider);
+    final dismissedVersion  = ref.watch(dismissedSoftUpdateVersionProvider);
+
+    final shouldShow = version.needsSoftUpdate &&
+        version.latestVersion != null &&
+        version.latestVersion != dismissedVersion;
+    if (!shouldShow) return const SizedBox.shrink();
+
+    final c = context.colors;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: c.primarySoft,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(children: [
+          Icon(Icons.system_update_rounded, color: c.primary, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text('Đã có bản cập nhật mới',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w700, color: c.textPrimary)),
+          ),
+          TextButton(
+            onPressed: () {
+              final v = version.latestVersion;
+              if (v != null) {
+                ref.read(dismissedSoftUpdateVersionProvider.notifier).dismiss(v);
+              }
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: c.textSecondary,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('Để sau',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+          ),
+          TextButton(
+            onPressed: () => openStore(version.storeUrl),
+            style: TextButton.styleFrom(
+              foregroundColor: c.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('Cập nhật',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+          ),
+        ]),
+      ),
+    );
+  }
+}
 
 class _HomeBannerSection extends StatelessWidget {
   const _HomeBannerSection();
