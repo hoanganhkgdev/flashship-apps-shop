@@ -205,10 +205,23 @@ class _DashboardTab extends ConsumerWidget {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
                   child: Row(children: [
-                    Text('Đang chạy ($trueActiveCount)',
+                    Text('Đang chạy',
                         style: TextStyle(
                             fontSize: 17, fontWeight: FontWeight.w800,
                             color: c.textPrimary)),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: c.primary,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text('$trueActiveCount',
+                          style: const TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.w700,
+                              color: Colors.white)),
+                    ),
                   ]),
                 ),
               ),
@@ -299,80 +312,89 @@ class _Header extends ConsumerWidget {
     final unread = ref.watch(unreadCountProvider).valueOrNull ?? 0;
     final c      = context.colors;
 
-    return SafeArea(
-      bottom: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // ── Tên shop + bell ────────────────────────────────────────
-          Row(children: [
-            Expanded(
-              child: Text(shopName,
-                  style: TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w800,
-                      color: c.textPrimary, letterSpacing: -0.3),
-                  maxLines: 1, overflow: TextOverflow.ellipsis),
-            ),
-            // ── Bell icon với badge ──────────────────────────────────
-            GestureDetector(
-              onTap: () => context.push('/notifications'),
-              child: Stack(clipBehavior: Clip.none, children: [
-                Container(
-                  width: 38, height: 38,
-                  decoration: BoxDecoration(
-                    color: c.surfaceAlt,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  child: Icon(Icons.notifications_outlined,
-                      color: c.textPrimary, size: 20),
-                ),
-                if (unread > 0)
-                  Positioned(
-                    top: -4, right: -4,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 5, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: c.danger,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(unread > 99 ? '99+' : '$unread',
-                          style: const TextStyle(
-                              fontSize: 10, fontWeight: FontWeight.w700,
-                              color: Colors.white)),
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      // ── Dải màu thương hiệu mỏng — điểm nhấn duy nhất trên nền trắng ──
+      Container(height: 3, color: c.primary),
+      SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            // ── Tên shop + bell ────────────────────────────────────────
+            Row(children: [
+              Expanded(
+                child: Text(shopName,
+                    style: TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w800,
+                        color: c.textPrimary, letterSpacing: -0.3),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+              // ── Bell icon với badge ──────────────────────────────────
+              GestureDetector(
+                onTap: () => context.push('/notifications'),
+                child: Stack(clipBehavior: Clip.none, children: [
+                  Container(
+                    width: 38, height: 38,
+                    decoration: BoxDecoration(
+                      color: c.surfaceAlt,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
+                    child: Icon(Icons.notifications_outlined,
+                        color: c.textPrimary, size: 20),
                   ),
-              ]),
-            ),
-          ]),
-          if (shopAddress.isNotEmpty) ...[
-            const SizedBox(height: 3),
-            Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.location_on_rounded, size: 12, color: c.textTertiary),
-              const SizedBox(width: 2),
-              Flexible(child: Text(shopAddress,
-                  maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, color: c.textSecondary))),
-            ]),
-          ],
-
-          // ── Stats hôm nay ──────────────────────────────────────────
-          if (today != null) ...[
-            const SizedBox(height: 16),
-            StatRow(items: [
-              StatItem(value: '${today!.orders}', label: 'Đơn hôm nay'),
-              StatItem(value: '${today!.active}', label: 'Đang chạy'),
-              StatItem(
-                value: today!.revenue >= 1000
-                    ? '${(today!.revenue / 1000).toStringAsFixed(0)}K'
-                    : '${today!.revenue}đ',
-                label: 'Doanh thu',
+                  if (unread > 0)
+                    Positioned(
+                      top: -4, right: -4,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: c.danger,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(unread > 99 ? '99+' : '$unread',
+                            style: const TextStyle(
+                                fontSize: 10, fontWeight: FontWeight.w700,
+                                color: Colors.white)),
+                      ),
+                    ),
+                ]),
               ),
             ]),
-          ],
-        ]),
+            if (shopAddress.isNotEmpty) ...[
+              const SizedBox(height: 3),
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.location_on_rounded, size: 12, color: c.textTertiary),
+                const SizedBox(width: 2),
+                Flexible(child: Text(shopAddress,
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12, color: c.textSecondary))),
+              ]),
+            ],
+
+            // ── Stats hôm nay ──────────────────────────────────────────
+            if (today != null) ...[
+              const SizedBox(height: 16),
+              StatRow(items: [
+                StatItem(value: '${today!.orders}', label: 'Đơn hôm nay'),
+                StatItem(
+                  value: '${today!.active}',
+                  label: 'Đang chạy',
+                  valueColor: today!.active > 0 ? c.primary : null,
+                ),
+                StatItem(
+                  value: today!.revenue >= 1000
+                      ? '${(today!.revenue / 1000).toStringAsFixed(0)}K'
+                      : '${today!.revenue}đ',
+                  label: 'Doanh thu',
+                  valueColor: today!.revenue > 0 ? c.success : null,
+                ),
+              ]),
+            ],
+          ]),
+        ),
       ),
-    );
+    ]);
   }
 }
 

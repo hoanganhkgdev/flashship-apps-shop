@@ -14,9 +14,9 @@ class QuickAction {
   });
 }
 
-/// Hàng thao tác nhanh — icon tròn nhỏ (44px) nền xám nhạt, icon màu đơn sắc
-/// theo từng thao tác, label nhỏ bên dưới. KHÔNG bọc card ngoài, tap target
-/// rõ ràng nhưng compact — thay cho các _ServiceCard to trang trí.
+/// Hàng thao tác nhanh — icon tròn nhỏ (44px) nền tint nhạt theo màu thao
+/// tác, icon màu đơn sắc, label nhỏ bên dưới. KHÔNG bọc card ngoài, tap
+/// target rõ ràng nhưng compact — thay cho các _ServiceCard to trang trí.
 class QuickActionBar extends StatelessWidget {
   final List<QuickAction> items;
   const QuickActionBar({super.key, required this.items});
@@ -35,7 +35,8 @@ class QuickActionBar extends StatelessWidget {
               Container(
                 width: 44, height: 44,
                 decoration: BoxDecoration(
-                  color: c.surfaceAlt,
+                  color: a.color.withValues(
+                      alpha: context.isDark ? 0.18 : 0.10),
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
