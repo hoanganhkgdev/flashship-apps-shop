@@ -183,57 +183,31 @@ class _StatsContent extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
 
-        // ── Revenue hero card ────────────────────────────────────────────
+        // ── Revenue hero — số liệu trần trên nền trắng, không gradient ────
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [c.primary, const Color(0xFFCC5A08)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            color: c.surface,
             borderRadius: BorderRadius.circular(AppRadius.card),
-            boxShadow: [
-              BoxShadow(
-                color: c.primary.withValues(alpha: 0.35),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
+            border: Border.all(color: c.divider),
           ),
-          child: Row(children: [
-            Expanded(child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  const Icon(Icons.payments_rounded,
-                      color: Colors.white70, size: 14),
-                  const SizedBox(width: 6),
-                  const Text('Tổng doanh thu',
-                      style: TextStyle(fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white70)),
-                ]),
-                const SizedBox(height: 8),
-                Text(Fmt.currency(revenue),
-                    style: const TextStyle(fontSize: 30,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white)),
-                const SizedBox(height: 4),
-                Text('$completed đơn hoàn thành',
-                    style: const TextStyle(fontSize: 12,
-                        color: Colors.white70)),
-              ],
-            )),
-            Container(
-              width: 56, height: 56,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Icon(Icons.trending_up_rounded,
-                  color: Colors.white, size: 28),
-            ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Icon(Icons.payments_outlined, size: 14, color: c.textSecondary),
+              const SizedBox(width: 6),
+              Text('Tổng doanh thu',
+                  style: TextStyle(fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: c.textSecondary)),
+            ]),
+            const SizedBox(height: 8),
+            Text(Fmt.currency(revenue),
+                style: TextStyle(fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: c.textPrimary)),
+            const SizedBox(height: 4),
+            Text('$completed đơn hoàn thành',
+                style: TextStyle(fontSize: 12, color: c.textSecondary)),
           ]),
         ),
 
@@ -309,7 +283,7 @@ class _StatsContent extends StatelessWidget {
         decoration: BoxDecoration(
           color: c.surface,
           borderRadius: BorderRadius.circular(AppRadius.card),
-          boxShadow: c.cardShadow,
+          border: Border.all(color: c.divider),
         ),
         child: child,
       );
@@ -356,7 +330,7 @@ class _StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        boxShadow: c.cardShadow,
+        border: Border.all(color: c.divider),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(
