@@ -736,7 +736,7 @@ class _SettingsCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: c.divider),
+        boxShadow: c.cardShadow,
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppRadius.card),
@@ -770,7 +770,7 @@ class _SupportSection extends ConsumerWidget {
         decoration: BoxDecoration(
           color: c.surface,
           borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(color: c.divider),
+          boxShadow: c.cardShadow,
         ),
         child: Center(
           child: SizedBox(

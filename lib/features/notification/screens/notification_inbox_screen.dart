@@ -288,10 +288,10 @@ class _GroupCardState extends State<_GroupCard> {
                   ? c.primary.withValues(alpha: context.isDark ? 0.08 : 0.04)
                   : c.surface,
               borderRadius: BorderRadius.circular(AppRadius.card),
-              border: Border.all(
-                  color: unread
-                      ? c.primary.withValues(alpha: 0.25)
-                      : c.divider),
+              border: unread
+                  ? Border.all(color: c.primary.withValues(alpha: 0.3))
+                  : null,
+              boxShadow: c.cardShadow,
             ),
             child: Column(children: [
               // ── Main row ──

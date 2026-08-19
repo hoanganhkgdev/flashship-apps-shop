@@ -260,7 +260,7 @@ class _ActiveSummary extends StatelessWidget {
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: c.divider),
+        boxShadow: c.cardShadow,
       ),
       child: Row(
         children: nonZero.map((item) {
@@ -356,7 +356,7 @@ class _OrderCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: c.surface,
             borderRadius: BorderRadius.circular(AppRadius.card),
-            border: Border.all(color: c.divider),
+            boxShadow: c.cardShadow,
           ),
           clipBehavior: Clip.antiAlias,
           // IntrinsicHeight: Row(crossAxisAlignment: stretch) cần chiều cao

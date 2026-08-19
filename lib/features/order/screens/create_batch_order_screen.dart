@@ -506,7 +506,7 @@ class _CreateBatchOrderScreenState
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(AppRadius.card),
-                    border: Border.all(color: context.colors.divider),
+                    boxShadow: context.colors.cardShadow,
                   ),
                   child: Column(children: [
                     GestureDetector(
@@ -537,7 +537,7 @@ class _CreateBatchOrderScreenState
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(AppRadius.card),
-                    border: Border.all(color: context.colors.divider),
+                    boxShadow: context.colors.cardShadow,
                   ),
                   child: Row(
                     children: cargoTypes.map((c) {
@@ -893,7 +893,7 @@ class _StopCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppColors.divider),
+        boxShadow: Palette.light.cardShadow,
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -965,6 +965,7 @@ class _StopCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: AppColors.primary, width: 1.4),
+        boxShadow: Palette.light.cardShadow,
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(

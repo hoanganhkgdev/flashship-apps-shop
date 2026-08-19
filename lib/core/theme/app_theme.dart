@@ -27,14 +27,14 @@ class AppSpace {
   static const xxl = 32.0;
 }
 
-/// Radius scale — phong cách công cụ vận hành (merchant/operator tool): bo
-/// góc vừa phải, không pill, gần vuông cho chip/badge kiểu bảng dữ liệu.
+/// Radius scale — đồng bộ với app driver (bo mềm mại hơn kiểu operator-tool
+/// trước đó).
 class AppRadius {
-  static const sm   = 6.0;   // chip/badge/status pill
-  static const md   = 10.0;  // field/button
-  static const lg   = 12.0;  // dialog
-  static const xl   = 16.0;  // bottom sheet (phần tử nổi, vẫn được bo nhiều hơn)
-  static const card = 12.0;  // card
+  static const sm   = 8.0;   // chip/badge/status pill
+  static const md   = 12.0;  // field/button
+  static const lg   = 16.0;  // dialog
+  static const xl   = 20.0;  // bottom sheet
+  static const card = 16.0;  // card
 }
 
 /// Bảng màu theo chế độ sáng/tối. Lấy trong widget bằng `context.colors`.
@@ -125,12 +125,12 @@ class Palette extends ThemeExtension<Palette> {
     shadow:        Color(0x66000000),
   );
 
-  /// Bóng rất nhẹ — CHỈ dùng cho phần tử nổi lên trên (bottom sheet, FAB,
-  /// dialog). Card thường dùng border 1px + nền phẳng, không dùng shadow này.
+  /// Shadow mềm dùng chung cho mọi card — đồng bộ app driver
+  /// (color 0x14111827, blur 12, offset (0,3) ở light mode).
   List<BoxShadow> get cardShadow => [
         BoxShadow(
-            color: shadow.withValues(alpha: 0.04),
-            blurRadius: 6, offset: const Offset(0, 2)),
+            color: shadow.withValues(alpha: 0.08),
+            blurRadius: 12, offset: const Offset(0, 3)),
       ];
 
   @override

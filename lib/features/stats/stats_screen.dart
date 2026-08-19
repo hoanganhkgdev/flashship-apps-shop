@@ -189,7 +189,7 @@ class _StatsContent extends StatelessWidget {
           decoration: BoxDecoration(
             color: c.surface,
             borderRadius: BorderRadius.circular(AppRadius.card),
-            border: Border.all(color: c.divider),
+            boxShadow: c.cardShadow,
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
@@ -283,7 +283,7 @@ class _StatsContent extends StatelessWidget {
         decoration: BoxDecoration(
           color: c.surface,
           borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(color: c.divider),
+          boxShadow: c.cardShadow,
         ),
         child: child,
       );
@@ -330,7 +330,7 @@ class _StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: c.divider),
+        boxShadow: c.cardShadow,
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(
