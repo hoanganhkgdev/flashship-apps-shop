@@ -68,7 +68,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ref.read(orderListProvider.notifier).fetch(refresh: true);
     };
     NotificationService.onOrderTap = (code) {
-      if (mounted) context.push('/order/$code');
+      if (!mounted) return;
+      // GoRouter.of(context).state phản ánh route đang active trên toàn app
+      // (không phụ thuộc context của home_screen) — nếu người dùng đang xem
+      // đúng đơn này rồi thì bỏ qua, OrderDetailScreen đã tự cập nhật qua
+      // RTDB/FCM listener sẵn có, không cần điều hướng chồng thêm 1 lớp nữa.
+      final currentLocation = GoRouter.of(context).state.uri.toString();
+      if (currentLocation == '/order/$code') return;
+      context.push('/order/$code');
     };
     // Firebase xoay vòng FCM token định kỳ — đăng ký lại với backend ngay khi
     // đổi, tránh trường hợp backend giữ token cũ đã hết hiệu lực.
