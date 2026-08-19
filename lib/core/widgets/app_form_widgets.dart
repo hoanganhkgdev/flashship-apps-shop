@@ -104,27 +104,27 @@ class AppField extends StatelessWidget {
         suffixIconConstraints:
             const BoxConstraints(minWidth: 40, minHeight: 40),
         filled: true,
-        fillColor: fillColor ?? c.surface,
+        fillColor: fillColor ?? c.surfaceAlt,
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-          borderSide: BorderSide(color: c.divider, width: 1.4),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-          borderSide: BorderSide(color: c.divider, width: 1.4),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.pill),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           borderSide: BorderSide(color: c.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.pill),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           borderSide: BorderSide(color: c.danger, width: 1.4),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.pill),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           borderSide: BorderSide(color: c.danger, width: 1.5),
         ),
       ),
@@ -220,26 +220,26 @@ class _PhoneFieldState extends State<PhoneField> {
         ),
         prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
         filled: true,
-        fillColor: c.surface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        fillColor: c.surfaceAlt,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-          borderSide: BorderSide(color: c.divider, width: 1.4),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-          borderSide: BorderSide(color: c.divider, width: 1.4),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.pill),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           borderSide: BorderSide(color: c.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.pill),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           borderSide: BorderSide(color: c.danger, width: 1.4),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.pill),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           borderSide: BorderSide(color: c.danger, width: 1.5),
         ),
       ),
@@ -304,7 +304,7 @@ class AppButton extends StatelessWidget {
           disabledBackgroundColor: c.primary.withValues(alpha: 0.5),
           foregroundColor: c.onPrimary,
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.pill)),
+              borderRadius: BorderRadius.circular(AppRadius.md)),
         ),
         child: isLoading
             ? const SizedBox(

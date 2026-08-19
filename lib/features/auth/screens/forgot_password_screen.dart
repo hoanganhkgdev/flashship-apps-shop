@@ -301,7 +301,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.pill)),
+                      borderRadius: BorderRadius.circular(AppRadius.md)),
                 ),
                 child: _loading
                     ? const SizedBox(

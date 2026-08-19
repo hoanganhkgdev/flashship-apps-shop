@@ -27,16 +27,14 @@ class AppSpace {
   static const xxl = 32.0;
 }
 
-/// Radius scale.
+/// Radius scale — phong cách công cụ vận hành (merchant/operator tool): bo
+/// góc vừa phải, không pill, gần vuông cho chip/badge kiểu bảng dữ liệu.
 class AppRadius {
-  static const sm   = 8.0;
-  static const md   = 12.0;
-  static const lg   = 16.0;
-  static const xl   = 20.0;
-  static const card = 16.0;
-  // Bo tròn hoàn toàn (field/button dạng viên thuốc) — số đủ lớn để luôn
-  // vượt quá nửa chiều cao thực tế, Flutter tự giới hạn về hình viên thuốc.
-  static const pill = 999.0;
+  static const sm   = 6.0;   // chip/badge/status pill
+  static const md   = 10.0;  // field/button
+  static const lg   = 12.0;  // dialog
+  static const xl   = 16.0;  // bottom sheet (phần tử nổi, vẫn được bo nhiều hơn)
+  static const card = 12.0;  // card
 }
 
 /// Bảng màu theo chế độ sáng/tối. Lấy trong widget bằng `context.colors`.
@@ -127,9 +125,12 @@ class Palette extends ThemeExtension<Palette> {
     shadow:        Color(0x66000000),
   );
 
-  /// Bóng đổ mềm cho card.
+  /// Bóng rất nhẹ — CHỈ dùng cho phần tử nổi lên trên (bottom sheet, FAB,
+  /// dialog). Card thường dùng border 1px + nền phẳng, không dùng shadow này.
   List<BoxShadow> get cardShadow => [
-        BoxShadow(color: shadow, blurRadius: 12, offset: const Offset(0, 3)),
+        BoxShadow(
+            color: shadow.withValues(alpha: 0.04),
+            blurRadius: 6, offset: const Offset(0, 2)),
       ];
 
   @override

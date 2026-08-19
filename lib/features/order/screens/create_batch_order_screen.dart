@@ -762,7 +762,7 @@ class _CreateBatchOrderScreenState
                         backgroundColor: AppColors.primary,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.pill)),
+                            borderRadius: BorderRadius.circular(AppRadius.md)),
                       ),
                       child: _submitting
                           ? const SizedBox(width: 20, height: 20,

@@ -1379,7 +1379,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.pill)),
+                            borderRadius: BorderRadius.circular(AppRadius.md)),
                       ),
                       child: _submitting
                           ? const SizedBox(width: 20, height: 20,

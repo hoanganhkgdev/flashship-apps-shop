@@ -25,6 +25,6 @@ CargoType cargoTypeOf(String key) =>
 /// nền xám trung tính khi chưa chọn. Dùng chung giữa các màn tạo đơn.
 BoxDecoration cargoChipDecoration(bool selected, Color color) => BoxDecoration(
       color: selected ? color.withValues(alpha: 0.08) : const Color(0xFFF5F5F5),
-      borderRadius: BorderRadius.circular(AppRadius.pill),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
       border: selected ? Border.all(color: color, width: 1.5) : null,
     );

@@ -154,7 +154,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.pill)),
+                        borderRadius: BorderRadius.circular(AppRadius.md)),
                   ),
                   child: auth.isLoading
                       ? const SizedBox(
