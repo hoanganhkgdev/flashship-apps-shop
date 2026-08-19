@@ -550,7 +550,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
           unwrap(res) as Map<String, dynamic>);
       ref.read(orderListProvider.notifier).addOrder(order);
       // Gợi ý lưu địa chỉ nếu có tên + SĐT người nhận và chưa có trong sổ
-      if (mounted && _receiverPhone.isNotEmpty && _deliveryAddr != null) {
+      if (mounted && _isOutbound && _receiverPhone.isNotEmpty && _deliveryAddr != null) {
         final existing = ref.read(addressProvider).valueOrNull ?? [];
         final alreadySaved = existing.any((e) => e.phone == _receiverPhone.trim());
         if (!alreadySaved) {
