@@ -1690,8 +1690,12 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
         },
       );
       widget.onDone();
-    } catch (_) {
-      if (mounted) setState(() => _submitting = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _submitting = false);
+        AppSnackbar.error(context,
+            parseApiError(e, fallback: 'Không thể gửi đánh giá. Thử lại sau.'));
+      }
     }
   }
 
