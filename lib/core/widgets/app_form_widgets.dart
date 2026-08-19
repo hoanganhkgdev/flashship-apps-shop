@@ -172,8 +172,13 @@ class _PhoneFieldState extends State<PhoneField> {
     _localCtrl.addListener(_syncToController);
   }
 
+  // Không còn hiện "+84" trước ô nhập (chỉ icon phone) nên người dùng có
+  // thể gõ cả số 0 đầu theo thói quen — chuẩn hoá về đúng 1 số 0 trước khi
+  // đồng bộ, tránh ghép thành "00..." khiến đăng nhập báo sai tài khoản.
   void _syncToController() {
-    widget.controller.text = '0${_localCtrl.text}';
+    final digits = _localCtrl.text;
+    final normalized = digits.startsWith('0') ? digits.substring(1) : digits;
+    widget.controller.text = '0$normalized';
   }
 
   @override
