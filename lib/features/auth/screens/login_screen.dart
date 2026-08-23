@@ -62,133 +62,132 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
         child: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-              AppSpace.xl, AppSpace.xxl, AppSpace.xl, bottom + AppSpace.xxl),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Wordmark ──────────────────────────────────────────────
-              const Text('FLASH SHOP',
-                  style: TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2, color: AppColors.primary)),
-              const SizedBox(height: AppSpace.lg),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+                AppSpace.xl, AppSpace.xxl, AppSpace.xl, bottom + AppSpace.xxl),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Wordmark ──────────────────────────────────────────────
+                const Text('FLASH SHOP',
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                        color: AppColors.primary)),
+                const SizedBox(height: AppSpace.lg),
 
-              // ── Heading ───────────────────────────────────────────────
-              const Text('Đăng nhập',
-                  style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.5,
-                      color: AppColors.textPrimary)),
-              const SizedBox(height: AppSpace.xs),
-              const Text('Nhập thông tin để tiếp tục sử dụng',
-                  style:
-                      TextStyle(fontSize: 14, color: AppColors.textSecondary)),
-              const SizedBox(height: AppSpace.xxl),
-
-              // ── Form ──────────────────────────────────────────────────
-              Form(
-                key: _formKey,
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const AppLabel('Số điện thoại'),
-                      const SizedBox(height: AppSpace.sm),
-                      PhoneField(
-                        controller: _phoneCtrl,
-                        textInputAction: TextInputAction.next,
-                        validator: Validators.phone,
-                      ),
-                      const SizedBox(height: AppSpace.lg),
-                      const AppLabel('Mật khẩu'),
-                      const SizedBox(height: AppSpace.sm),
-                      AppField(
-                        controller: _passCtrl,
-                        hint: '••••••••',
-                        prefixIcon: Icon(Icons.lock_outline_rounded,
-                            size: 20, color: context.colors.textSecondary),
-                        obscureText: _obscure,
-                        textInputAction: TextInputAction.done,
-                        onFieldSubmitted: (_) => _submit(),
-                        suffixIcon: GestureDetector(
-                          onTap: () => setState(() => _obscure = !_obscure),
-                          child: Icon(
-                            _obscure
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                            size: 20,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        validator: Validators.password,
-                      ),
-                      if (auth.error != null) ...[
-                        const SizedBox(height: AppSpace.lg),
-                        AppErrorBox(auth.error!),
-                      ],
-                    ]),
-              ),
-              const SizedBox(height: AppSpace.md),
-
-              // ── Forgot password ───────────────────────────────────────
-              Align(
-                alignment: Alignment.centerRight,
-                child: GestureDetector(
-                  onTap: () => context.push('/forgot-password'),
-                  child: const Text('Quên mật khẩu?',
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary)),
-                ),
-              ),
-              const SizedBox(height: AppSpace.lg + AppSpace.xs),
-
-              // ── Button ────────────────────────────────────────────────
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: FilledButton(
-                  onPressed: auth.isLoading ? null : _submit,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.md)),
-                  ),
-                  child: auth.isLoading
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Text('Đăng nhập',
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white)),
-                ),
-              ),
-              const SizedBox(height: AppSpace.xl),
-
-              // ── Register link ─────────────────────────────────────────
-              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                const Text('Chưa có tài khoản? ',
+                // ── Heading ───────────────────────────────────────────────
+                const Text('Đăng nhập',
+                    style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
+                        color: AppColors.textPrimary)),
+                const SizedBox(height: AppSpace.xs),
+                const Text('Nhập thông tin để tiếp tục sử dụng',
                     style: TextStyle(
                         fontSize: 14, color: AppColors.textSecondary)),
-                GestureDetector(
-                  onTap: () => context.push('/register'),
-                  child: const Text('Đăng ký ngay',
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary)),
+                const SizedBox(height: AppSpace.xxl),
+
+                // ── Form ──────────────────────────────────────────────────
+                Form(
+                  key: _formKey,
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        PhoneField(
+                          controller: _phoneCtrl,
+                          hint: 'Số điện thoại',
+                          textInputAction: TextInputAction.next,
+                          validator: Validators.phone,
+                        ),
+                        const SizedBox(height: AppSpace.lg),
+                        AppField(
+                          controller: _passCtrl,
+                          hint: '••••••••',
+                          prefixIcon: Icon(Icons.lock_outline_rounded,
+                              size: 20, color: context.colors.textSecondary),
+                          obscureText: _obscure,
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) => _submit(),
+                          suffixIcon: GestureDetector(
+                            onTap: () => setState(() => _obscure = !_obscure),
+                            child: Icon(
+                              _obscure
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                              size: 20,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          validator: Validators.password,
+                        ),
+                        if (auth.error != null) ...[
+                          const SizedBox(height: AppSpace.lg),
+                          AppErrorBox(auth.error!),
+                        ],
+                      ]),
                 ),
-              ]),
-            ],
+                const SizedBox(height: AppSpace.md),
+
+                // ── Forgot password ───────────────────────────────────────
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: GestureDetector(
+                    onTap: () => context.push('/forgot-password'),
+                    child: const Text('Quên mật khẩu?',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary)),
+                  ),
+                ),
+                const SizedBox(height: AppSpace.lg + AppSpace.xs),
+
+                // ── Button ────────────────────────────────────────────────
+                SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: FilledButton(
+                    onPressed: auth.isLoading ? null : _submit,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.md)),
+                    ),
+                    child: auth.isLoading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
+                        : const Text('Đăng nhập',
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white)),
+                  ),
+                ),
+                const SizedBox(height: AppSpace.xl),
+
+                // ── Register link ─────────────────────────────────────────
+                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  const Text('Chưa có tài khoản? ',
+                      style: TextStyle(
+                          fontSize: 14, color: AppColors.textSecondary)),
+                  GestureDetector(
+                    onTap: () => context.push('/register'),
+                    child: const Text('Đăng ký ngay',
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary)),
+                  ),
+                ]),
+              ],
+            ),
           ),
-        ),
         ),
       ),
     );

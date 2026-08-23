@@ -4,48 +4,17 @@ import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_form_widgets.dart';
+import '../../auth/data/auth_repository.dart';
 
 // ─── Model ────────────────────────────────────────────────────────────────────
 
-class _DeviceEntry {
-  final int       id;
-  final String?   deviceName;
-  final String?   location;
-  final DateTime? lastActiveAt;
-  final bool      isCurrent;
-
-  const _DeviceEntry({
-    required this.id,
-    this.deviceName,
-    this.location,
-    this.lastActiveAt,
-    required this.isCurrent,
-  });
-
-  factory _DeviceEntry.fromJson(Map<String, dynamic> json) => _DeviceEntry(
-        id:           json['id'] as int,
-        deviceName:   json['device_name'] as String?,
-        location:     json['location'] as String?,
-        lastActiveAt: json['last_active_at'] != null
-            ? DateTime.tryParse(json['last_active_at'] as String)
-            : null,
-        isCurrent: json['is_current'] as bool? ?? false,
-      );
-
-  bool get isTablet {
-    final n = deviceName?.toLowerCase() ?? '';
-    return n.contains('ipad') || n.contains('tablet') || n.contains('tab ');
-  }
-}
+typedef _DeviceEntry = LoginDevice;
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
-final _devicesProvider = FutureProvider.autoDispose<List<_DeviceEntry>>((ref) async {
-  final res  = await ref.read(apiClientProvider).get('/shop/auth/devices');
-  final list = unwrap(res) as List;
-  return list
-      .map((e) => _DeviceEntry.fromJson(e as Map<String, dynamic>))
-      .toList();
+final _devicesProvider =
+    FutureProvider.autoDispose<List<_DeviceEntry>>((ref) async {
+  return ref.read(authRepositoryProvider).devices();
 });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -55,7 +24,7 @@ class DevicesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c     = context.colors;
+    final c = context.colors;
     final async = ref.watch(_devicesProvider);
 
     return Scaffold(
@@ -66,7 +35,9 @@ class DevicesScreen extends ConsumerWidget {
         scrolledUnderElevation: 0,
         title: Text('Thiết bị đăng nhập',
             style: TextStyle(
-                fontSize: 17, fontWeight: FontWeight.w800, color: c.textPrimary)),
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: c.textPrimary)),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Divider(height: 1, color: c.divider),
@@ -90,7 +61,8 @@ class DevicesScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           children: [
             for (final d in devices) ...[
-              _DeviceCard(device: d, onRevoke: () => _revoke(context, ref, d.id)),
+              _DeviceCard(
+                  device: d, onRevoke: () => _revoke(context, ref, d.id)),
               const SizedBox(height: 12),
             ],
             if (devices.length > 1) ...[
@@ -117,9 +89,11 @@ class DevicesScreen extends ConsumerWidget {
 
   Future<void> _revoke(BuildContext context, WidgetRef ref, int id) async {
     try {
-      await ref.read(apiClientProvider).delete('/shop/auth/devices/$id');
+      await ref.read(authRepositoryProvider).revokeDevice(id);
       ref.invalidate(_devicesProvider);
-      if (context.mounted) AppSnackbar.success(context, 'Đã đăng xuất thiết bị');
+      if (context.mounted) {
+        AppSnackbar.success(context, 'Đã đăng xuất thiết bị');
+      }
     } catch (e) {
       if (context.mounted) AppSnackbar.error(context, parseApiError(e));
     }
@@ -143,7 +117,8 @@ class DevicesScreen extends ConsumerWidget {
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: ctx.colors.danger),
-            child: const Text('Đăng xuất', style: TextStyle(fontWeight: FontWeight.w700)),
+            child: const Text('Đăng xuất',
+                style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -151,7 +126,7 @@ class DevicesScreen extends ConsumerWidget {
     if (ok != true || !context.mounted) return;
 
     try {
-      await ref.read(apiClientProvider).post('/shop/auth/devices/revoke-others');
+      await ref.read(authRepositoryProvider).revokeOtherDevices();
       ref.invalidate(_devicesProvider);
       if (context.mounted) {
         AppSnackbar.success(context, 'Đã đăng xuất các thiết bị khác');
@@ -165,8 +140,8 @@ class DevicesScreen extends ConsumerWidget {
 // ─── Device card ────────────────────────────────────────────────────────────
 
 class _DeviceCard extends StatelessWidget {
-  final _DeviceEntry  device;
-  final VoidCallback  onRevoke;
+  final _DeviceEntry device;
+  final VoidCallback onRevoke;
 
   const _DeviceCard({required this.device, required this.onRevoke});
 
@@ -187,14 +162,17 @@ class _DeviceCard extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 42, height: 42,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
               color: (device.isCurrent ? AppColors.primary : c.textSecondary)
                   .withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              device.isTablet ? Icons.tablet_mac_rounded : Icons.smartphone_rounded,
+              device.isTablet
+                  ? Icons.tablet_mac_rounded
+                  : Icons.smartphone_rounded,
               size: 20,
               color: device.isCurrent ? AppColors.primary : c.textSecondary,
             ),
@@ -210,13 +188,16 @@ class _DeviceCard extends StatelessWidget {
                       device.deviceName ?? 'Thiết bị không xác định',
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w700, color: c.textPrimary),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: c.textPrimary),
                     ),
                   ),
                   if (device.isCurrent) ...[
                     const SizedBox(width: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(6),

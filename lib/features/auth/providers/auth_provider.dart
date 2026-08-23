@@ -5,8 +5,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/notification_service.dart';
+import '../../../core/storage/token_storage.dart';
 import '../../../core/utils/device_name.dart';
 import '../models/shop_user_model.dart';
+import '../data/auth_repository.dart';
 
 class AuthState {
   final ShopUserModel? user;
@@ -32,21 +34,23 @@ class AuthState {
     bool? isInitialized,
     String? error,
     bool clearError = false,
-    bool clearUser  = false,
+    bool clearUser = false,
   }) =>
       AuthState(
-        user:          clearUser ? null : (user ?? this.user),
-        token:         clearUser ? null : (token ?? this.token),
-        isLoading:     isLoading ?? this.isLoading,
+        user: clearUser ? null : (user ?? this.user),
+        token: clearUser ? null : (token ?? this.token),
+        isLoading: isLoading ?? this.isLoading,
         isInitialized: isInitialized ?? this.isInitialized,
-        error:         clearError ? null : (error ?? this.error),
+        error: clearError ? null : (error ?? this.error),
       );
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  final ApiClient _api;
+  final AuthRepository _repository;
+  final TokenStorage _tokenStorage;
 
-  AuthNotifier(this._api) : super(const AuthState()) {
+  AuthNotifier(this._repository, this._tokenStorage)
+      : super(const AuthState()) {
     _loadFromStorage();
   }
 
@@ -60,7 +64,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> _loadFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
-    final token    = prefs.getString(AppConstants.tokenKey);
+    final token = await _tokenStorage.read();
     final userData = prefs.getString(AppConstants.userKey);
     if (token != null && userData != null) {
       final user = ShopUserModel.fromJson(jsonDecode(userData));
@@ -73,7 +77,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> sendOtp(String phone) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      await _api.post('/shop/auth/send-otp', data: {'phone': phone});
+      await _repository.sendOtp(phone);
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
@@ -88,21 +92,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String name,
     required String password,
     String? address,
-    int?    cityId,
+    int? cityId,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final deviceName = await getDeviceName();
-      final res = await _api.post('/shop/auth/verify-otp-register', data: {
-        'phone':    phone,
-        'otp':      otp,
-        'name':     name,
+      final session = await _repository.register({
+        'phone': phone,
+        'otp': otp,
+        'name': name,
         'password': password,
         if (address != null && address.isNotEmpty) 'address': address,
         if (cityId != null) 'city_id': cityId,
         if (deviceName != null) 'device_name': deviceName,
       });
-      await _saveSession(res.data);
+      await _saveSession(session);
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: parseApiError(e));
@@ -114,12 +118,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final deviceName = await getDeviceName();
-      final res = await _api.post('/shop/auth/login', data: {
-        'phone': phone,
-        'password': password,
-        if (deviceName != null) 'device_name': deviceName,
-      });
-      await _saveSession(res.data);
+      final session = await _repository.login(
+        phone,
+        password,
+        deviceName: deviceName,
+      );
+      await _saveSession(session);
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: parseApiError(e));
@@ -131,17 +135,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String name,
     String? address,
     String? email,
-    int?    cityId,
+    int? cityId,
   }) async {
     try {
-      final res = await _api.patch('/shop/auth/profile', data: {
+      final user = await _repository.updateProfile({
         'name': name,
         if (address != null) 'address': address,
-        if (email != null)   'email':   email.isEmpty ? null : email,
-        if (cityId != null)  'city_id': cityId,
+        if (email != null) 'email': email.isEmpty ? null : email,
+        if (cityId != null) 'city_id': cityId,
       });
-      final user = ShopUserModel.fromJson(
-          unwrap(res) as Map<String, dynamic>);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(AppConstants.userKey, jsonEncode(user.toJson()));
       state = state.copyWith(user: user);
@@ -153,12 +155,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<String?> uploadAvatar(String filePath) async {
     try {
-      final formData = FormData.fromMap({
-        'image': await MultipartFile.fromFile(filePath),
-      });
-      final res = await _api.post('/shop/auth/avatar', data: formData);
-      final user = ShopUserModel.fromJson(
-          unwrap(res) as Map<String, dynamic>);
+      final user = await _repository.uploadAvatar(filePath);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(AppConstants.userKey, jsonEncode(user.toJson()));
       state = state.copyWith(user: user);
@@ -173,11 +170,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String next,
   }) async {
     try {
-      await _api.patch('/shop/auth/password', data: {
-        'current_password':              current,
-        'new_password':                  next,
-        'new_password_confirmation':     next,
-      });
+      await _repository.changePassword(current, next);
       return null;
     } catch (e) {
       return parseApiError(e);
@@ -187,7 +180,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> sendChangePhoneOtp(String newPhone) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      await _api.post('/shop/auth/change-phone/send-otp', data: {'new_phone': newPhone});
+      await _repository.sendChangePhoneOtp(newPhone);
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
@@ -199,11 +192,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> verifyChangePhone(String newPhone, String otp) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final res  = await _api.post('/shop/auth/change-phone/verify', data: {
-        'new_phone': newPhone,
-        'otp':       otp,
-      });
-      final user = ShopUserModel.fromJson(unwrap(res) as Map<String, dynamic>);
+      final user = await _repository.verifyChangePhone(newPhone, otp);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(AppConstants.userKey, jsonEncode(user.toJson()));
       state = state.copyWith(user: user, isLoading: false, isInitialized: true);
@@ -217,9 +206,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> refreshUser() async {
     if (state.token == null) return;
     try {
-      final res = await _api.get('/shop/auth/me');
-      final user = ShopUserModel.fromJson(
-          unwrap(res) as Map<String, dynamic>);
+      final user = await _repository.me();
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(AppConstants.userKey, jsonEncode(user.toJson()));
       state = state.copyWith(user: user, isInitialized: true);
@@ -230,7 +217,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final statusCode = e is DioException ? e.response?.statusCode : null;
       if (statusCode == 401 || statusCode == 403) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.remove(AppConstants.tokenKey);
+        await _tokenStorage.delete();
         await prefs.remove(AppConstants.userKey);
         state = state.copyWith(clearUser: true, isInitialized: true);
       } else {
@@ -241,19 +228,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> logout() async {
     try {
-      await _api.post('/shop/auth/logout');
+      await _repository.logout();
     } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(AppConstants.tokenKey);
+    await _tokenStorage.delete();
     await prefs.remove(AppConstants.userKey);
     state = state.copyWith(clearUser: true, isInitialized: true);
   }
 
   Future<String?> deleteAccount() async {
     try {
-      await _api.delete('/shop/auth/account');
+      await _repository.deleteAccount();
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(AppConstants.tokenKey);
+      await _tokenStorage.delete();
       await prefs.remove(AppConstants.userKey);
       state = state.copyWith(clearUser: true, isInitialized: true);
       return null;
@@ -262,14 +249,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> _saveSession(Map<String, dynamic> data) async {
-    final payload = data['data'] as Map<String, dynamic>;
-    final token = payload['token'] as String;
-    final user  = ShopUserModel.fromJson(payload['user']);
+  Future<void> _saveSession(AuthSession session) async {
+    final token = session.token;
+    final user = session.user;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(AppConstants.tokenKey, token);
+    await _tokenStorage.write(token);
     await prefs.setString(AppConstants.userKey, jsonEncode(user.toJson()));
-    state = state.copyWith(token: token, user: user, isLoading: false, isInitialized: true);
+    state = state.copyWith(
+        token: token, user: user, isLoading: false, isInitialized: true);
     _registerFcmToken();
   }
 
@@ -284,11 +271,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> updateFcmToken(String token) async {
     if (state.token == null) return; // chưa đăng nhập thì bỏ qua
     try {
-      await _api.post('/shop/auth/fcm-token', data: {'fcm_token': token});
+      await _repository.updateFcmToken(token);
     } catch (_) {}
   }
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(ref.read(apiClientProvider));
+  return AuthNotifier(
+    ref.read(authRepositoryProvider),
+    ref.read(tokenStorageProvider),
+  );
 });

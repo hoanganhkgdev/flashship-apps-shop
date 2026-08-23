@@ -50,10 +50,16 @@ class VoucherCard extends StatelessWidget {
         children: [
           // Code
           Row(children: [
-            Text(voucher.code,
+            Expanded(
+              child: Text(
+                voucher.code,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                     fontSize: 13, fontWeight: FontWeight.w800,
-                    color: accent, letterSpacing: 0.5)),
+                    color: accent, letterSpacing: 0.5),
+              ),
+            ),
             if (onTap != null) ...[
               const SizedBox(width: 5),
               Icon(Icons.copy_rounded, size: 12, color: accent),

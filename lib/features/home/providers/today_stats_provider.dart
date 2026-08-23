@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/api/api_client.dart';
 import '../../../core/utils/formatters.dart';
+import '../../stats/stats_repository.dart';
 
 class TodayStats {
   final int orders, active, revenue;
   const TodayStats({
-    this.orders  = 0,
-    this.active  = 0,
+    this.orders = 0,
+    this.active = 0,
     this.revenue = 0,
   });
 
@@ -19,16 +19,14 @@ class TodayStats {
   factory TodayStats.fromJson(Map<String, dynamic> data) {
     final today = data['today'] as Map<String, dynamic>? ?? {};
     return TodayStats(
-      orders:  Fmt.toInt(today['orders']),
-      active:  Fmt.toInt(data['active']),
+      orders: Fmt.toInt(today['orders']),
+      active: Fmt.toInt(data['active']),
       revenue: Fmt.toInt(today['revenue']),
     );
   }
 }
 
-final todayStatsProvider =
-    FutureProvider.autoDispose<TodayStats>((ref) async {
-  final res  = await ref.read(apiClientProvider).get('/shop/orders/stats');
-  final data = unwrap(res) as Map<String, dynamic>;
+final todayStatsProvider = FutureProvider.autoDispose<TodayStats>((ref) async {
+  final data = await ref.read(statsRepositoryProvider).fetch();
   return TodayStats.fromJson(data);
 });

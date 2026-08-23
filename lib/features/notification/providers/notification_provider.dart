@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/api/api_client.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../data/notification_repository.dart';
 import '../models/notification_item.dart';
 
 const _kKey = 'shop_notifications_v1';
@@ -15,7 +15,10 @@ const _kLocalCacheMax = 100;
 
 final notificationProvider =
     StateNotifierProvider<NotificationNotifier, List<NotificationItem>>(
-        (ref) => NotificationNotifier(ref));
+        (ref) => NotificationNotifier(
+              ref,
+              ref.read(notificationRepositoryProvider),
+            ));
 
 // Còn trang tiếp theo để loadMore() hay không — cập nhật bởi NotificationNotifier
 // sau mỗi lần refresh()/loadMore(), UI (nút "Xem thêm") watch provider này.
@@ -25,8 +28,7 @@ final notificationHasMoreProvider = StateProvider<bool>((ref) => true);
 // về máy) — gọi thẳng endpoint đếm riêng thay vì derive từ notificationProvider.
 final unreadCountProvider = FutureProvider.autoDispose<int>((ref) async {
   try {
-    final res = await ref.read(apiClientProvider).get('/shop/notifications/unread-count');
-    return (res.data['count'] as num?)?.toInt() ?? 0;
+    return await ref.read(notificationRepositoryProvider).unreadCount();
   } catch (_) {
     return 0;
   }
@@ -34,11 +36,12 @@ final unreadCountProvider = FutureProvider.autoDispose<int>((ref) async {
 
 class NotificationNotifier extends StateNotifier<List<NotificationItem>> {
   final Ref _ref;
+  final NotificationRepository _repository;
   StreamSubscription? _rtdbSub;
-  int  _page = 1;
+  int _page = 1;
   bool _loadingMore = false;
 
-  NotificationNotifier(this._ref) : super([]) {
+  NotificationNotifier(this._ref, this._repository) : super([]) {
     _loadLocal();
     final auth = _ref.read(authProvider);
     if (auth.isAuthenticated && auth.user != null) {
@@ -72,17 +75,11 @@ class NotificationNotifier extends StateNotifier<List<NotificationItem>> {
 
   Future<void> refresh() async {
     try {
-      final res  = await _ref.read(apiClientProvider)
-          .get('/shop/notifications', params: {'page': 1});
-      final raw  = res.data['data'] as List? ?? [];
-      final items = raw
-          .map((e) => NotificationItem.fromJson(e as Map<String, dynamic>))
-          .toList();
-      final hasMore = res.data['has_more'] as bool? ?? false;
+      final result = await _repository.fetchPage(1);
 
-      _mergeRefresh(items);
+      _mergeRefresh(result.items);
       _page = 2;
-      _ref.read(notificationHasMoreProvider.notifier).state = hasMore;
+      _ref.read(notificationHasMoreProvider.notifier).state = result.hasMore;
       _saveLocal();
       _ref.invalidate(unreadCountProvider);
     } catch (_) {}
@@ -99,21 +96,16 @@ class NotificationNotifier extends StateNotifier<List<NotificationItem>> {
     if (_loadingMore || !_ref.read(notificationHasMoreProvider)) return;
     _loadingMore = true;
     try {
-      final res  = await _ref.read(apiClientProvider)
-          .get('/shop/notifications', params: {'page': _page});
-      final raw  = res.data['data'] as List? ?? [];
-      final items = raw
-          .map((e) => NotificationItem.fromJson(e as Map<String, dynamic>))
-          .toList();
-      final hasMore = res.data['has_more'] as bool? ?? false;
+      final result = await _repository.fetchPage(_page);
 
       final existingIds = state.map((n) => n.id).toSet();
-      final appended = items.where((n) => !existingIds.contains(n.id));
+      final appended = result.items.where((n) => !existingIds.contains(n.id));
       state = [...state, ...appended];
       _page += 1;
-      _ref.read(notificationHasMoreProvider.notifier).state = hasMore;
+      _ref.read(notificationHasMoreProvider.notifier).state = result.hasMore;
       _saveLocal();
-    } catch (_) {} finally {
+    } catch (_) {
+    } finally {
       _loadingMore = false;
     }
   }
@@ -122,7 +114,7 @@ class NotificationNotifier extends StateNotifier<List<NotificationItem>> {
   // từ FCM chưa kịp lên server — CHỈ áp dụng cho refresh() (trang 1),
   // loadMore() không cần vì các trang sau không thể có item instant-add.
   void _mergeRefresh(List<NotificationItem> serverItems) {
-    final serverIds  = serverItems.map((e) => e.id).toSet();
+    final serverIds = serverItems.map((e) => e.id).toSet();
     final recentLocal = state.where((n) {
       if (serverIds.contains(n.id)) return false;
       return DateTime.now().difference(n.createdAt).inSeconds < 90;
@@ -149,7 +141,7 @@ class NotificationNotifier extends StateNotifier<List<NotificationItem>> {
   void add(NotificationItem item) {
     final dup = state.any((n) =>
         n.orderCode == item.orderCode &&
-        n.title     == item.title &&
+        n.title == item.title &&
         n.createdAt.difference(item.createdAt).inMinutes.abs() < 5);
     if (dup) return;
 
@@ -164,7 +156,8 @@ class NotificationNotifier extends StateNotifier<List<NotificationItem>> {
   // ── Read / Delete ─────────────────────────────────────────────────────────
 
   void markRead(String id) {
-    state = state.map((n) => n.id == id ? n.copyWith(isRead: true) : n).toList();
+    state =
+        state.map((n) => n.id == id ? n.copyWith(isRead: true) : n).toList();
     _saveLocal();
     _patchRead(id);
   }
@@ -192,21 +185,21 @@ class NotificationNotifier extends StateNotifier<List<NotificationItem>> {
 
   Future<void> _patchRead(String id) async {
     try {
-      await _ref.read(apiClientProvider).post('/shop/notifications/$id/read');
+      await _repository.markRead(id);
       _ref.invalidate(unreadCountProvider);
     } catch (_) {}
   }
 
   Future<void> _patchAllRead() async {
     try {
-      await _ref.read(apiClientProvider).post('/shop/notifications/read-all');
+      await _repository.markAllRead();
       _ref.invalidate(unreadCountProvider);
     } catch (_) {}
   }
 
   Future<bool> _deleteOnServer(String id) async {
     try {
-      await _ref.read(apiClientProvider).delete('/shop/notifications/$id');
+      await _repository.delete(id);
       return true;
     } catch (_) {
       return false;
@@ -218,7 +211,7 @@ class NotificationNotifier extends StateNotifier<List<NotificationItem>> {
   Future<void> _loadLocal() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw   = prefs.getString(_kKey);
+      final raw = prefs.getString(_kKey);
       if (raw != null) {
         state = (jsonDecode(raw) as List)
             .map((e) => NotificationItem.fromJson(e as Map<String, dynamic>))

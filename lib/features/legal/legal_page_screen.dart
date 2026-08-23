@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import '../../core/api/api_client.dart';
 import '../../core/theme/app_theme.dart';
+import 'legal_repository.dart';
 
 class LegalPageScreen extends ConsumerStatefulWidget {
   final String slug;
@@ -15,7 +15,7 @@ class LegalPageScreen extends ConsumerStatefulWidget {
 
 class _LegalPageScreenState extends ConsumerState<LegalPageScreen> {
   late final WebViewController _controller;
-  bool   _loading = true;
+  bool _loading = true;
   String? _error;
 
   @override
@@ -28,21 +28,29 @@ class _LegalPageScreenState extends ConsumerState<LegalPageScreen> {
           if (mounted) setState(() => _loading = false);
         },
         onWebResourceError: (_) {
-          if (mounted) setState(() { _loading = false; _error = 'Không tải được nội dung'; });
+          if (mounted) {
+            setState(() {
+              _loading = false;
+              _error = 'Không tải được nội dung';
+            });
+          }
         },
       ));
     _fetchContent();
   }
 
   Future<void> _fetchContent() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       // Dùng public endpoint /api/pages/{slug}
-      final res = await ref.read(apiClientProvider)
-          .get('/pages/${widget.slug}');
-      final data    = unwrap(res) as Map<String, dynamic>;
-      final content = data['content'] as String? ?? '';
-      final title   = data['title']   as String? ?? widget.title;
+      final page = await ref
+          .read(legalRepositoryProvider)
+          .fetch(widget.slug, fallbackTitle: widget.title);
+      final content = page.html;
+      final title = page.title;
 
       final html = '''
 <!DOCTYPE html>
@@ -77,7 +85,12 @@ class _LegalPageScreenState extends ConsumerState<LegalPageScreen> {
 ''';
       _controller.loadHtmlString(html);
     } catch (_) {
-      if (mounted) setState(() { _loading = false; _error = 'Không tải được nội dung'; });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = 'Không tải được nội dung';
+        });
+      }
     }
   }
 
@@ -105,7 +118,8 @@ class _LegalPageScreenState extends ConsumerState<LegalPageScreen> {
         ),
       ),
       body: _error != null
-          ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ? Center(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
               const Icon(Icons.error_outline_rounded,
                   size: 40, color: AppColors.textSecondary),
               const SizedBox(height: 12),
@@ -120,8 +134,9 @@ class _LegalPageScreenState extends ConsumerState<LegalPageScreen> {
           : Stack(children: [
               WebViewWidget(controller: _controller),
               if (_loading)
-                const Center(child: CircularProgressIndicator(
-                    color: AppColors.primary, strokeWidth: 2)),
+                const Center(
+                    child: CircularProgressIndicator(
+                        color: AppColors.primary, strokeWidth: 2)),
             ]),
     );
   }

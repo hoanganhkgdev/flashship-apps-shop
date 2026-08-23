@@ -6,6 +6,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_form_widgets.dart';
 import '../voucher_model.dart';
 import '../voucher_provider.dart';
+import '../voucher_repository.dart';
 import 'voucher_card.dart';
 
 /// Sheet chọn/nhập mã giảm giá dùng chung giữa màn tạo đơn đơn lẻ và đơn gộp.
@@ -44,13 +45,13 @@ class _VoucherSheetState extends ConsumerState<VoucherSheet> {
 
   Future<void> _apply(String code) async {
     if (code.trim().isEmpty) return;
-    setState(() { _applying = true; _error = null; });
+    setState(() {
+      _applying = true;
+      _error = null;
+    });
     try {
-      final res = await ref.read(apiClientProvider).post('/shop/vouchers/validate', data: {
-        'code':         code.trim(),
-        'shipping_fee': widget.fee,
-      });
-      final data = res.data as Map<String, dynamic>;
+      final data =
+          await ref.read(voucherRepositoryProvider).validate(code, widget.fee);
       if (mounted) Navigator.pop(context, data);
     } catch (e) {
       final msg = parseApiError(e, fallback: 'Mã giảm giá không hợp lệ');
@@ -68,7 +69,8 @@ class _VoucherSheetState extends ConsumerState<VoucherSheet> {
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -77,12 +79,15 @@ class _VoucherSheetState extends ConsumerState<VoucherSheet> {
             padding: const EdgeInsets.fromLTRB(20, 14, 8, 0),
             child: Row(children: [
               const Text('Mã giảm giá',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800,
+                  style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary)),
               const Spacer(),
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
+                icon: const Icon(Icons.close_rounded,
+                    color: AppColors.textSecondary),
               ),
             ]),
           ),
@@ -117,7 +122,9 @@ class _VoucherSheetState extends ConsumerState<VoucherSheet> {
                         borderRadius: BorderRadius.circular(AppRadius.md)),
                   ),
                   child: _applying
-                      ? const SizedBox(width: 16, height: 16,
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: AppColors.primary))
                       : const Text('Áp dụng',
@@ -132,7 +139,8 @@ class _VoucherSheetState extends ConsumerState<VoucherSheet> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(_error!,
-                    style: const TextStyle(color: AppColors.danger, fontSize: 12)),
+                    style:
+                        const TextStyle(color: AppColors.danger, fontSize: 12)),
               ),
             ),
 
@@ -141,7 +149,9 @@ class _VoucherSheetState extends ConsumerState<VoucherSheet> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text('Mã có thể áp dụng',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.textSecondary)),
             ),
           ),
@@ -149,71 +159,78 @@ class _VoucherSheetState extends ConsumerState<VoucherSheet> {
           // ── Danh sách mã ────────────────────────────────────────────
           Flexible(
             child: vouchersAsync.when(
-                loading: () => const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                      child: SizedBox(width: 22, height: 22,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: AppColors.primary))),
-                ),
-                error: (_, __) => const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Text('Không có mã giảm giá khả dụng',
-                        style: TextStyle(
-                            fontSize: 13, color: AppColors.textSecondary)),
-                  ),
-                ),
-                data: (vouchers) => vouchers.isEmpty
-                    ? const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24),
-                        child: Center(
-                          child: Text('Không có mã giảm giá khả dụng',
-                              style: TextStyle(
-                                  fontSize: 13, color: AppColors.textSecondary)),
-                        ),
-                      )
-                    : ListView.separated(
-                        shrinkWrap: true,
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                        itemCount: vouchers.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (_, i) {
-                          final v = vouchers[i];
-                          final reason = _ineligibleReason(v);
-                          final eligible = reason == null;
-                          return VoucherCard(
-                            voucher: v,
-                            eligible: eligible,
-                            fadeContent: !eligible,
-                            descriptionOverride: reason,
-                            trailing: SizedBox(
-                              height: 32,
-                              child: ElevatedButton(
-                                onPressed: (!eligible || _applying)
-                                    ? null
-                                    : () => _apply(v.code),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: eligible
-                                      ? AppColors.primary
-                                      : context.colors.surfaceAlt,
-                                  disabledBackgroundColor: context.colors.surfaceAlt,
-                                  foregroundColor:
-                                      eligible ? Colors.white : AppColors.textSecondary,
-                                  elevation: 0,
-                                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(AppRadius.md)),
-                                ),
-                                child: const Text('Áp dụng',
-                                    style: TextStyle(
-                                        fontSize: 12, fontWeight: FontWeight.w700)),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                    child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: AppColors.primary))),
               ),
+              error: (_, __) => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text('Không có mã giảm giá khả dụng',
+                      style: TextStyle(
+                          fontSize: 13, color: AppColors.textSecondary)),
+                ),
+              ),
+              data: (vouchers) => vouchers.isEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: Text('Không có mã giảm giá khả dụng',
+                            style: TextStyle(
+                                fontSize: 13, color: AppColors.textSecondary)),
+                      ),
+                    )
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                      itemCount: vouchers.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (_, i) {
+                        final v = vouchers[i];
+                        final reason = _ineligibleReason(v);
+                        final eligible = reason == null;
+                        return VoucherCard(
+                          voucher: v,
+                          eligible: eligible,
+                          fadeContent: !eligible,
+                          descriptionOverride: reason,
+                          trailing: SizedBox(
+                            height: 32,
+                            child: ElevatedButton(
+                              onPressed: (!eligible || _applying)
+                                  ? null
+                                  : () => _apply(v.code),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: eligible
+                                    ? AppColors.primary
+                                    : context.colors.surfaceAlt,
+                                disabledBackgroundColor:
+                                    context.colors.surfaceAlt,
+                                foregroundColor: eligible
+                                    ? Colors.white
+                                    : AppColors.textSecondary,
+                                elevation: 0,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 14),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius:
+                                        BorderRadius.circular(AppRadius.md)),
+                              ),
+                              child: const Text('Áp dụng',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700)),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
           ),
         ],
       ),

@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/contact_launcher.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_form_widgets.dart';
 import '../models/cargo_type.dart';
 import '../models/order_model.dart';
 import '../providers/order_provider.dart';
 
-final _filterProvider      = StateProvider<String>((ref) => 'all');
+final _filterProvider = StateProvider<String>((ref) => 'all');
 final _searchQueryProvider = StateProvider<String>((ref) => '');
 
 bool _matchesSearch(OrderModel o, String query) {
@@ -29,13 +29,18 @@ class OrderListScreen extends ConsumerStatefulWidget {
 
 class _OrderListScreenState extends ConsumerState<OrderListScreen> {
   static const _filters = [
-    ('all',       'Tất cả'),
-    ('active',    'Đang chạy'),
+    ('all', 'Tất cả'),
+    ('active', 'Đang chạy'),
     ('completed', 'Hoàn thành'),
     ('cancelled', 'Đã huỷ'),
   ];
 
-  static const _activeStatuses = ['pending', 'assigned', 'processing', 'on_the_way'];
+  static const _activeStatuses = [
+    'pending',
+    'assigned',
+    'processing',
+    'on_the_way'
+  ];
 
   final _scrollCtrl = ScrollController();
   final _searchCtrl = TextEditingController();
@@ -65,22 +70,24 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state  = ref.watch(orderListProvider);
+    final state = ref.watch(orderListProvider);
     final filter = ref.watch(_filterProvider);
-    final query  = ref.watch(_searchQueryProvider).trim().toLowerCase();
-    final all    = state.orders;
-    final c      = context.colors;
+    final query = ref.watch(_searchQueryProvider).trim().toLowerCase();
+    final all = state.orders;
+    final c = context.colors;
 
     final displayed = switch (filter) {
-      'active'    => all.where((o) => _activeStatuses.contains(o.status)).toList(),
+      'active' => all.where((o) => _activeStatuses.contains(o.status)).toList(),
       'completed' => all.where((o) => o.isCompleted).toList(),
       'cancelled' => all.where((o) => o.isCancelled).toList(),
-      _           => all,
-    }.where((o) => _matchesSearch(o, query)).toList();
+      _ => all,
+    }
+        .where((o) => _matchesSearch(o, query))
+        .toList();
 
     final counts = {
-      'all':       all.length,
-      'active':    all.where((o) => _activeStatuses.contains(o.status)).length,
+      'all': all.length,
+      'active': all.where((o) => _activeStatuses.contains(o.status)).length,
       'completed': all.where((o) => o.isCompleted).length,
       'cancelled': all.where((o) => o.isCancelled).length,
     };
@@ -101,12 +108,15 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Row(children: [
                     Text('Đơn hàng',
-                        style: TextStyle(fontSize: 26,
+                        style: TextStyle(
+                            fontSize: 26,
                             fontWeight: FontWeight.w800,
                             color: c.textPrimary)),
                     const Spacer(),
                     if (state.isLoading)
-                      SizedBox(width: 18, height: 18,
+                      SizedBox(
+                          width: 18,
+                          height: 18,
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: c.primary)),
                   ]),
@@ -117,8 +127,8 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                 AppField(
                   controller: _searchCtrl,
                   hint: 'Tìm mã đơn, SĐT người nhận...',
-                  prefixIcon:
-                      Icon(Icons.search_rounded, size: 20, color: c.textTertiary),
+                  prefixIcon: Icon(Icons.search_rounded,
+                      size: 20, color: c.textTertiary),
                   onChanged: (v) =>
                       ref.read(_searchQueryProvider.notifier).state = v,
                 ),
@@ -135,7 +145,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                   child: Row(
                     children: _filters.map((f) {
                       final selected = filter == f.$1;
-                      final count   = counts[f.$1] ?? 0;
+                      final count = counts[f.$1] ?? 0;
                       return Expanded(
                         child: GestureDetector(
                           onTap: () =>
@@ -146,10 +156,13 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                               color: selected ? c.surface : Colors.transparent,
                               borderRadius: BorderRadius.circular(8),
                               boxShadow: selected
-                                  ? [BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.06),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 1))]
+                                  ? [
+                                      BoxShadow(
+                                          color: Colors.black
+                                              .withValues(alpha: 0.06),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 1))
+                                    ]
                                   : null,
                             ),
                             child: Center(
@@ -177,8 +190,9 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
           // ── Content ──────────────────────────────────────────────────
           Expanded(
             child: state.isLoading && all.isEmpty
-                ? Center(child: CircularProgressIndicator(
-                    color: c.primary, strokeWidth: 2))
+                ? Center(
+                    child: CircularProgressIndicator(
+                        color: c.primary, strokeWidth: 2))
                 : displayed.isEmpty
                     ? _EmptyState(filter: filter, searching: query.isNotEmpty)
                     : RefreshIndicator(
@@ -187,17 +201,22 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                             .read(orderListProvider.notifier)
                             .fetch(refresh: true),
                         child: Builder(builder: (_) {
-                          final showSummary = filter == 'active' && displayed.isNotEmpty;
+                          final showSummary =
+                              filter == 'active' && displayed.isNotEmpty;
                           // Chỉ hiện khi "Tất cả" — các tab khác lọc phía app
                           // nên tổng số trang backend không khớp số dòng hiện ra.
                           final showFooter = filter == 'all' &&
-                              state.hasMore && state.isLoading && all.isNotEmpty;
+                              state.hasMore &&
+                              state.isLoading &&
+                              all.isNotEmpty;
                           final extraTop = showSummary ? 1 : 0;
 
                           return ListView.separated(
                             controller: _scrollCtrl,
                             padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
-                            itemCount: displayed.length + extraTop + (showFooter ? 1 : 0),
+                            itemCount: displayed.length +
+                                extraTop +
+                                (showFooter ? 1 : 0),
                             separatorBuilder: (_, __) =>
                                 const SizedBox(height: 10),
                             itemBuilder: (_, i) {
@@ -208,9 +227,11 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                               if (idx >= displayed.length) {
                                 return Center(
                                   child: Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 12),
                                     child: SizedBox(
-                                      width: 20, height: 20,
+                                      width: 20,
+                                      height: 20,
                                       child: CircularProgressIndicator(
                                           strokeWidth: 2, color: c.primary),
                                     ),
@@ -238,18 +259,19 @@ class _ActiveSummary extends StatelessWidget {
   const _ActiveSummary({required this.orders});
 
   static List<(String, String, Color)> _steps(Palette c) => [
-        ('pending',    'Chờ tài xế', c.warning),
-        ('assigned',   'Đã nhận',    c.primary),
-        ('processing', 'Đang lấy',   const Color(0xFF8B5CF6)),
-        ('on_the_way', 'Đang giao',  c.success),
+        ('pending', 'Chờ tài xế', c.warning),
+        ('assigned', 'Đã nhận', c.primary),
+        ('processing', 'Đang lấy', const Color(0xFF8B5CF6)),
+        ('on_the_way', 'Đang giao', c.success),
       ];
 
   @override
   Widget build(BuildContext context) {
-    final c      = context.colors;
-    final steps  = _steps(c);
-    final counts = {for (final (s, _, _) in steps)
-      s: orders.where((o) => o.status == s).length
+    final c = context.colors;
+    final steps = _steps(c);
+    final counts = {
+      for (final (s, _, _) in steps)
+        s: orders.where((o) => o.status == s).length
     };
     final nonZero = steps.where((s) => (counts[s.$1] ?? 0) > 0).toList();
     if (nonZero.isEmpty) return const SizedBox.shrink();
@@ -268,20 +290,24 @@ class _ActiveSummary extends StatelessWidget {
           return Expanded(
             child: Column(children: [
               Container(
-                width: 44, height: 44,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: context.isDark ? 0.16 : 0.10),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
                   child: Text('$count',
-                      style: TextStyle(fontSize: 20,
-                          fontWeight: FontWeight.w800, color: color)),
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: color)),
                 ),
               ),
               const SizedBox(height: 6),
               Text(label,
-                  style: TextStyle(fontSize: 11,
+                  style: TextStyle(
+                      fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: c.textSecondary)),
             ]),
@@ -299,9 +325,9 @@ class _OrderCard extends StatelessWidget {
   const _OrderCard({super.key, required this.order});
 
   static const _serviceMeta = {
-    'shop_delivery': ('Giao đến',   Color(0xFF3B82F6)),
-    'shop_pickup':   ('Nhận về',    Color(0xFF8B5CF6)),
-    'shop_batch':    ('Giao nhiều', Color(0xFF10B981)),
+    'shop_delivery': ('Giao đến', Color(0xFF3B82F6)),
+    'shop_pickup': ('Nhận về', Color(0xFF8B5CF6)),
+    'shop_batch': ('Giao nhiều', Color(0xFF10B981)),
   };
 
   Color _accentColor(Palette c) {
@@ -313,8 +339,7 @@ class _OrderCard extends StatelessWidget {
   }
 
   Future<void> _call(String phone) async {
-    final uri = Uri(scheme: 'tel', path: phone);
-    if (await canLaunchUrl(uri)) await launchUrl(uri);
+    await callPhone(phone);
   }
 
   // Giả lập hiệu ứng "mờ 50%" bằng cách giảm alpha màu trực tiếp thay vì bọc
@@ -329,16 +354,16 @@ class _OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c       = context.colors;
-    final accent  = _accentColor(c);
+    final c = context.colors;
+    final accent = _accentColor(c);
     final address = order.isBatch && order.stops.isNotEmpty
         ? '${order.stops.length} điểm · ${order.stops.first['address'] ?? ''}'
         : order.deliveryAddress;
     final cargoMeta = cargoTypeOf(order.cargoType);
-    final cargo   = (cargoMeta.label, cargoMeta.color);
-    final service = _serviceMeta[order.shopServiceType]
-        ?? ('Giao đến', const Color(0xFF3B82F6));
-    final dimmed  = order.isCancelled;
+    final cargo = (cargoMeta.label, cargoMeta.color);
+    final service = _serviceMeta[order.shopServiceType] ??
+        ('Giao đến', const Color(0xFF3B82F6));
+    final dimmed = order.isCancelled;
 
     final receiver = [
       if (order.receiverName?.isNotEmpty == true) order.receiverName!,
@@ -364,7 +389,8 @@ class _OrderCard extends StatelessWidget {
               // Row 1: icon + trạng thái (chấm màu) · phí
               Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Container(
-                  width: 42, height: 42,
+                  width: 42,
+                  height: 42,
                   decoration: BoxDecoration(
                     color: _fade(cargoMeta.color)
                         .withValues(alpha: context.isDark ? 0.18 : 0.1),
@@ -379,21 +405,23 @@ class _OrderCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(cargo.$1,
-                          style: TextStyle(fontSize: 14,
+                          style: TextStyle(
+                              fontSize: 14,
                               fontWeight: FontWeight.w700,
-                              color: _fade(dimmed
-                                  ? c.textTertiary
-                                  : c.textPrimary))),
+                              color: _fade(
+                                  dimmed ? c.textTertiary : c.textPrimary))),
                       const SizedBox(height: 3),
                       Row(mainAxisSize: MainAxisSize.min, children: [
                         Container(
-                          width: 6, height: 6,
+                          width: 6,
+                          height: 6,
                           decoration: BoxDecoration(
                               color: _fade(accent), shape: BoxShape.circle),
                         ),
                         const SizedBox(width: 5),
                         Text(Fmt.orderStatus(order.status),
-                            style: TextStyle(fontSize: 11.5,
+                            style: TextStyle(
+                                fontSize: 11.5,
                                 fontWeight: FontWeight.w600,
                                 color: _fade(accent))),
                       ]),
@@ -404,11 +432,9 @@ class _OrderCard extends StatelessWidget {
                     style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: _fade(
-                            dimmed ? c.textTertiary : c.primary),
-                        decoration: dimmed
-                            ? TextDecoration.lineThrough
-                            : null)),
+                        color: _fade(dimmed ? c.textTertiary : c.primary),
+                        decoration:
+                            dimmed ? TextDecoration.lineThrough : null)),
               ]),
               const SizedBox(height: 12),
 
@@ -419,26 +445,27 @@ class _OrderCard extends StatelessWidget {
                 const SizedBox(width: 5),
                 Expanded(
                   child: Text(receiver,
-                      maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 13,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: _fade(dimmed
-                              ? c.textTertiary
-                              : c.textPrimary))),
+                          color:
+                              _fade(dimmed ? c.textTertiary : c.textPrimary))),
                 ),
-                if (order.deliveryPhone.isNotEmpty &&
-                    !order.isCancelled) ...[
+                if (order.deliveryPhone.isNotEmpty && !order.isCancelled) ...[
                   const SizedBox(width: 8),
                   GestureDetector(
                     onTap: () => _call(order.deliveryPhone),
                     child: Container(
-                      width: 22, height: 22,
+                      width: 22,
+                      height: 22,
                       decoration: BoxDecoration(
                         color: c.primarySoft,
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.call_rounded,
-                          size: 12, color: c.primary),
+                      child:
+                          Icon(Icons.call_rounded, size: 12, color: c.primary),
                     ),
                   ),
                 ],
@@ -452,10 +479,10 @@ class _OrderCard extends StatelessWidget {
                 const SizedBox(width: 5),
                 Expanded(
                   child: Text(address,
-                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          fontSize: 12,
-                          color: _fade(c.textSecondary))),
+                          fontSize: 12, color: _fade(c.textSecondary))),
                 ),
               ]),
               const SizedBox(height: 10),
@@ -465,26 +492,23 @@ class _OrderCard extends StatelessWidget {
 
               // Row 4: chips + time
               Row(children: [
-                _Chip(
-                    label: service.$1,
-                    color: service.$2,
-                    dimmed: dimmed),
+                _Chip(label: service.$1, color: service.$2, dimmed: dimmed),
                 const SizedBox(width: 6),
-                _Chip(
-                    label: cargo.$1, color: cargo.$2, dimmed: dimmed),
+                _Chip(label: cargo.$1, color: cargo.$2, dimmed: dimmed),
                 if (order.isBatch) ...[
                   const SizedBox(width: 6),
-                  _Chip(label: '${order.stops.length} điểm',
-                      color: c.success, dimmed: dimmed),
+                  _Chip(
+                      label: '${order.stops.length} điểm',
+                      color: c.success,
+                      dimmed: dimmed),
                 ],
                 const Spacer(),
                 Icon(Icons.access_time_rounded,
                     size: 12, color: _fade(c.textTertiary)),
                 const SizedBox(width: 3),
                 Text(Fmt.timeAgo(order.createdAt),
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: _fade(c.textSecondary))),
+                    style:
+                        TextStyle(fontSize: 12, color: _fade(c.textSecondary))),
               ]),
             ],
           ),
@@ -498,8 +522,8 @@ class _OrderCard extends StatelessWidget {
 
 class _Chip extends StatelessWidget {
   final String label;
-  final Color  color;
-  final bool   dimmed;
+  final Color color;
+  final bool dimmed;
   const _Chip({required this.label, required this.color, this.dimmed = false});
 
   @override
@@ -512,8 +536,10 @@ class _Chip extends StatelessWidget {
         borderRadius: BorderRadius.circular(5),
       ),
       child: Text(label,
-          style: TextStyle(fontSize: 11,
-              fontWeight: FontWeight.w600, color: effectiveColor)),
+          style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: effectiveColor)),
     );
   }
 }
@@ -522,7 +548,7 @@ class _Chip extends StatelessWidget {
 
 class _EmptyState extends StatelessWidget {
   final String filter;
-  final bool   searching;
+  final bool searching;
   const _EmptyState({required this.filter, this.searching = false});
 
   @override

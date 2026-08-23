@@ -19,7 +19,7 @@ class OtpScreen extends ConsumerStatefulWidget {
 class _OtpScreenState extends ConsumerState<OtpScreen> {
   final _otpCtl = OtpInputController();
 
-  int    _countdown = 60;
+  int _countdown = 60;
   Timer? _timer;
 
   @override
@@ -43,7 +43,10 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     _countdown = 60;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (_countdown <= 0) { t.cancel(); return; }
+      if (_countdown <= 0) {
+        t.cancel();
+        return;
+      }
       setState(() => _countdown--);
     });
   }
@@ -51,14 +54,14 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   Future<void> _verify() async {
     if (_otpCtl.otp.length < 6) return;
     final data = widget.regData;
-    final ok   = await ref.read(authProvider.notifier).verifyOtpAndRegister(
-      phone:    data['phone']    as String,
-      otp:      _otpCtl.otp,
-      name:     data['name']     as String,
-      password: data['password'] as String,
-      address:  data['address']  as String?,
-      cityId:   data['city_id']  as int?,
-    );
+    final ok = await ref.read(authProvider.notifier).verifyOtpAndRegister(
+          phone: data['phone'] as String,
+          otp: _otpCtl.otp,
+          name: data['name'] as String,
+          password: data['password'] as String,
+          address: data['address'] as String?,
+          cityId: data['city_id'] as int?,
+        );
     if (!ok && mounted) {
       setState(() {});
       _otpCtl.clear();
@@ -67,18 +70,21 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   Future<void> _resend() async {
     if (_countdown > 0) return;
-    final ok = await ref.read(authProvider.notifier).sendOtp(widget.regData['phone'] as String);
+    final ok = await ref
+        .read(authProvider.notifier)
+        .sendOtp(widget.regData['phone'] as String);
     if (!mounted) return;
     if (ok) {
       _startCountdown();
     } else {
-      setState(() {}); // hiện auth.error qua AppErrorBox đã có sẵn trong build()
+      setState(
+          () {}); // hiện auth.error qua AppErrorBox đã có sẵn trong build()
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final auth  = ref.watch(authProvider);
+    final auth = ref.watch(authProvider);
     final phone = widget.regData['phone'] as String? ?? '';
 
     return Scaffold(
@@ -93,98 +99,101 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
           ),
         ),
         child: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
-              child: Row(children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-                  onPressed: () {
-                    // Xoá lỗi trước khi quay lại — màn Đăng ký vẫn đang
-                    // mounted phía dưới (push không dispose), tự đọc lại
-                    // authProvider.error ngay khi lộ ra nếu không xoá ở đây.
-                    ref.read(authProvider.notifier).clearError();
-                    context.pop();
-                  },
-                ),
-              ]),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: AppSpace.sm),
-                    const StepProgressBar(currentStep: 2, totalSteps: 2),
-                    const SizedBox(height: AppSpace.xl),
-                    const Text('Xác nhận OTP',
-                        style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
-                            letterSpacing: -0.5)),
-                    const SizedBox(height: 6),
-                    Text.rich(TextSpan(
-                      style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
-                      children: [
-                        const TextSpan(text: 'Nhập mã 6 số đã gửi tới '),
-                        TextSpan(
-                          text: phone,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary),
-                        ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
+                child: Row(children: [
+                  IconButton(
+                    icon:
+                        const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                    onPressed: () {
+                      // Xoá lỗi trước khi quay lại — màn Đăng ký vẫn đang
+                      // mounted phía dưới (push không dispose), tự đọc lại
+                      // authProvider.error ngay khi lộ ra nếu không xoá ở đây.
+                      ref.read(authProvider.notifier).clearError();
+                      context.pop();
+                    },
+                  ),
+                ]),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: AppSpace.sm),
+                      const StepProgressBar(currentStep: 2, totalSteps: 2),
+                      const SizedBox(height: AppSpace.xl),
+                      const Text('Xác nhận OTP',
+                          style: TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                              letterSpacing: -0.5)),
+                      const SizedBox(height: 6),
+                      Text.rich(TextSpan(
+                        style: const TextStyle(
+                            fontSize: 14, color: AppColors.textSecondary),
+                        children: [
+                          const TextSpan(text: 'Nhập mã 6 số đã gửi tới '),
+                          TextSpan(
+                            text: phone,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary),
+                          ),
+                        ],
+                      )),
+                      const SizedBox(height: 40),
+
+                      // OTP boxes
+                      OtpInput(
+                        controller: _otpCtl,
+                        onChanged: (otp) {
+                          if (otp.length == 6) _verify();
+                        },
+                      ),
+
+                      if (auth.error != null) ...[
+                        const SizedBox(height: 16),
+                        AppErrorBox(auth.error!),
                       ],
-                    )),
-                    const SizedBox(height: 40),
 
-                    // OTP boxes
-                    OtpInput(
-                      controller: _otpCtl,
-                      onChanged: (otp) {
-                        if (otp.length == 6) _verify();
-                      },
-                    ),
+                      const SizedBox(height: 32),
+                      AppButton(
+                        label: 'Xác nhận',
+                        onPressed: _otpCtl.otp.length == 6 ? _verify : null,
+                        isLoading: auth.isLoading,
+                      ),
+                      const SizedBox(height: 24),
 
-                    if (auth.error != null) ...[
-                      const SizedBox(height: 16),
-                      AppErrorBox(auth.error!),
-                    ],
-
-                    const SizedBox(height: 32),
-                    AppButton(
-                      label: 'Xác nhận',
-                      onPressed: _otpCtl.otp.length == 6 ? _verify : null,
-                      isLoading: auth.isLoading,
-                    ),
-                    const SizedBox(height: 24),
-
-                    Center(
-                      child: _countdown > 0
-                          ? Text(
-                              'Gửi lại sau $_countdown giây',
-                              style: const TextStyle(
-                                  fontSize: 14, color: AppColors.textSecondary),
-                            )
-                          : GestureDetector(
-                              onTap: _resend,
-                              child: const Text(
-                                'Gửi lại mã OTP',
-                                style: TextStyle(
+                      Center(
+                        child: _countdown > 0
+                            ? Text(
+                                'Gửi lại sau $_countdown giây',
+                                style: const TextStyle(
                                     fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.primary),
+                                    color: AppColors.textSecondary),
+                              )
+                            : GestureDetector(
+                                onTap: _resend,
+                                child: const Text(
+                                  'Gửi lại mã OTP',
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.primary),
+                                ),
                               ),
-                            ),
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         ),
       ),
     );

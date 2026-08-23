@@ -23,7 +23,8 @@ Future<CityItem?> showCityPicker(
         if (showHandle) ...[
           const SizedBox(height: 4),
           Container(
-            width: 36, height: 4,
+            width: 36,
+            height: 4,
             decoration: BoxDecoration(
               color: const Color(0xFFE0E0E0),
               borderRadius: BorderRadius.circular(2),
@@ -37,7 +38,8 @@ Future<CityItem?> showCityPicker(
           child: Align(
             alignment: Alignment.centerLeft,
             child: Text(title,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
           ),
         ),
         const Divider(height: 1),
@@ -47,13 +49,15 @@ Future<CityItem?> showCityPicker(
             title: Text(city.name,
                 style: highlightSelected
                     ? TextStyle(
-                        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                        fontWeight:
+                            selected ? FontWeight.w700 : FontWeight.w500,
                         color: selected
                             ? sheetCtx.colors.primary
                             : sheetCtx.colors.textPrimary)
                     : null),
             trailing: selected
-                ? Icon(Icons.check_rounded, color: sheetCtx.colors.primary, size: 18)
+                ? Icon(Icons.check_rounded,
+                    color: sheetCtx.colors.primary, size: 18)
                 : null,
             onTap: () => Navigator.pop(sheetCtx, city),
           );
