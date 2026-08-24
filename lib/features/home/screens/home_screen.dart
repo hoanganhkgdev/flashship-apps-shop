@@ -7,13 +7,11 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/store_launcher.dart';
 import '../../../core/widgets/app_form_widgets.dart';
-import '../../../core/widgets/stat_row.dart';
 import '../../address/models/address_entry.dart';
 import '../../address/providers/address_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../notification/models/notification_item.dart';
 import '../../notification/providers/notification_provider.dart';
-import '../../order/models/cargo_type.dart';
 import '../../order/models/order_model.dart';
 import '../../order/models/shop_order_type.dart';
 import '../../order/providers/order_provider.dart';
@@ -22,6 +20,7 @@ import '../../profile/screens/profile_screen.dart';
 import '../../stats/stats_screen.dart';
 import '../providers/today_stats_provider.dart';
 import '../../version/providers/app_version_provider.dart';
+import '../../voucher/voucher_model.dart';
 import '../../voucher/voucher_provider.dart';
 import '../../voucher/widgets/voucher_card.dart';
 import '../widgets/create_order_card.dart';
@@ -122,7 +121,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     AppNavItem(
         icon: Icons.storefront_outlined,
         activeIcon: Icons.storefront_rounded,
-        label: 'Cửa hàng'),
+        label: 'Hồ sơ'),
   ];
 
   static const _pages = [

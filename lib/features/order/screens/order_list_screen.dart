@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/utils/contact_launcher.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_form_widgets.dart';
 import '../models/cargo_type.dart';
@@ -30,20 +29,15 @@ class OrderListScreen extends ConsumerStatefulWidget {
 class _OrderListScreenState extends ConsumerState<OrderListScreen> {
   static const _filters = [
     ('all', 'Tất cả'),
-    ('active', 'Đang chạy'),
+    ('pending', 'Chờ xử lý'),
+    ('delivering', 'Đang giao'),
     ('completed', 'Hoàn thành'),
     ('cancelled', 'Đã huỷ'),
   ];
 
-  static const _activeStatuses = [
-    'pending',
-    'assigned',
-    'processing',
-    'on_the_way'
-  ];
-
   final _scrollCtrl = ScrollController();
   final _searchCtrl = TextEditingController();
+  bool _searchExpanded = false;
 
   @override
   void initState() {
@@ -77,7 +71,11 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
     final c = context.colors;
 
     final displayed = switch (filter) {
-      'active' => all.where((o) => _activeStatuses.contains(o.status)).toList(),
+      'pending' => all
+          .where((o) =>
+              const ['pending', 'assigned', 'processing'].contains(o.status))
+          .toList(),
+      'delivering' => all.where((o) => o.status == 'on_the_way').toList(),
       'completed' => all.where((o) => o.isCompleted).toList(),
       'cancelled' => all.where((o) => o.isCancelled).toList(),
       _ => all,
@@ -85,104 +83,114 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
         .where((o) => _matchesSearch(o, query))
         .toList();
 
-    final counts = {
-      'all': all.length,
-      'active': all.where((o) => _activeStatuses.contains(o.status)).length,
-      'completed': all.where((o) => o.isCompleted).length,
-      'cancelled': all.where((o) => o.isCancelled).length,
-    };
-
     return ColoredBox(
       color: c.background,
       child: Column(
         children: [
           // ── Header ────────────────────────────────────────────────────
           Container(
-            color: c.surface,
+            color: c.background,
             padding: EdgeInsets.fromLTRB(
-                16, MediaQuery.of(context).padding.top + 16, 16, 0),
+                20, MediaQuery.of(context).padding.top + 16, 20, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Row(children: [
-                    Text('Đơn hàng',
-                        style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            color: c.textPrimary)),
-                    const Spacer(),
-                    if (state.isLoading)
-                      SizedBox(
+                Row(children: [
+                  Text('Đơn hàng',
+                      style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: c.textPrimary)),
+                  const Spacer(),
+                  if (state.isLoading)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: SizedBox(
                           width: 18,
                           height: 18,
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: c.primary)),
-                  ]),
-                ),
-                const SizedBox(height: 12),
+                    ),
+                  GestureDetector(
+                    onTap: () => setState(() {
+                      _searchExpanded = !_searchExpanded;
+                      if (!_searchExpanded) {
+                        _searchCtrl.clear();
+                        ref.read(_searchQueryProvider.notifier).state = '';
+                      }
+                    }),
+                    child: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: c.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        boxShadow: c.cardShadow,
+                      ),
+                      child: Icon(
+                        _searchExpanded
+                            ? Icons.close_rounded
+                            : Icons.search_rounded,
+                        size: 21,
+                        color: c.textPrimary,
+                      ),
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 14),
 
                 // Thanh tìm kiếm
-                AppField(
-                  controller: _searchCtrl,
-                  hint: 'Tìm mã đơn, SĐT người nhận...',
-                  prefixIcon: Icon(Icons.search_rounded,
-                      size: 20, color: c.textTertiary),
-                  onChanged: (v) =>
-                      ref.read(_searchQueryProvider.notifier).state = v,
-                ),
-                const SizedBox(height: 12),
-
-                // Segmented filter tabs
-                Container(
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: c.surfaceAlt,
-                    borderRadius: BorderRadius.circular(11),
+                if (_searchExpanded) ...[
+                  AppField(
+                    controller: _searchCtrl,
+                    hint: 'Tìm mã đơn, SĐT người nhận...',
+                    prefixIcon: Icon(Icons.search_rounded,
+                        size: 20, color: c.textTertiary),
+                    onChanged: (v) =>
+                        ref.read(_searchQueryProvider.notifier).state = v,
                   ),
-                  padding: const EdgeInsets.all(3),
-                  child: Row(
-                    children: _filters.map((f) {
+                  const SizedBox(height: 12),
+                ],
+
+                // Filter chips — pill rời, cuộn ngang, chip đang chọn tô đặc
+                // màu primary thay vì khối nền xám bọc chung như trước.
+                SizedBox(
+                  height: 38,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _filters.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (_, i) {
+                      final f = _filters[i];
                       final selected = filter == f.$1;
-                      final count = counts[f.$1] ?? 0;
-                      return Expanded(
-                        child: GestureDetector(
-                          onTap: () =>
-                              ref.read(_filterProvider.notifier).state = f.$1,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 180),
-                            decoration: BoxDecoration(
-                              color: selected ? c.surface : Colors.transparent,
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: selected
-                                  ? [
-                                      BoxShadow(
-                                          color: Colors.black
-                                              .withValues(alpha: 0.06),
-                                          blurRadius: 4,
-                                          offset: const Offset(0, 1))
-                                    ]
-                                  : null,
-                            ),
-                            child: Center(
-                              child: Text('${f.$2} $count',
-                                  style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: selected
-                                          ? FontWeight.w700
-                                          : FontWeight.w500,
-                                      color: selected
-                                          ? c.primary
-                                          : c.textSecondary)),
-                            ),
+                      return GestureDetector(
+                        onTap: () =>
+                            ref.read(_filterProvider.notifier).state = f.$1,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: selected ? c.primary : c.surface,
+                            borderRadius: BorderRadius.circular(AppRadius.full),
+                            border:
+                                selected ? null : Border.all(color: c.divider),
                           ),
+                          alignment: Alignment.center,
+                          child: Text(f.$2,
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: selected
+                                      ? FontWeight.w700
+                                      : FontWeight.w600,
+                                  color: selected
+                                      ? Colors.white
+                                      : c.textSecondary)),
                         ),
                       );
-                    }).toList(),
+                    },
                   ),
                 ),
-                const SizedBox(height: 1),
+                const SizedBox(height: 13),
               ],
             ),
           ),
@@ -201,29 +209,20 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                             .read(orderListProvider.notifier)
                             .fetch(refresh: true),
                         child: Builder(builder: (_) {
-                          final showSummary =
-                              filter == 'active' && displayed.isNotEmpty;
                           // Chỉ hiện khi "Tất cả" — các tab khác lọc phía app
                           // nên tổng số trang backend không khớp số dòng hiện ra.
                           final showFooter = filter == 'all' &&
                               state.hasMore &&
                               state.isLoading &&
                               all.isNotEmpty;
-                          final extraTop = showSummary ? 1 : 0;
-
                           return ListView.separated(
                             controller: _scrollCtrl,
-                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
-                            itemCount: displayed.length +
-                                extraTop +
-                                (showFooter ? 1 : 0),
+                            padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
+                            itemCount: displayed.length + (showFooter ? 1 : 0),
                             separatorBuilder: (_, __) =>
                                 const SizedBox(height: 10),
                             itemBuilder: (_, i) {
-                              if (showSummary && i == 0) {
-                                return _ActiveSummary(orders: displayed);
-                              }
-                              final idx = i - extraTop;
+                              final idx = i;
                               if (idx >= displayed.length) {
                                 return Center(
                                   child: Padding(
@@ -254,6 +253,8 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
 
 // ── Active status summary ─────────────────────────────────────────────────────
 
+// Giữ lại component tổng quan để có thể tái sử dụng ở dashboard vận hành.
+// ignore: unused_element
 class _ActiveSummary extends StatelessWidget {
   final List<OrderModel> orders;
   const _ActiveSummary({required this.orders});
@@ -324,22 +325,12 @@ class _OrderCard extends StatelessWidget {
   final OrderModel order;
   const _OrderCard({super.key, required this.order});
 
-  static const _serviceMeta = {
-    'shop_delivery': ('Giao đến', Color(0xFF3B82F6)),
-    'shop_pickup': ('Nhận về', Color(0xFF8B5CF6)),
-    'shop_batch': ('Giao nhiều', Color(0xFF10B981)),
-  };
-
   Color _accentColor(Palette c) {
     if (order.isCompleted) return c.success;
     if (order.isCancelled) return c.danger;
     if (order.status == 'pending') return c.warning;
     if (order.status == 'processing') return const Color(0xFF8B5CF6);
     return c.primary;
-  }
-
-  Future<void> _call(String phone) async {
-    await callPhone(phone);
   }
 
   // Giả lập hiệu ứng "mờ 50%" bằng cách giảm alpha màu trực tiếp thay vì bọc
@@ -360,18 +351,25 @@ class _OrderCard extends StatelessWidget {
         ? '${order.stops.length} điểm · ${order.stops.first['address'] ?? ''}'
         : order.deliveryAddress;
     final cargoMeta = cargoTypeOf(order.cargoType);
-    final cargo = (cargoMeta.label, cargoMeta.color);
-    final service = _serviceMeta[order.shopServiceType] ??
-        ('Giao đến', const Color(0xFF3B82F6));
     final dimmed = order.isCancelled;
+    final code = order.code.startsWith('#') ? order.code : '#${order.code}';
+    final local = order.createdAt.toLocal();
+    final now = DateTime.now();
+    final isToday = local.year == now.year &&
+        local.month == now.month &&
+        local.day == now.day;
+    final yesterday = now.subtract(const Duration(days: 1));
+    final isYesterday = local.year == yesterday.year &&
+        local.month == yesterday.month &&
+        local.day == yesterday.day;
+    final time = isToday
+        ? '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}'
+        : isYesterday
+            ? 'hôm qua'
+            : Fmt.timeAgo(local);
 
-    final receiver = [
-      if (order.receiverName?.isNotEmpty == true) order.receiverName!,
-      order.deliveryPhone,
-    ].join(' · ');
-
-    // Icon loại hàng trong ô tròn màu — thay dải màu trái, đồng bộ
-    // ActiveOrderCard/CompletedOrderCard của app driver.
+    // Badge trạng thái dạng pill (nền nhạt + chữ đậm màu) thay cho chấm tròn
+    // + chữ — đồng bộ mockup thiết kế mới.
     return GestureDetector(
       onTap: () => context.push('/order/${order.code}'),
       child: Container(
@@ -382,50 +380,72 @@ class _OrderCard extends StatelessWidget {
         ),
         clipBehavior: Clip.antiAlias,
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Row 1: icon + trạng thái (chấm màu) · phí
-              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: _fade(cargoMeta.color)
-                        .withValues(alpha: context.isDark ? 0.18 : 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(cargoMeta.icon,
-                      color: _fade(cargoMeta.color), size: 20),
-                ),
-                const SizedBox(width: 12),
+              // Row 1: mã đơn + giờ ............. badge trạng thái
+              Row(children: [
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(cargo.$1,
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: _fade(
-                                  dimmed ? c.textTertiary : c.textPrimary))),
-                      const SizedBox(height: 3),
-                      Row(mainAxisSize: MainAxisSize.min, children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                              color: _fade(accent), shape: BoxShape.circle),
-                        ),
-                        const SizedBox(width: 5),
-                        Text(Fmt.orderStatus(order.status),
-                            style: TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w600,
-                                color: _fade(accent))),
-                      ]),
-                    ],
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text(code,
+                        style: TextStyle(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                            color: _fade(
+                                dimmed ? c.textTertiary : c.textPrimary))),
+                    const SizedBox(width: 6),
+                    Text('· $time',
+                        style: TextStyle(
+                            fontSize: 12, color: _fade(c.textTertiary))),
+                  ]),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 11, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _fade(accent)
+                        .withValues(alpha: context.isDark ? 0.2 : 0.12),
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
+                  child: Text(Fmt.orderStatus(order.status),
+                      style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: _fade(accent))),
+                ),
+              ]),
+              const SizedBox(height: 10),
+
+              // Row 2: địa chỉ giao
+              Row(children: [
+                Icon(Icons.location_on_outlined,
+                    size: 14, color: _fade(c.textTertiary)),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(address,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 12.5, color: _fade(c.textSecondary))),
+                ),
+              ]),
+              const SizedBox(height: 12),
+
+              Divider(height: 1, color: _fade(c.divider)),
+              const SizedBox(height: 10),
+
+              // Row 3: COD · loại hàng ............................... phí
+              Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                Expanded(
+                  child: Text(
+                    'COD ${Fmt.currency(order.codAmount ?? 0)} · ${cargoMeta.label}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                        color: _fade(c.textTertiary)),
                   ),
                 ),
                 Text(Fmt.currency(order.shippingFee),
@@ -436,110 +456,10 @@ class _OrderCard extends StatelessWidget {
                         decoration:
                             dimmed ? TextDecoration.lineThrough : null)),
               ]),
-              const SizedBox(height: 12),
-
-              // Row 2: receiver + phone
-              Row(children: [
-                Icon(Icons.person_outline_rounded,
-                    size: 14, color: _fade(c.textTertiary)),
-                const SizedBox(width: 5),
-                Expanded(
-                  child: Text(receiver,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color:
-                              _fade(dimmed ? c.textTertiary : c.textPrimary))),
-                ),
-                if (order.deliveryPhone.isNotEmpty && !order.isCancelled) ...[
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () => _call(order.deliveryPhone),
-                    child: Container(
-                      width: 22,
-                      height: 22,
-                      decoration: BoxDecoration(
-                        color: c.primarySoft,
-                        shape: BoxShape.circle,
-                      ),
-                      child:
-                          Icon(Icons.call_rounded, size: 12, color: c.primary),
-                    ),
-                  ),
-                ],
-              ]),
-              const SizedBox(height: 5),
-
-              // Row 3: address
-              Row(children: [
-                Icon(Icons.location_on_outlined,
-                    size: 14, color: _fade(c.textTertiary)),
-                const SizedBox(width: 5),
-                Expanded(
-                  child: Text(address,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: 12, color: _fade(c.textSecondary))),
-                ),
-              ]),
-              const SizedBox(height: 10),
-
-              Divider(height: 1, color: _fade(c.divider)),
-              const SizedBox(height: 10),
-
-              // Row 4: chips + time
-              Row(children: [
-                _Chip(label: service.$1, color: service.$2, dimmed: dimmed),
-                const SizedBox(width: 6),
-                _Chip(label: cargo.$1, color: cargo.$2, dimmed: dimmed),
-                if (order.isBatch) ...[
-                  const SizedBox(width: 6),
-                  _Chip(
-                      label: '${order.stops.length} điểm',
-                      color: c.success,
-                      dimmed: dimmed),
-                ],
-                const Spacer(),
-                Icon(Icons.access_time_rounded,
-                    size: 12, color: _fade(c.textTertiary)),
-                const SizedBox(width: 3),
-                Text(Fmt.timeAgo(order.createdAt),
-                    style:
-                        TextStyle(fontSize: 12, color: _fade(c.textSecondary))),
-              ]),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-// ─── Chip ─────────────────────────────────────────────────────────────────────
-
-class _Chip extends StatelessWidget {
-  final String label;
-  final Color color;
-  final bool dimmed;
-  const _Chip({required this.label, required this.color, this.dimmed = false});
-
-  @override
-  Widget build(BuildContext context) {
-    final effectiveColor = dimmed ? context.colors.textTertiary : color;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: effectiveColor.withValues(alpha: context.isDark ? 0.16 : 0.09),
-        borderRadius: BorderRadius.circular(5),
-      ),
-      child: Text(label,
-          style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: effectiveColor)),
     );
   }
 }
@@ -558,11 +478,13 @@ class _EmptyState extends StatelessWidget {
         icon: Icons.receipt_long_outlined,
         title: searching
             ? 'Không tìm thấy đơn phù hợp'
-            : filter == 'active'
-                ? 'Không có đơn đang chạy'
-                : filter == 'all'
-                    ? 'Chưa có đơn hàng nào'
-                    : 'Không có đơn phù hợp',
+            : filter == 'pending'
+                ? 'Không có đơn chờ xử lý'
+                : filter == 'delivering'
+                    ? 'Không có đơn đang giao'
+                    : filter == 'all'
+                        ? 'Chưa có đơn hàng nào'
+                        : 'Không có đơn phù hợp',
       ),
     );
   }

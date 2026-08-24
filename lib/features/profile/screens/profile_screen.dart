@@ -46,20 +46,33 @@ class ProfileScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            // ── Hero header — gradient cam + thẻ thống kê trắng nổi đè
-            // xuống nội dung dưới, đồng bộ ProfileHeader của app driver ────
+            // ── Hero header — gradient cam san hô + thẻ thống kê trắng nổi
+            // đè xuống nội dung dưới ─────────────────────────────────────
             Stack(clipBehavior: Clip.none, children: [
               Container(
                 width: double.infinity,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFFCC5A08), Color(0xFFE8720C), Color(0xFFF59E30)],
+                    colors: [c.primary, const Color(0xFFFF9A5C)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                 ),
                 padding: EdgeInsets.fromLTRB(20, topPad + 20, 20, 80),
-                child: Column(children: [
+                child: Stack(clipBehavior: Clip.none, children: [
+                  Positioned(
+                    top: -50,
+                    right: -40,
+                    child: Container(
+                      width: 160,
+                      height: 160,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.10),
+                      ),
+                    ),
+                  ),
+                  Column(children: [
                   // Edit avatar
                   GestureDetector(
                     onTap: () => _pickAvatar(context, ref),
@@ -117,6 +130,7 @@ class ProfileScreen extends ConsumerWidget {
                           style: TextStyle(
                               fontSize: 13, color: Colors.white.withValues(alpha: 0.75))),
                     ],
+                  ]),
                   ]),
                 ]),
               ),

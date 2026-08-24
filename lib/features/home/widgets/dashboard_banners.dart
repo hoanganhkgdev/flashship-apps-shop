@@ -97,6 +97,8 @@ class _SoftUpdateBanner extends ConsumerWidget {
   }
 }
 
+// Giữ lại để có thể tái sử dụng khi mockup bổ sung carousel khuyến mãi.
+// ignore: unused_element
 class _HomeBannerSection extends StatelessWidget {
   const _HomeBannerSection();
 

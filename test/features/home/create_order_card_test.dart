@@ -33,9 +33,10 @@ void main() {
       onBatch: () {},
     ));
 
-    expect(find.text('Giao đơn'), findsOneWidget);
-    expect(find.text('Lấy hộ'), findsOneWidget);
-    expect(find.text('Đơn gộp'), findsOneWidget);
+    expect(find.text('Tạo đơn ngay'), findsOneWidget);
+    expect(find.text('Giao hàng'), findsOneWidget);
+    expect(find.text('Lấy hàng ngoài'), findsOneWidget);
+    expect(find.byKey(const ValueKey('batch-order-action')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -47,11 +48,11 @@ void main() {
       onBatch: () => selected = 'batch',
     ));
 
-    await tester.tap(find.text('Giao đơn'));
+    await tester.tap(find.text('Giao hàng'));
     expect(selected, 'delivery');
-    await tester.tap(find.text('Lấy hộ'));
+    await tester.tap(find.text('Lấy hàng ngoài'));
     expect(selected, 'pickup');
-    await tester.tap(find.text('Đơn gộp'));
+    await tester.tap(find.byKey(const ValueKey('batch-order-action')));
     expect(selected, 'batch');
   });
 }

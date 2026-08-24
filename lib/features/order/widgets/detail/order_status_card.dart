@@ -6,30 +6,11 @@ class _StatusCard extends StatelessWidget {
   final OrderModel order;
   const _StatusCard({required this.order});
 
-  static String _subtitle(String status) {
-    switch (status) {
-      case 'pending':
-        return 'Đang tìm tài xế phù hợp...';
-      case 'assigned':
-        return 'Tài xế đang trên đường đến';
-      case 'processing':
-        return 'Tài xế đang lấy hàng';
-      case 'on_the_way':
-        return 'Tài xế đang giao hàng';
-      case 'completed':
-        return 'Giao hàng thành công!';
-      case 'cancelled':
-        return 'Đơn hàng đã bị huỷ';
-      default:
-        return status;
-    }
-  }
-
   static const _steps = [
-    ('pending', 'Tìm tài xế', Icons.schedule_rounded),
-    ('assigned', 'Đã nhận', Icons.person_pin_rounded),
-    ('processing', 'Lấy hàng', Icons.inventory_2_outlined),
-    ('completed', 'Hoàn thành', Icons.check_circle_rounded),
+    ('pending', 'Đã đặt', Icons.check_rounded),
+    ('assigned', 'Tài xế\nnhận', Icons.check_rounded),
+    ('on_the_way', 'Đang\ngiao', Icons.local_shipping_rounded),
+    ('completed', 'Hoàn thành', Icons.check_rounded),
   ];
 
   static const _statusOrder = [
@@ -43,48 +24,12 @@ class _StatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final color = Fmt.statusColor(order.status);
-    final icon = Fmt.statusIcon(order.status);
-    final subtitle = _subtitle(order.status);
     final currentIdx = _statusOrder.indexOf(order.status);
     final isCancelled = order.status == 'cancelled';
 
     return _FlatCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // Current status
-        Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: context.isDark ? 0.18 : 0.1),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: color, size: 24),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-              child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(Fmt.orderStatus(order.status),
-                  style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w800, color: color)),
-              const SizedBox(height: 2),
-              Text(subtitle,
-                  style: TextStyle(
-                      fontSize: 12, color: color.withValues(alpha: 0.85))),
-              if (order.status == 'pending') ...[
-                const SizedBox(height: 8),
-                _PendingDots(color: color),
-              ],
-            ],
-          )),
-        ]),
-
-        // Horizontal stepper
         if (!isCancelled) ...[
-          const SizedBox(height: 18),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: List.generate(_steps.length * 2 - 1, (i) {
@@ -92,33 +37,39 @@ class _StatusCard extends StatelessWidget {
                 final (key, label, stepIcon) = _steps[i ~/ 2];
                 final stepIdx = _statusOrder.indexOf(key);
                 final isDone = currentIdx >= stepIdx && currentIdx != -1;
+                final isCurrent = order.status == key ||
+                    (order.status == 'processing' && key == 'assigned');
                 return SizedBox(
-                  width: 60,
+                  width: 58,
                   child: Column(children: [
                     Container(
-                      width: 26,
-                      height: 26,
+                      width: 30,
+                      height: 30,
                       decoration: BoxDecoration(
-                        color: isDone ? color : c.background,
+                        color: isDone ? c.primary : c.surfaceAlt,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isDone ? color : c.divider,
+                          color: isCurrent ? c.primarySoft : c.divider,
                           width: 1.5,
                         ),
                       ),
                       child: Icon(stepIcon,
-                          size: 13,
+                          size: 14,
                           color: isDone ? Colors.white : c.textSecondary),
                     ),
                     const SizedBox(height: 4),
                     Text(label,
                         textAlign: TextAlign.center,
-                        maxLines: 1,
+                        maxLines: 2,
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 10.5,
                           fontWeight:
                               isDone ? FontWeight.w700 : FontWeight.w400,
-                          color: isDone ? c.textPrimary : c.textSecondary,
+                          color: isCurrent
+                              ? c.primary
+                              : isDone
+                                  ? c.textPrimary
+                                  : c.textSecondary,
                         )),
                   ]),
                 );
@@ -127,12 +78,9 @@ class _StatusCard extends StatelessWidget {
                 final lineDone = currentIdx >= leftStepIdx && currentIdx != -1;
                 return Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 12),
+                    padding: const EdgeInsets.only(top: 14),
                     child: Container(
-                        height: 2,
-                        color: lineDone
-                            ? color.withValues(alpha: 0.4)
-                            : c.divider),
+                        height: 1.5, color: lineDone ? c.primary : c.divider),
                   ),
                 );
               }
@@ -166,6 +114,8 @@ class _StatusCard extends StatelessWidget {
 
 // ─── Pending animated dots ────────────────────────────────────────────────────
 
+// Giữ animation để có thể tái sử dụng ở trạng thái tìm tài xế toàn màn hình.
+// ignore: unused_element
 class _PendingDots extends StatefulWidget {
   final Color color;
   const _PendingDots({required this.color});

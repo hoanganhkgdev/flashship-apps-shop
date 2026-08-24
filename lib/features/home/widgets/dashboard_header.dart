@@ -13,177 +13,215 @@ class _Header extends ConsumerWidget {
     this.today,
   });
 
+  String get _greeting {
+    final hour = DateTime.now().hour;
+    if (hour < 11) return 'Chào buổi sáng,';
+    if (hour < 14) return 'Chào buổi trưa,';
+    if (hour < 18) return 'Chào buổi chiều,';
+    return 'Chào buổi tối,';
+  }
+
+  String get _initials {
+    final parts =
+        shopName.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty);
+    if (parts.isEmpty) return '?';
+    final letters = parts.map((p) => p[0].toUpperCase());
+    return letters.length == 1
+        ? letters.first
+        : '${letters.first}${letters.last}';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unread = ref.watch(unreadCountProvider).valueOrNull ?? 0;
     final c = context.colors;
     final top = MediaQuery.of(context).padding.top;
 
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFCC5A08), Color(0xFFE8720C), Color(0xFFF59E30)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Stack(
-        clipBehavior: Clip.hardEdge,
-        children: [
-          // ── Hình tròn trang trí mờ — đồng bộ hero header app driver ──
-          Positioned(
-            top: -70,
-            right: -60,
-            child: Container(
-              width: 220,
-              height: 220,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.07),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, top + 14, 20, 0),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // ── Avatar + tên shop + bell ─────────────────────────────────────
+        Row(children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [c.primary, const Color(0xFFFF9A5C)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
+              borderRadius: BorderRadius.circular(16),
             ),
+            alignment: Alignment.center,
+            child: Text(_initials,
+                style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white)),
           ),
-          Positioned(
-            left: -40,
-            top: 110,
-            child: Container(
-              width: 90,
-              height: 90,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.06),
-              ),
-            ),
-          ),
-
-          Padding(
-            padding: EdgeInsets.fromLTRB(20, top + 16, 20, 20),
+          const SizedBox(width: 12),
+          Expanded(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              // ── Tên shop + bell ────────────────────────────────────────
-              Row(children: [
-                Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Xin chào 👋',
-                            style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: 0.3,
-                                color: Colors.white.withValues(alpha: 0.85))),
-                        const SizedBox(height: 2),
-                        Text(shopName,
-                            style: const TextStyle(
-                                fontSize: 21,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                                letterSpacing: -0.4,
-                                shadows: [
-                                  Shadow(
-                                      color: Color(0x26000000),
-                                      blurRadius: 4,
-                                      offset: Offset(0, 1)),
-                                ]),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis),
-                        if (shopAddress.isNotEmpty) ...[
-                          const SizedBox(height: 3),
-                          Row(mainAxisSize: MainAxisSize.min, children: [
-                            Icon(Icons.location_on_rounded,
-                                size: 12, color: Colors.white70),
-                            const SizedBox(width: 3),
-                            Flexible(
-                                child: Text(shopAddress,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                        fontSize: 12.5,
-                                        color: Colors.white
-                                            .withValues(alpha: 0.85)))),
-                          ]),
-                        ],
-                      ]),
-                ),
-                const SizedBox(width: 12),
-                // ── Bell icon với badge ──────────────────────────────────
-                GestureDetector(
-                  onTap: () => context.push('/notifications'),
-                  child: Stack(clipBehavior: Clip.none, children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.notifications_outlined,
-                          color: Colors.white, size: 22),
-                    ),
-                    if (unread > 0)
-                      Positioned(
-                        top: -2,
-                        right: -2,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 5, vertical: 1),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Text(unread > 99 ? '99+' : '$unread',
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  color: c.primary)),
-                        ),
-                      ),
-                  ]),
-                ),
-              ]),
-
-              // ── Thống kê hôm nay — thẻ trắng nổi bằng shadow trên nền
-              // gradient (giống card toggle của app driver) ───────────────
-              if (today != null) ...[
-                const SizedBox(height: 18),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(AppRadius.card),
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.12),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4)),
-                    ],
-                  ),
-                  child: StatRow(items: [
-                    StatItem(value: '${today!.orders}', label: 'Đơn hôm nay'),
-                    StatItem(
-                      value: '${today!.active}',
-                      label: 'Đang chạy',
-                      valueColor: today!.active > 0 ? c.primary : null,
-                    ),
-                    StatItem(
-                      value: today!.revenue >= 1000
-                          ? '${(today!.revenue / 1000).toStringAsFixed(0)}K'
-                          : '${today!.revenue}đ',
-                      label: 'Doanh thu',
-                      valueColor: today!.revenue > 0 ? c.success : null,
-                    ),
-                  ]),
-                ),
-              ],
+              Text(_greeting,
+                  style: TextStyle(fontSize: 13, color: c.textTertiary)),
+              const SizedBox(height: 1),
+              Text(shopName,
+                  style: TextStyle(
+                      fontSize: 16.5,
+                      fontWeight: FontWeight.w700,
+                      color: c.textPrimary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
             ]),
           ),
+          const SizedBox(width: 12),
+          // ── Bell icon với badge ──────────────────────────────────
+          GestureDetector(
+            onTap: () => context.push('/notifications'),
+            child: Stack(clipBehavior: Clip.none, children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: c.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: c.cardShadow,
+                ),
+                child: Icon(Icons.notifications_outlined,
+                    color: c.textPrimary, size: 22),
+              ),
+              if (unread > 0)
+                Positioned(
+                  top: 8,
+                  right: 9,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: c.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: c.surface, width: 1.5),
+                    ),
+                  ),
+                ),
+            ]),
+          ),
+        ]),
+
+        // ── Hero doanh thu — thẻ gradient nổi bật ───────────────────────
+        if (today != null) ...[
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [const Color(0xFFFF5D3B), const Color(0xFFEE5F6B)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(AppRadius.xl),
+              boxShadow: c.cardShadow,
+            ),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned(
+                  top: -40,
+                  right: -30,
+                  child: Container(
+                    width: 140,
+                    height: 140,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: 0.10),
+                    ),
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Doanh thu hôm nay',
+                            style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white.withValues(alpha: 0.85))),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.16),
+                            borderRadius: BorderRadius.circular(AppRadius.full),
+                          ),
+                          child: Text(
+                              Fmt.dateTime(DateTime.now())
+                                  .split(' ')
+                                  .first
+                                  .substring(0, 5),
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white.withValues(alpha: 0.85))),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(Fmt.currency(today!.revenue),
+                        style: const TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: -0.5)),
+                    const SizedBox(height: 16),
+                    Row(children: [
+                      Expanded(
+                        child: _HeroStat(
+                            value: '${today!.orders}', label: 'Đơn hôm nay'),
+                      ),
+                      Expanded(
+                        child: _HeroStat(
+                            value: '${today!.active}',
+                            label: 'Đang giao',
+                            highlight: today!.active > 0),
+                      ),
+                      Expanded(
+                        child: _HeroStat(
+                            value: '${today!.completed}', label: 'Hoàn thành'),
+                      ),
+                    ]),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
-      ),
+      ]),
     );
   }
 }
 
-// ─── Ô dịch vụ ────────────────────────────────────────────────────────────────
-// Nền tint nhạt theo màu + viền cùng tông (alpha 0.07/0.18) — cùng pattern
-// với ô "Ví cá nhân"/"Công nợ" trong FinanceCard của app driver.
+class _HeroStat extends StatelessWidget {
+  final String value;
+  final String label;
+  final bool highlight;
+  const _HeroStat(
+      {required this.value, required this.label, this.highlight = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(value,
+          style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: highlight ? const Color(0xFFFFE3D2) : Colors.white)),
+      const SizedBox(height: 2),
+      Text(label,
+          style: TextStyle(
+              fontSize: 12, color: Colors.white.withValues(alpha: 0.8))),
+    ]);
+  }
+}

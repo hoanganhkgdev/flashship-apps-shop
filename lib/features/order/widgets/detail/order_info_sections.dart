@@ -23,107 +23,64 @@ class _OrderInfoCard extends StatelessWidget {
         (Icons.inventory_2_rounded, 'Bưu kiện', const Color(0xFF6B7280));
 
     return _FlatCard(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _CardHeader(
-            icon: Icons.receipt_long_outlined,
-            label: 'Thông tin đơn hàng',
-            iconColor: c.primary),
-        const SizedBox(height: 12),
-
-        // Cargo badge + code
-        Row(children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: cargo.$3.withValues(alpha: context.isDark ? 0.18 : 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(cargo.$1, color: cargo.$3, size: 14),
-              const SizedBox(width: 6),
-              Text(cargo.$2,
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: cargo.$3)),
-              if (order.cargoWeight != null) ...[
-                const SizedBox(width: 4),
-                Text(
-                    '• ${order.cargoWeight!.toStringAsFixed(order.cargoWeight! % 1 == 0 ? 0 : 1)}kg',
-                    style: TextStyle(fontSize: 11, color: cargo.$3)),
-              ],
-            ]),
-          ),
-          const Spacer(),
-          Text('#${order.code}',
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: c.textSecondary)),
-        ]),
-
-        const SizedBox(height: 12),
-        Divider(height: 1, color: c.divider),
-        const SizedBox(height: 12),
-
+      child: Column(children: [
+        _CompactInfoRow(label: 'Loại hàng', value: cargo.$2),
+        const SizedBox(height: 10),
+        _CompactInfoRow(
+            label: 'Tiền thu hộ (COD)',
+            value: Fmt.currency(order.codAmount ?? 0)),
         if (order.distanceKm != null) ...[
-          _InfoRow(Icons.straighten_rounded, 'Khoảng cách',
-              '${order.distanceKm!.toStringAsFixed(1)} km'),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
+          _CompactInfoRow(
+              label: 'Khoảng cách',
+              value: '${order.distanceKm!.toStringAsFixed(1)} km'),
         ],
-
         if (order.nightSurcharge > 0) ...[
-          _InfoRow(Icons.nightlight_round, 'Phụ thu đêm',
-              '+ ${Fmt.currency(order.nightSurcharge)}',
-              valueColor: c.warning),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
+          _CompactInfoRow(
+              label: 'Phụ thu đêm',
+              value: '+${Fmt.currency(order.nightSurcharge)}'),
         ],
-
-        // Fee highlight
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: c.primarySoft,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: c.primary.withValues(alpha: 0.18)),
-          ),
-          child: Row(children: [
-            Icon(Icons.payments_outlined, size: 18, color: c.primary),
-            const SizedBox(width: 10),
-            Text('Phí vận chuyển',
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: c.textPrimary)),
-            const Spacer(),
-            Text(Fmt.currency(order.shippingFee),
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: c.primary)),
-          ]),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Divider(height: 1, color: c.divider),
         ),
-
-        if ((order.codAmount ?? 0) > 0) ...[
-          const SizedBox(height: 8),
-          _InfoRow(Icons.account_balance_wallet_outlined, 'Thu hộ COD',
-              Fmt.currency(order.codAmount!),
-              valueColor: c.info),
-        ],
-
-        const SizedBox(height: 12),
-        Divider(height: 1, color: c.divider),
-        const SizedBox(height: 12),
-
-        _InfoRow(Icons.credit_card_outlined, 'Thanh toán', 'Tiền mặt'),
-        const SizedBox(height: 8),
-        _InfoRow(Icons.access_time_outlined, 'Thời gian',
-            Fmt.dateTime(order.createdAt)),
+        Row(children: [
+          Text('Phí giao hàng',
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: c.textPrimary)),
+          const Spacer(),
+          Text(Fmt.currency(order.shippingFee),
+              style: TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.w800, color: c.primary)),
+        ]),
       ]),
     );
   }
 }
 
+class _CompactInfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+  const _CompactInfoRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Row(children: [
+      Text(label, style: TextStyle(fontSize: 13, color: c.textSecondary)),
+      const Spacer(),
+      Text(value,
+          style: TextStyle(
+              fontSize: 13, fontWeight: FontWeight.w700, color: c.textPrimary)),
+    ]);
+  }
+}
+
+// Giữ row có icon cho các section phụ (ghi chú/đánh giá) khi cần mở rộng.
+// ignore: unused_element
 class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String label, value;

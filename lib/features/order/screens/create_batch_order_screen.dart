@@ -687,12 +687,14 @@ class _CreateBatchOrderScreenState
 
             // ── Bottom: tổng phí + book ────────────────────────────────
             Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(top: BorderSide(color: Color(0xFFEEEEEE))),
+              decoration: BoxDecoration(
+                color: context.colors.surface,
+                borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(AppRadius.xl)),
+                boxShadow: context.colors.cardShadow,
               ),
               padding: EdgeInsets.fromLTRB(
-                  16, 12, 16, MediaQuery.of(context).padding.bottom + 12),
+                  16, 16, 16, MediaQuery.of(context).padding.bottom + 12),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 // ── Voucher ─────────────────────────────────────────────
                 if (_voucherCode != null)
@@ -788,7 +790,7 @@ class _CreateBatchOrderScreenState
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                               borderRadius:
-                                  BorderRadius.circular(AppRadius.md)),
+                                  BorderRadius.circular(AppRadius.full)),
                         ),
                         child: _submitting
                             ? const SizedBox(

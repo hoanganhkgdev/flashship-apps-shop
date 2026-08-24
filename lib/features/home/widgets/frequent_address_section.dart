@@ -2,6 +2,9 @@ part of '../screens/home_screen.dart';
 
 // ─── Địa chỉ thường dùng ────────────────────────────────────────────────────────
 
+// Vẫn giữ widget cho các luồng cần địa chỉ nhanh, nhưng mockup Home hiện tại
+// không hiển thị khối này.
+// ignore: unused_element
 class _FrequentAddressSection extends ConsumerWidget {
   const _FrequentAddressSection();
 

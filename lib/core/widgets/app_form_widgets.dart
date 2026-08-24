@@ -91,15 +91,13 @@ class AppField extends StatelessWidget {
         suffix: suffix,
         prefixIcon: prefixIcon != null
             ? Padding(
-                padding: const EdgeInsets.only(left: 4),
-                child: prefixIcon)
+                padding: const EdgeInsets.only(left: 4), child: prefixIcon)
             : null,
         prefixIconConstraints:
             const BoxConstraints(minWidth: 40, minHeight: 40),
         suffixIcon: suffixIcon != null
             ? Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: suffixIcon)
+                padding: const EdgeInsets.only(right: 12), child: suffixIcon)
             : null,
         suffixIconConstraints:
             const BoxConstraints(minWidth: 40, minHeight: 40),
@@ -220,7 +218,8 @@ class _PhoneFieldState extends State<PhoneField> {
         prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
         filled: true,
         fillColor: c.surfaceAlt,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
           borderSide: BorderSide.none,
@@ -267,9 +266,7 @@ class AppErrorBox extends StatelessWidget {
         Expanded(
           child: Text(message,
               style: TextStyle(
-                  fontSize: 13,
-                  color: c.danger,
-                  fontWeight: FontWeight.w500)),
+                  fontSize: 13, color: c.danger, fontWeight: FontWeight.w500)),
         ),
       ]),
     );
@@ -307,7 +304,8 @@ class AppButton extends StatelessWidget {
         ),
         child: isLoading
             ? const SizedBox(
-                width: 22, height: 22,
+                width: 22,
+                height: 22,
                 child: CircularProgressIndicator(
                     strokeWidth: 2.5, color: Colors.white))
             : Text(label,
@@ -398,36 +396,26 @@ class AppBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c      = context.colors;
+    final c = context.colors;
     final bottom = MediaQuery.of(context).padding.bottom;
     return Container(
-      padding: EdgeInsets.fromLTRB(0, 8, 0, bottom + 6),
+      padding: EdgeInsets.fromLTRB(4, 10, 4, bottom + 8),
       decoration: BoxDecoration(
         color: c.surface,
-        border: Border(top: BorderSide(color: c.divider, width: 1)),
+        border: Border(top: BorderSide(color: c.divider)),
       ),
       child: Row(
         children: List.generate(items.length, (i) {
-          final item     = items[i];
+          final item = items[i];
           final selected = i == selectedIndex;
-          final color    = selected ? c.primary : c.textTertiary;
+          final color = selected ? c.primary : c.textTertiary;
           return Expanded(
             child: GestureDetector(
               onTap: () => onTap(i),
               behavior: HitTestBehavior.opaque,
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  curve: Curves.easeOut,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: selected ? c.primarySoft : Colors.transparent,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(selected ? item.activeIcon : item.icon,
-                      size: 24, color: color),
-                ),
+                Icon(selected ? item.activeIcon : item.icon,
+                    size: 22, color: color),
                 const SizedBox(height: 3),
                 Text(item.label,
                     style: TextStyle(
@@ -449,9 +437,7 @@ class AppNavItem {
   final IconData activeIcon;
   final String label;
   const AppNavItem(
-      {required this.icon,
-      required this.activeIcon,
-      required this.label});
+      {required this.icon, required this.activeIcon, required this.label});
 }
 
 // ─── Surface Card ─────────────────────────────────────────────────────────────
@@ -481,8 +467,7 @@ class AppCard extends StatelessWidget {
       padding: padding ?? const EdgeInsets.all(AppSpace.lg),
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius:
-            elevated ? BorderRadius.circular(AppRadius.card) : null,
+        borderRadius: elevated ? BorderRadius.circular(AppRadius.card) : null,
         boxShadow: elevated ? c.cardShadow : null,
       ),
       child: child,
@@ -495,7 +480,8 @@ class AppCard extends StatelessWidget {
 // ─── Snackbar ─────────────────────────────────────────────────────────────────
 
 class AppSnackbar {
-  static void error(BuildContext context, String message, {Duration? duration}) {
+  static void error(BuildContext context, String message,
+      {Duration? duration}) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
       backgroundColor: context.colors.danger,
@@ -503,7 +489,8 @@ class AppSnackbar {
     ));
   }
 
-  static void success(BuildContext context, String message, {Duration? duration}) {
+  static void success(BuildContext context, String message,
+      {Duration? duration}) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
       backgroundColor: context.colors.success,
@@ -591,13 +578,18 @@ class AppStatusBadge extends StatelessWidget {
 
   static (Color, Color) _colorsFor(String s, Palette c) {
     switch (s) {
-      case 'pending':     return (c.warning, c.warningSoft);
+      case 'pending':
+        return (c.warning, c.warningSoft);
       case 'assigned':
       case 'processing':
-      case 'on_the_way':  return (c.info, c.infoSoft);
-      case 'completed':   return (c.success, c.successSoft);
-      case 'cancelled':   return (c.danger, c.dangerSoft);
-      default:            return (c.textSecondary, c.surfaceAlt);
+      case 'on_the_way':
+        return (c.info, c.infoSoft);
+      case 'completed':
+        return (c.success, c.successSoft);
+      case 'cancelled':
+        return (c.danger, c.dangerSoft);
+      default:
+        return (c.textSecondary, c.surfaceAlt);
     }
   }
 
@@ -612,10 +604,8 @@ class AppStatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(99),
       ),
       child: Text(label,
-          style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: fg)),
+          style:
+              TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: fg)),
     );
   }
 }

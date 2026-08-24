@@ -10,111 +10,59 @@ class _DriverCard extends StatelessWidget {
     await callPhone(phone);
   }
 
-  Future<void> _sms(String phone) async {
-    await sendSms(phone);
-  }
-
-  Future<void> _copyCode(BuildContext context) async {
-    await Clipboard.setData(ClipboardData(text: order.code));
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Đã sao chép mã đơn'),
-            duration: Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final driver = order.driver!;
+    final parts = driver.name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+    final initials = parts.isEmpty
+        ? 'TX'
+        : parts.length == 1
+            ? parts.first.substring(0, 1).toUpperCase()
+            : '${parts.first[0]}${parts.last[0]}'.toUpperCase();
     return _FlatCard(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _CardHeader(
-            icon: Icons.person_pin_rounded,
-            label: 'Tài xế của bạn',
-            iconColor: c.primary),
-        const SizedBox(height: 14),
-        Row(children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: c.primarySoft,
-              border: Border.all(
-                  color: c.primary.withValues(alpha: 0.3), width: 1.5),
-            ),
-            child: ClipOval(
-              child: driver.avatarUrl != null
-                  ? Image.network(driver.avatarUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, error, stack) => Icon(
-                          Icons.person_rounded,
-                          size: 26,
-                          color: c.primary))
-                  : Icon(Icons.person_rounded, size: 26, color: c.primary),
-            ),
+      child: Row(children: [
+        Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: c.accent2,
           ),
-          const SizedBox(width: 14),
-          Expanded(
-              child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(driver.name,
-                  style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                      color: c.textPrimary)),
-              const SizedBox(height: 2),
-              Text(driver.phone,
-                  style: TextStyle(fontSize: 13, color: c.textSecondary)),
-            ],
-          )),
-          _ActionBtn(
-              icon: Icons.message_rounded,
-              color: c.primary,
-              onTap: () => _sms(driver.phone)),
-          const SizedBox(width: 8),
-          _ActionBtn(
-              icon: Icons.call_rounded,
-              color: c.success,
-              onTap: () => _call(driver.phone)),
-        ]),
-        const SizedBox(height: 12),
-        Divider(height: 1, color: c.divider),
-        const SizedBox(height: 12),
-        Row(children: [
-          Icon(Icons.confirmation_number_rounded,
-              size: 14, color: c.textSecondary),
-          const SizedBox(width: 6),
-          Text('Mã đơn',
-              style: TextStyle(fontSize: 13, color: c.textSecondary)),
-          const SizedBox(width: 8),
-          Text('#${order.code}',
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: c.textPrimary)),
-          const Spacer(),
-          GestureDetector(
-            onTap: () => _copyCode(context),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: c.primarySoft,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text('Sao chép',
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: c.primary,
-                      fontWeight: FontWeight.w600)),
-            ),
-          ),
-        ]),
+          alignment: Alignment.center,
+          child: Text(initials,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800)),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+            child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(driver.name,
+                style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                    color: c.textPrimary)),
+            const SizedBox(height: 2),
+            Row(children: [
+              Icon(Icons.star_rounded, size: 14, color: c.warning),
+              const SizedBox(width: 4),
+              Text('4.9 · ${driver.phone}',
+                  style: TextStyle(fontSize: 12, color: c.textSecondary)),
+            ]),
+          ],
+        )),
+        _ActionBtn(
+            icon: Icons.call_rounded,
+            color: c.primary,
+            onTap: () => _call(driver.phone)),
       ]),
     );
   }
@@ -131,13 +79,13 @@ class _ActionBtn extends StatelessWidget {
   Widget build(BuildContext context) => GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 40,
-          height: 40,
+          width: 46,
+          height: 46,
           decoration: BoxDecoration(
-            color: color.withValues(alpha: context.isDark ? 0.18 : 0.1),
-            borderRadius: BorderRadius.circular(10),
+            color: color,
+            shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: color, size: 20),
+          child: Icon(icon, color: Colors.white, size: 21),
         ),
       );
 }

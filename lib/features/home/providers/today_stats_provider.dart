@@ -3,10 +3,11 @@ import '../../../core/utils/formatters.dart';
 import '../../stats/stats_repository.dart';
 
 class TodayStats {
-  final int orders, active, revenue;
+  final int orders, active, completed, revenue;
   const TodayStats({
     this.orders = 0,
     this.active = 0,
+    this.completed = 0,
     this.revenue = 0,
   });
 
@@ -15,12 +16,14 @@ class TodayStats {
   // chạy" bên dưới lệch số nhau vì header chỉ đếm đơn tạo trong ngày, còn
   // đơn từ hôm trước vẫn đang giao thì bị bỏ sót. "Đang chạy" bản chất là
   // trạng thái hiện tại, không phải hoạt động trong ngày, nên dùng số thật
-  // toàn thời gian cho cả 2 nơi.
+  // toàn thời gian cho cả 2 nơi. "completed" thì vẫn lấy trong ngày —
+  // "hoàn thành hôm nay" đúng nghĩa là đơn hoàn thành trong ngày hôm nay.
   factory TodayStats.fromJson(Map<String, dynamic> data) {
     final today = data['today'] as Map<String, dynamic>? ?? {};
     return TodayStats(
       orders: Fmt.toInt(today['orders']),
       active: Fmt.toInt(data['active']),
+      completed: Fmt.toInt(today['completed']),
       revenue: Fmt.toInt(today['revenue']),
     );
   }

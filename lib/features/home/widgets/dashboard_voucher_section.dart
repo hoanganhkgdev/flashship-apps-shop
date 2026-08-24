@@ -1,6 +1,9 @@
 part of '../screens/home_screen.dart';
 
 // ─── Voucher Section ─────────────────────────────────────────────────────────
+// Banner phẳng, viền đứt tông accent2 — gọn hơn VoucherCard (dải trái +
+// OFF) dùng ở sheet chọn mã trong màn tạo đơn, phù hợp làm điểm nhấn
+// khuyến mãi ở trang chủ thay vì nơi cần so sánh nhiều mã cùng lúc.
 
 class _VoucherSection extends ConsumerWidget {
   const _VoucherSection();
@@ -8,78 +11,98 @@ class _VoucherSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(voucherProvider);
-    final c = context.colors;
 
     return async.when(
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
       data: (vouchers) {
-        if (vouchers.isEmpty) return const SizedBox.shrink();
+        final eligible =
+            vouchers.where((v) => !(v.isExpired || v.isFull)).toList();
+        if (eligible.isEmpty) return const SizedBox.shrink();
         return Padding(
-          padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-              child: Row(children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: c.success.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(Icons.local_offer_rounded,
-                      size: 15, color: c.success),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          child: Column(
+            children: [
+              for (final v in eligible.take(1)) ...[
+                _VoucherBanner(
+                  voucher: v,
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: v.code));
+                    AppSnackbar.success(context, 'Đã sao chép: ${v.code}',
+                        duration: const Duration(seconds: 2));
+                  },
                 ),
-                const SizedBox(width: 8),
-                Text('Mã giảm giá',
-                    style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: c.textPrimary)),
-                const SizedBox(width: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: c.success,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text('${vouchers.length}',
-                      style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white)),
-                ),
-              ]),
-            ),
-            SizedBox(
-              height: 88,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                itemCount: vouchers.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
-                itemBuilder: (_, i) {
-                  final v = vouchers[i];
-                  return SizedBox(
-                    width: 200,
-                    child: VoucherCard(
-                      voucher: v,
-                      eligible: !(v.isExpired || v.isFull),
-                      onTap: () {
-                        Clipboard.setData(ClipboardData(text: v.code));
-                        AppSnackbar.success(context, 'Đã sao chép: ${v.code}',
-                            duration: const Duration(seconds: 2));
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-          ]),
+              ],
+            ],
+          ),
         );
       },
+    );
+  }
+}
+
+class _VoucherBanner extends StatelessWidget {
+  final VoucherModel voucher;
+  final VoidCallback onTap;
+  const _VoucherBanner({required this.voucher, required this.onTap});
+
+  String get _subtitle {
+    final parts = <String>[
+      if (voucher.minOrderValue != null)
+        'Đơn từ ${Fmt.currency(voucher.minOrderValue!)}'
+      else
+        voucher.description ?? 'Mã: ${voucher.code}',
+      if (voucher.expiresAt != null) 'HSD ${VoucherCard.expiryText(voucher)}',
+    ];
+    return parts.join(' · ');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: c.accent2Soft,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border:
+              Border.all(color: c.accent2.withValues(alpha: 0.4), width: 1.2),
+        ),
+        child: Row(children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: c.accent2,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.card_giftcard_rounded,
+                color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(voucher.discountLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: c.accent2)),
+                const SizedBox(height: 2),
+                Text(_subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 11.5, color: c.textSecondary)),
+              ],
+            ),
+          ),
+        ]),
+      ),
     );
   }
 }
@@ -103,7 +126,7 @@ class _EmptyOrders extends StatelessWidget {
           Icon(Icons.inventory_2_outlined,
               size: 48, color: c.textTertiary.withValues(alpha: 0.5)),
           const SizedBox(height: 10),
-          Text('Chưa có đơn nào đang chạy',
+          Text('Chưa có đơn hàng nào',
               style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,

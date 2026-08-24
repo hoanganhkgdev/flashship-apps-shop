@@ -3,18 +3,21 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// Hằng số thương hiệu — giống nhau ở cả light/dark.
 /// Màu phụ thuộc chế độ sáng/tối nằm trong [Palette] (lấy qua `context.colors`).
+/// Bảng màu "tươi trẻ, thân thiện" (retail/e-commerce) — cam san hô làm chủ
+/// đạo, xanh ngọc làm điểm nhấn phụ. Thay cho tông "công cụ vận hành" cũ.
 class AppColors {
-  static const primary       = Color(0xFFE8720C);
-  static const primaryDark   = Color(0xFFCC5A08);
-  static const background    = Color(0xFFF5F6F8);
-  static const surface       = Colors.white;
-  static const textPrimary   = Color(0xFF111827);
-  static const textSecondary = Color(0xFF6B7280);
-  static const divider       = Color(0xFFE5E7EB);
-  static const success       = Color(0xFF10B981);
-  static const danger        = Color(0xFFEF4444);
-  static const warning       = Color(0xFFF59E0B);
-  static const info          = Color(0xFF3B82F6);
+  static const primary = Color(0xFFF56333);
+  static const primaryDark = Color(0xFFC74007);
+  static const accent2 = Color(0xFF00B3B5);
+  static const background = Color(0xFFFBF5F1);
+  static const surface = Color(0xFFFFFDFB);
+  static const textPrimary = Color(0xFF1C1410);
+  static const textSecondary = Color(0xFF5F5651);
+  static const divider = Color(0xFFE5DCD7);
+  static const success = Color(0xFF218A45);
+  static const danger = Color(0xFFCC3336);
+  static const warning = Color(0xFFAC6900);
+  static const info = Color(0xFF1F6DD8);
 }
 
 /// Spacing scale — dùng thay số lẻ rải rác.
@@ -27,24 +30,26 @@ class AppSpace {
   static const xxl = 32.0;
 }
 
-/// Radius scale — đồng bộ với app driver (bo mềm mại hơn kiểu operator-tool
-/// trước đó).
+/// Radius scale — bo mềm hơn theo hướng thiết kế retail/e-commerce mới.
 class AppRadius {
-  static const sm   = 8.0;   // chip/badge/status pill
-  static const md   = 12.0;  // field/button
-  static const lg   = 16.0;  // dialog
-  static const xl   = 20.0;  // bottom sheet
-  static const card = 16.0;  // card
+  static const sm = 10.0; // chip/badge
+  static const md = 16.0; // field/card nhỏ
+  static const lg = 20.0; // dialog
+  static const xl = 24.0; // bottom sheet, hero card
+  static const card = 20.0; // card
+  static const full = 999.0; // nút bấm dạng pill
 }
 
 /// Bảng màu theo chế độ sáng/tối. Lấy trong widget bằng `context.colors`.
 class Palette extends ThemeExtension<Palette> {
   final Color primary;
   final Color onPrimary;
-  final Color primarySoft;   // nền nhạt của primary (chip, icon box…)
+  final Color primarySoft; // nền nhạt của primary (chip, icon box…)
+  final Color accent2; // điểm nhấn phụ (xanh ngọc) — icon/shortcut/voucher
+  final Color accent2Soft;
   final Color background;
-  final Color surface;       // card, sheet, appbar
-  final Color surfaceAlt;    // nền input, hàng xen kẽ
+  final Color surface; // card, sheet, appbar
+  final Color surfaceAlt; // nền input, hàng xen kẽ
   final Color textPrimary;
   final Color textSecondary;
   final Color textTertiary;
@@ -63,6 +68,8 @@ class Palette extends ThemeExtension<Palette> {
     required this.primary,
     required this.onPrimary,
     required this.primarySoft,
+    required this.accent2,
+    required this.accent2Soft,
     required this.background,
     required this.surface,
     required this.surfaceAlt,
@@ -82,55 +89,60 @@ class Palette extends ThemeExtension<Palette> {
   });
 
   static const light = Palette(
-    primary:       AppColors.primary,
-    onPrimary:     Colors.white,
-    primarySoft:   Color(0xFFFDF0E3),
-    background:    Color(0xFFF5F6F8),
-    surface:       Colors.white,
-    surfaceAlt:    Color(0xFFF3F4F6),
-    textPrimary:   Color(0xFF111827),
-    textSecondary: Color(0xFF6B7280),
-    textTertiary:  Color(0xFF9CA3AF),
-    divider:       Color(0xFFE5E7EB),
-    success:       Color(0xFF10B981),
-    successSoft:   Color(0xFFE7F8F1),
-    danger:        Color(0xFFEF4444),
-    dangerSoft:    Color(0xFFFEF2F2),
-    warning:       Color(0xFFF59E0B),
-    warningSoft:   Color(0xFFFEF7E8),
-    info:          Color(0xFF3B82F6),
-    infoSoft:      Color(0xFFEFF5FF),
-    shadow:        Color(0x14111827),
+    primary: AppColors.primary,
+    onPrimary: Colors.white,
+    primarySoft: Color(0xFFFFE5D9),
+    accent2: AppColors.accent2,
+    accent2Soft: Color(0xFFD1F3F2),
+    background: AppColors.background,
+    surface: AppColors.surface,
+    surfaceAlt: Color(0xFFF5EDE8),
+    textPrimary: AppColors.textPrimary,
+    textSecondary: AppColors.textSecondary,
+    textTertiary: Color(0xFF938A86),
+    divider: AppColors.divider,
+    success: AppColors.success,
+    successSoft: Color(0xFFD9F3DD),
+    danger: AppColors.danger,
+    dangerSoft: Color(0xFFFFE5E1),
+    warning: AppColors.warning,
+    warningSoft: Color(0xFFFFECC9),
+    info: AppColors.info,
+    infoSoft: Color(0xFFDDECFF),
+    shadow: Color(0x1A1C1410),
   );
 
   static const dark = Palette(
-    primary:       Color(0xFFF18A35), // sáng hơn một chút cho đủ tương phản nền tối
-    onPrimary:     Colors.white,
-    primarySoft:   Color(0xFF33231A),
-    background:    Color(0xFF101216),
-    surface:       Color(0xFF1A1D23),
-    surfaceAlt:    Color(0xFF23262E),
-    textPrimary:   Color(0xFFF3F4F6),
-    textSecondary: Color(0xFF9CA3AF),
-    textTertiary:  Color(0xFF6B7280),
-    divider:       Color(0xFF2B2F38),
-    success:       Color(0xFF34D399),
-    successSoft:   Color(0xFF15281F),
-    danger:        Color(0xFFF87171),
-    dangerSoft:    Color(0xFF2E1A1A),
-    warning:       Color(0xFFFBBF24),
-    warningSoft:   Color(0xFF2C2415),
-    info:          Color(0xFF60A5FA),
-    infoSoft:      Color(0xFF18222F),
-    shadow:        Color(0x66000000),
+    primary: Color(0xFFFF8355), // sáng hơn một chút cho đủ tương phản nền tối
+    onPrimary: Colors.white,
+    primarySoft: Color(0xFF3A2417),
+    accent2: Color(0xFF3DDBDC),
+    accent2Soft: Color(0xFF163330),
+    background: Color(0xFF141110),
+    surface: Color(0xFF1E1A18),
+    surfaceAlt: Color(0xFF272220),
+    textPrimary: Color(0xFFF5EFEB),
+    textSecondary: Color(0xFFB0A6A0),
+    textTertiary: Color(0xFF7A716C),
+    divider: Color(0xFF332C28),
+    success: Color(0xFF4ADE80),
+    successSoft: Color(0xFF17281C),
+    danger: Color(0xFFFF6B6B),
+    dangerSoft: Color(0xFF301818),
+    warning: Color(0xFFE8A93E),
+    warningSoft: Color(0xFF2E2312),
+    info: Color(0xFF5B9BFF),
+    infoSoft: Color(0xFF19212F),
+    shadow: Color(0x66000000),
   );
 
   /// Shadow mềm dùng chung cho mọi card — đồng bộ app driver
   /// (color 0x14111827, blur 12, offset (0,3) ở light mode).
   List<BoxShadow> get cardShadow => [
         BoxShadow(
-            color: shadow.withValues(alpha: 0.08),
-            blurRadius: 12, offset: const Offset(0, 3)),
+            color: shadow.withValues(alpha: 0.10),
+            blurRadius: 20,
+            offset: const Offset(0, 6)),
       ];
 
   @override
@@ -141,38 +153,39 @@ class Palette extends ThemeExtension<Palette> {
     if (other is! Palette) return this;
     Color l(Color a, Color b) => Color.lerp(a, b, t)!;
     return Palette(
-      primary:       l(primary, other.primary),
-      onPrimary:     l(onPrimary, other.onPrimary),
-      primarySoft:   l(primarySoft, other.primarySoft),
-      background:    l(background, other.background),
-      surface:       l(surface, other.surface),
-      surfaceAlt:    l(surfaceAlt, other.surfaceAlt),
-      textPrimary:   l(textPrimary, other.textPrimary),
+      primary: l(primary, other.primary),
+      onPrimary: l(onPrimary, other.onPrimary),
+      primarySoft: l(primarySoft, other.primarySoft),
+      accent2: l(accent2, other.accent2),
+      accent2Soft: l(accent2Soft, other.accent2Soft),
+      background: l(background, other.background),
+      surface: l(surface, other.surface),
+      surfaceAlt: l(surfaceAlt, other.surfaceAlt),
+      textPrimary: l(textPrimary, other.textPrimary),
       textSecondary: l(textSecondary, other.textSecondary),
-      textTertiary:  l(textTertiary, other.textTertiary),
-      divider:       l(divider, other.divider),
-      success:       l(success, other.success),
-      successSoft:   l(successSoft, other.successSoft),
-      danger:        l(danger, other.danger),
-      dangerSoft:    l(dangerSoft, other.dangerSoft),
-      warning:       l(warning, other.warning),
-      warningSoft:   l(warningSoft, other.warningSoft),
-      info:          l(info, other.info),
-      infoSoft:      l(infoSoft, other.infoSoft),
-      shadow:        l(shadow, other.shadow),
+      textTertiary: l(textTertiary, other.textTertiary),
+      divider: l(divider, other.divider),
+      success: l(success, other.success),
+      successSoft: l(successSoft, other.successSoft),
+      danger: l(danger, other.danger),
+      dangerSoft: l(dangerSoft, other.dangerSoft),
+      warning: l(warning, other.warning),
+      warningSoft: l(warningSoft, other.warningSoft),
+      info: l(info, other.info),
+      infoSoft: l(infoSoft, other.infoSoft),
+      shadow: l(shadow, other.shadow),
     );
   }
 }
 
 extension PaletteX on BuildContext {
-  Palette get colors =>
-      Theme.of(this).extension<Palette>() ?? Palette.light;
+  Palette get colors => Theme.of(this).extension<Palette>() ?? Palette.light;
   bool get isDark => Theme.of(this).brightness == Brightness.dark;
 }
 
 class AppTheme {
   static ThemeData get light => _build(Palette.light, Brightness.light);
-  static ThemeData get dark  => _build(Palette.dark, Brightness.dark);
+  static ThemeData get dark => _build(Palette.dark, Brightness.dark);
 
   static ThemeData _build(Palette p, Brightness brightness) {
     final colorScheme = ColorScheme.fromSeed(
@@ -224,7 +237,8 @@ class AppTheme {
         backgroundColor: p.surface,
         surfaceTintColor: Colors.transparent,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
         ),
       ),
       dialogTheme: DialogThemeData(
@@ -235,10 +249,12 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor:
-            brightness == Brightness.light ? const Color(0xFF1F2937) : p.surfaceAlt,
+        backgroundColor: brightness == Brightness.light
+            ? const Color(0xFF1F2937)
+            : p.surfaceAlt,
         contentTextStyle: GoogleFonts.beVietnamPro(
-          fontSize: 14, color: Colors.white,
+          fontSize: 14,
+          color: Colors.white,
         ),
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.md)),
@@ -277,7 +293,7 @@ class AppTheme {
           disabledBackgroundColor: p.primary.withValues(alpha: 0.4),
           disabledForegroundColor: p.onPrimary.withValues(alpha: 0.8),
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md)),
+              borderRadius: BorderRadius.circular(AppRadius.full)),
           minimumSize: const Size(double.infinity, 50),
           textStyle: GoogleFonts.beVietnamPro(
             fontSize: 15,
@@ -288,9 +304,9 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: p.primary,
-          side: BorderSide(color: p.primary),
+          side: BorderSide(color: p.primary, width: 1.5),
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md)),
+              borderRadius: BorderRadius.circular(AppRadius.full)),
           textStyle: GoogleFonts.beVietnamPro(
             fontSize: 15,
             fontWeight: FontWeight.w600,

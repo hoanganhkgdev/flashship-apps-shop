@@ -33,7 +33,7 @@ class _RouteCard extends StatelessWidget {
                   width: 12,
                   height: 12,
                   decoration: BoxDecoration(
-                      color: c.success,
+                      color: c.accent2,
                       borderRadius: BorderRadius.circular(3))),
             ]),
             const SizedBox(width: 14),
@@ -42,7 +42,7 @@ class _RouteCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _RouteStop(
-                    label: 'Lấy hàng',
+                    label: 'LẤY HÀNG',
                     title: order.pickupPlaceName?.isNotEmpty == true
                         ? order.pickupPlaceName
                         : order.senderName?.isNotEmpty == true
@@ -53,7 +53,7 @@ class _RouteCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   _RouteStop(
-                    label: 'Giao đến',
+                    label: 'GIAO HÀNG',
                     title: order.deliveryPlaceName?.isNotEmpty == true
                         ? order.deliveryPlaceName
                         : order.receiverName?.isNotEmpty == true
@@ -103,22 +103,7 @@ class _RouteStop extends StatelessWidget {
                 color: c.textPrimary)),
         const SizedBox(height: 1),
       ],
-      Text(address, style: TextStyle(fontSize: 14, color: c.textPrimary)),
-      if (phone != null && phone!.isNotEmpty) ...[
-        const SizedBox(height: 4),
-        GestureDetector(
-          onTap: () => callPhone(phone!),
-          child: Row(children: [
-            Icon(Icons.phone_outlined, size: 13, color: c.primary),
-            const SizedBox(width: 4),
-            Text(phone!,
-                style: TextStyle(
-                    fontSize: 13,
-                    color: c.primary,
-                    fontWeight: FontWeight.w500)),
-          ]),
-        ),
-      ],
+      Text(address, style: TextStyle(fontSize: 12.5, color: c.textSecondary)),
     ]);
   }
 }

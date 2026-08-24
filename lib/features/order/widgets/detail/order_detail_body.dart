@@ -24,8 +24,6 @@ class _Body extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final driverLat = realtimeLat ?? order.driver?.latitude;
-
     return RefreshIndicator(
       color: c.primary,
       onRefresh: onRefresh,
@@ -44,15 +42,8 @@ class _Body extends StatelessWidget {
             const SizedBox(height: 12),
           ],
 
-          // ── Map (driver location) ─────────────────────────────────────
-          if (driverLat != null && order.isActive) ...[
-            _DriverMapCard(
-              order: order,
-              realtimeLat: realtimeLat,
-              realtimeLng: realtimeLng,
-            ),
-            const SizedBox(height: 12),
-          ],
+          // Vị trí tài xế vẫn được cập nhật realtime; bản đồ được lược khỏi
+          // trang tóm tắt để giữ bố cục gọn đúng thiết kế.
 
           // ── Route ─────────────────────────────────────────────────────
           // Batch: stops list / Single: route card
@@ -74,28 +65,20 @@ class _Body extends StatelessWidget {
           // ── Cancel button ──────────────────────────────────────────────
           if (order.canCancel) ...[
             const SizedBox(height: 12),
-            _FlatCard(
-              child: SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: OutlinedButton(
-                  onPressed: cancelling ? null : onCancel,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: c.danger,
-                    side: BorderSide(color: c.danger),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.md)),
-                  ),
-                  child: cancelling
-                      ? SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: c.danger))
-                      : const Text('Huỷ đơn hàng',
-                          style: TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.w700)),
-                ),
+            SizedBox(
+              height: 42,
+              child: TextButton(
+                onPressed: cancelling ? null : onCancel,
+                style: TextButton.styleFrom(foregroundColor: c.danger),
+                child: cancelling
+                    ? SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: c.danger))
+                    : const Text('Huỷ đơn hàng',
+                        style: TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w700)),
               ),
             ),
           ],

@@ -367,41 +367,90 @@ class _State extends ConsumerState<OrderDetailScreen>
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Scaffold(
-      backgroundColor: context.colors.background,
-      appBar: AppBar(
-        title: Text('Đơn #${widget.orderCode}'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          onPressed: () =>
-              context.canPop() ? context.pop() : context.go('/home'),
-        ),
-        actions: [
-          if (_order != null)
-            IconButton(
-              icon: const Icon(Icons.copy_outlined, size: 20),
-              tooltip: 'Copy thông tin đơn',
-              onPressed: _copyInfo,
-            ),
-        ],
+      backgroundColor: c.background,
+      body: SafeArea(
+        bottom: false,
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+            child: Row(children: [
+              GestureDetector(
+                onTap: () =>
+                    context.canPop() ? context.pop() : context.go('/home'),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: c.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    boxShadow: c.cardShadow,
+                  ),
+                  child: Icon(Icons.arrow_back_ios_new_rounded,
+                      size: 17, color: c.textPrimary),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: GestureDetector(
+                  onLongPress: _order == null ? null : _copyInfo,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                          widget.orderCode.startsWith('#')
+                              ? widget.orderCode
+                              : '#${widget.orderCode}',
+                          style: TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w800,
+                              color: c.textPrimary)),
+                      if (_order != null)
+                        Text('Đặt lúc ${Fmt.dateTime(_order!.createdAt)}',
+                            style: TextStyle(
+                                fontSize: 11.5, color: c.textTertiary)),
+                    ],
+                  ),
+                ),
+              ),
+              if (_order != null)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  decoration: BoxDecoration(
+                    color:
+                        Fmt.statusColor(_order!.status).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
+                  child: Text(Fmt.orderStatus(_order!.status),
+                      style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: Fmt.statusColor(_order!.status))),
+                ),
+            ]),
+          ),
+          Expanded(
+            child: _loading
+                ? Center(child: CircularProgressIndicator(color: c.primary))
+                : _error != null
+                    ? _ErrorView(onRetry: _fetchOrder)
+                    : _order == null
+                        ? const Center(child: Text('Không tìm thấy đơn hàng'))
+                        : _Body(
+                            order: _order!,
+                            realtimeLat: _realtimeLat,
+                            realtimeLng: _realtimeLng,
+                            cancelling: _cancelling,
+                            ratingDone: _ratingDone,
+                            onRefresh: _fetchSilent,
+                            onCancel: _cancelOrder,
+                            onRate: _showRating,
+                          ),
+          ),
+        ]),
       ),
-      body: _loading
-          ? Center(
-              child: CircularProgressIndicator(color: context.colors.primary))
-          : _error != null
-              ? _ErrorView(onRetry: _fetchOrder)
-              : _order == null
-                  ? const Center(child: Text('Không tìm thấy đơn hàng'))
-                  : _Body(
-                      order: _order!,
-                      realtimeLat: _realtimeLat,
-                      realtimeLng: _realtimeLng,
-                      cancelling: _cancelling,
-                      ratingDone: _ratingDone,
-                      onRefresh: _fetchSilent,
-                      onCancel: _cancelOrder,
-                      onRate: _showRating,
-                    ),
     );
   }
 }

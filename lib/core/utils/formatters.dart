@@ -34,13 +34,13 @@ class Fmt {
 
   static Color statusColor(String status) {
     switch (status) {
-      case 'pending':    return const Color(0xFFF59E0B);
+      case 'pending':    return const Color(0xFFAC6900);
       case 'assigned':
       case 'processing':
-      case 'on_the_way': return const Color(0xFF3B82F6);
-      case 'completed':  return const Color(0xFF10B981);
-      case 'cancelled':  return const Color(0xFFEF4444);
-      default:           return const Color(0xFF6B7280);
+      case 'on_the_way': return const Color(0xFF1F6DD8);
+      case 'completed':  return const Color(0xFF218A45);
+      case 'cancelled':  return const Color(0xFFCC3336);
+      default:           return const Color(0xFF938A86);
     }
   }
 
