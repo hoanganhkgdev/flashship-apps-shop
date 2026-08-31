@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart' show BitmapDescriptor;
+import 'package:google_maps_flutter/google_maps_flutter.dart'
+    show BitmapDescriptor;
 
 /// Vẽ marker "pin giọt nước" (đầu tròn + đuôi nhọn) bằng Canvas, raster ra
 /// BitmapDescriptor lúc runtime — dùng cho điểm lấy/điểm giao trên bản đồ,
@@ -12,12 +13,13 @@ Future<BitmapDescriptor> buildPinMarker({
   double size = 72,
 }) async {
   final recorder = ui.PictureRecorder();
-  final canvas   = Canvas(recorder);
+  final canvas = Canvas(recorder);
 
   final headRadius = size * 0.35; // đầu tròn: đường kính 0.7*size
   final headCenter = Offset(size / 2, headRadius);
   final tailHalfWidth = headRadius * 0.45;
-  final tailTopY = headCenter.dy + headRadius * 0.35; // nằm trong lòng vòng tròn
+  final tailTopY =
+      headCenter.dy + headRadius * 0.35; // nằm trong lòng vòng tròn
 
   final headPath = Path()
     ..addOval(Rect.fromCircle(center: headCenter, radius: headRadius));
@@ -61,9 +63,9 @@ Future<BitmapDescriptor> buildDriverMarker({
   double size = 24,
 }) async {
   final recorder = ui.PictureRecorder();
-  final canvas   = Canvas(recorder);
-  final center   = Offset(size / 2, size / 2);
-  final radius   = size / 2;
+  final canvas = Canvas(recorder);
+  final center = Offset(size / 2, size / 2);
+  final radius = size / 2;
 
   canvas.drawCircle(center, radius, Paint()..color = color);
 

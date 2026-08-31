@@ -50,6 +50,9 @@ abstract interface class AuthRepository {
   Future<AuthSession> register(Map<String, dynamic> data);
   Future<AuthSession> login(String phone, String password,
       {String? deviceName});
+  Future<void> sendLoginOtp(String phone);
+  Future<AuthSession> verifyLoginOtp(String phone, String otp,
+      {String? deviceName});
   Future<ShopUserModel> me();
   Future<ShopUserModel> updateProfile(Map<String, dynamic> data);
   Future<ShopUserModel> uploadAvatar(String filePath);
@@ -95,6 +98,19 @@ class ApiAuthRepository implements AuthRepository {
       _session(await _api.post('/shop/auth/login', data: {
         'phone': phone,
         'password': password,
+        if (deviceName != null) 'device_name': deviceName,
+      }));
+
+  @override
+  Future<void> sendLoginOtp(String phone) async =>
+      _api.post('/shop/auth/login/send-otp', data: {'phone': phone});
+
+  @override
+  Future<AuthSession> verifyLoginOtp(String phone, String otp,
+          {String? deviceName}) async =>
+      _session(await _api.post('/shop/auth/login/verify-otp', data: {
+        'phone': phone,
+        'otp': otp,
         if (deviceName != null) 'device_name': deviceName,
       }));
 

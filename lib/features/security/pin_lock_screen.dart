@@ -20,10 +20,10 @@ class PinLockScreen extends ConsumerStatefulWidget {
 }
 
 class _PinLockScreenState extends ConsumerState<PinLockScreen> {
-  String  _input               = '';
+  String _input = '';
   String? _error;
-  bool    _biometricAvailable  = false;
-  bool    _biometricInProgress = false;
+  bool _biometricAvailable = false;
+  bool _biometricInProgress = false;
 
   @override
   void initState() {
@@ -57,7 +57,7 @@ class _PinLockScreenState extends ConsumerState<PinLockScreen> {
     if (_input.length >= 4) return;
     setState(() {
       _input += d;
-      _error  = null;
+      _error = null;
     });
     if (_input.length == 4) _verify();
   }
@@ -93,7 +93,8 @@ class _PinLockScreenState extends ConsumerState<PinLockScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Đăng xuất?', style: TextStyle(fontWeight: FontWeight.w700)),
+        title: const Text('Đăng xuất?',
+            style: TextStyle(fontWeight: FontWeight.w700)),
         content: Text('Bạn quên mã PIN? Đăng xuất để đăng nhập lại.',
             style: TextStyle(color: ctx.colors.textSecondary)),
         actions: [
@@ -104,7 +105,8 @@ class _PinLockScreenState extends ConsumerState<PinLockScreen> {
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: ctx.colors.danger),
-            child: const Text('Đăng xuất', style: TextStyle(fontWeight: FontWeight.w700)),
+            child: const Text('Đăng xuất',
+                style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -127,7 +129,8 @@ class _PinLockScreenState extends ConsumerState<PinLockScreen> {
             children: [
               const Spacer(flex: 2),
               Container(
-                width: 64, height: 64,
+                width: 64,
+                height: 64,
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
@@ -138,7 +141,9 @@ class _PinLockScreenState extends ConsumerState<PinLockScreen> {
               const SizedBox(height: 20),
               const Text('Nhập mã PIN',
                   style: TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary)),
               const SizedBox(height: 28),
               PinDots(length: 4, filled: _input.length),
               if (_error != null) ...[
@@ -160,7 +165,9 @@ class _PinLockScreenState extends ConsumerState<PinLockScreen> {
                 onTap: _logout,
                 child: Text('Đăng xuất',
                     style: TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w700, color: c.textSecondary)),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: c.textSecondary)),
               ),
               const SizedBox(height: 12),
             ],

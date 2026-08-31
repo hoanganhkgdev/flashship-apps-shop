@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
 
@@ -39,6 +40,8 @@ class AppField extends StatelessWidget {
   final VoidCallback? onTap;
   final FocusNode? focusNode;
   final Color? fillColor;
+  final bool outlined;
+  final List<TextInputFormatter>? inputFormatters;
 
   const AppField({
     super.key,
@@ -59,6 +62,8 @@ class AppField extends StatelessWidget {
     this.onTap,
     this.focusNode,
     this.fillColor,
+    this.outlined = false,
+    this.inputFormatters,
   });
 
   @override
@@ -68,6 +73,7 @@ class AppField extends StatelessWidget {
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       textInputAction: textInputAction,
       onFieldSubmitted: onFieldSubmitted,
       onChanged: onChanged,
@@ -107,11 +113,11 @@ class AppField extends StatelessWidget {
             const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: BorderSide.none,
+          borderSide: outlined ? BorderSide(color: c.divider) : BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: BorderSide.none,
+          borderSide: outlined ? BorderSide(color: c.divider) : BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
@@ -144,6 +150,8 @@ class PhoneField extends StatefulWidget {
   final TextInputAction? textInputAction;
   final void Function(String)? onFieldSubmitted;
   final String? Function(String?)? validator;
+  final Color? fillColor;
+  final bool outlined;
 
   const PhoneField({
     super.key,
@@ -152,6 +160,8 @@ class PhoneField extends StatefulWidget {
     this.textInputAction,
     this.onFieldSubmitted,
     this.validator,
+    this.fillColor,
+    this.outlined = false,
   });
 
   @override
@@ -217,16 +227,18 @@ class _PhoneFieldState extends State<PhoneField> {
         ),
         prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
         filled: true,
-        fillColor: c.surfaceAlt,
+        fillColor: widget.fillColor ?? c.surfaceAlt,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: BorderSide.none,
+          borderSide:
+              widget.outlined ? BorderSide(color: c.divider) : BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: BorderSide.none,
+          borderSide:
+              widget.outlined ? BorderSide(color: c.divider) : BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
@@ -582,7 +594,6 @@ class AppStatusBadge extends StatelessWidget {
         return (c.warning, c.warningSoft);
       case 'assigned':
       case 'processing':
-      case 'on_the_way':
         return (c.info, c.infoSoft);
       case 'completed':
         return (c.success, c.successSoft);

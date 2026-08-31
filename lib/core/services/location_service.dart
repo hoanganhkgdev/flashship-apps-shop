@@ -41,8 +41,8 @@ class LocationService {
       final res = await _dio.get(
         'https://maps.googleapis.com/maps/api/geocode/json',
         queryParameters: {
-          'latlng':   '$lat,$lng',
-          'key':      AppConstants.googleMapsApiKey,
+          'latlng': '$lat,$lng',
+          'key': AppConstants.googleMapsApiKey,
           'language': 'vi',
         },
       );

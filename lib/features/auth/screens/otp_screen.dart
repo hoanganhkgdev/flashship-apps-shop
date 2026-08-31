@@ -52,7 +52,10 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   }
 
   Future<void> _verify() async {
-    if (_otpCtl.otp.length < 6) return;
+    if (_otpCtl.otp.length < 6) {
+      AppSnackbar.error(context, 'Vui lòng nhập đủ 6 chữ số');
+      return;
+    }
     final data = widget.regData;
     final ok = await ref.read(authProvider.notifier).verifyOtpAndRegister(
           phone: data['phone'] as String,
@@ -86,34 +89,41 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
     final phone = widget.regData['phone'] as String? ?? '';
+    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    final displayPhone = digits.length == 10
+        ? '${digits.substring(0, 4)} ${digits.substring(4, 7)} ${digits.substring(7)}'
+        : phone;
+    final c = context.colors;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: c.background,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFFFF6F0), Colors.white],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            stops: [0.0, 0.55],
-          ),
-        ),
+        color: c.surface,
         child: SafeArea(
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
+                padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
                 child: Row(children: [
-                  IconButton(
-                    icon:
-                        const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-                    onPressed: () {
+                  GestureDetector(
+                    onTap: () {
                       // Xoá lỗi trước khi quay lại — màn Đăng ký vẫn đang
                       // mounted phía dưới (push không dispose), tự đọc lại
                       // authProvider.error ngay khi lộ ra nếu không xoá ở đây.
                       ref.read(authProvider.notifier).clearError();
                       context.pop();
                     },
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: c.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        border: Border.all(color: c.divider),
+                      ),
+                      child: Icon(Icons.arrow_back_ios_new_rounded,
+                          size: 17, color: c.textPrimary),
+                    ),
                   ),
                 ]),
               ),
@@ -123,8 +133,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: AppSpace.sm),
-                      const StepProgressBar(currentStep: 2, totalSteps: 2),
+                      const SizedBox(height: 8),
+                      const StepProgressBar(
+                          currentStep: 2, totalSteps: 2, showLabel: false),
                       const SizedBox(height: AppSpace.xl),
                       const Text('Xác nhận OTP',
                           style: TextStyle(
@@ -139,21 +150,19 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                         children: [
                           const TextSpan(text: 'Nhập mã 6 số đã gửi tới '),
                           TextSpan(
-                            text: phone,
+                            text: displayPhone,
                             style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.textPrimary),
                           ),
                         ],
                       )),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 24),
 
                       // OTP boxes
                       OtpInput(
                         controller: _otpCtl,
-                        onChanged: (otp) {
-                          if (otp.length == 6) _verify();
-                        },
+                        onChanged: (_) => setState(() {}),
                       ),
 
                       if (auth.error != null) ...[
@@ -161,13 +170,13 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                         AppErrorBox(auth.error!),
                       ],
 
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 28),
                       AppButton(
                         label: 'Xác nhận',
-                        onPressed: _otpCtl.otp.length == 6 ? _verify : null,
+                        onPressed: _verify,
                         isLoading: auth.isLoading,
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
                       Center(
                         child: _countdown > 0

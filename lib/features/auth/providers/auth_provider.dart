@@ -66,9 +66,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final prefs = await SharedPreferences.getInstance();
     final token = await _tokenStorage.read();
     final userData = prefs.getString(AppConstants.userKey);
+    NotificationService.onTokenRefresh = updateFcmToken;
     if (token != null && userData != null) {
       final user = ShopUserModel.fromJson(jsonDecode(userData));
       state = state.copyWith(token: token, user: user, isInitialized: true);
+      _registerFcmToken();
     } else {
       state = state.copyWith(isInitialized: true);
     }
@@ -121,6 +123,36 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final session = await _repository.login(
         phone,
         password,
+        deviceName: deviceName,
+      );
+      await _saveSession(session);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: parseApiError(e));
+      return false;
+    }
+  }
+
+  Future<bool> sendLoginOtp(String phone) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _repository.sendLoginOtp(phone);
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: parseApiError(e));
+      return false;
+    }
+  }
+
+  Future<bool> loginWithOtp(
+      {required String phone, required String otp}) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final deviceName = await getDeviceName();
+      final session = await _repository.verifyLoginOtp(
+        phone,
+        otp,
         deviceName: deviceName,
       );
       await _saveSession(session);
@@ -257,6 +289,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await prefs.setString(AppConstants.userKey, jsonEncode(user.toJson()));
     state = state.copyWith(
         token: token, user: user, isLoading: false, isInitialized: true);
+    NotificationService.onTokenRefresh = updateFcmToken;
     _registerFcmToken();
   }
 
@@ -269,7 +302,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // Gọi lại khi NotificationService.onTokenRefresh báo Firebase đã xoay vòng
   // token — nhận thẳng token mới thay vì tự getToken() lại.
   Future<void> updateFcmToken(String token) async {
-    if (state.token == null) return; // chưa đăng nhập thì bỏ qua
+    if (!state.isAuthenticated) return; // chưa đăng nhập thì bỏ qua
     try {
       await _repository.updateFcmToken(token);
     } catch (_) {}

@@ -39,7 +39,7 @@ class StatsScreen extends ConsumerWidget {
           Container(
             color: c.surface,
             padding: EdgeInsets.fromLTRB(
-                20, MediaQuery.of(context).padding.top + 16, 20, 16),
+                20, MediaQuery.of(context).padding.top + 16, 20, 14),
             child: Row(children: [
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Thống kê',
@@ -51,38 +51,22 @@ class StatsScreen extends ConsumerWidget {
                 Text('Tổng quan hoạt động cửa hàng',
                     style: TextStyle(fontSize: 12, color: c.textSecondary)),
               ]),
-              const Spacer(),
-              statsAsync.isLoading
-                  ? SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: c.primary))
-                  : GestureDetector(
-                      onTap: () => ref.invalidate(_statsProvider(period)),
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: c.primarySoft,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(Icons.refresh_rounded,
-                            color: c.primary, size: 18),
-                      ),
-                    ),
             ]),
           ),
 
           // ── Bộ lọc khoảng thời gian ─────────────────────────────────
           Container(
-            color: c.surface,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+            decoration: BoxDecoration(
+              color: c.surface,
+              border: Border(bottom: BorderSide(color: c.divider)),
+            ),
             child: Container(
               height: 40,
               decoration: BoxDecoration(
-                color: c.surfaceAlt,
+                color: c.background,
                 borderRadius: BorderRadius.circular(11),
+                border: Border.all(color: c.divider),
               ),
               padding: const EdgeInsets.all(3),
               child: Row(
@@ -97,15 +81,8 @@ class StatsScreen extends ConsumerWidget {
                         decoration: BoxDecoration(
                           color: selected ? c.surface : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
-                          boxShadow: selected
-                              ? [
-                                  BoxShadow(
-                                      color:
-                                          Colors.black.withValues(alpha: 0.06),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 1))
-                                ]
-                              : null,
+                          border:
+                              selected ? Border.all(color: c.divider) : null,
                         ),
                         child: Center(
                           child: Text(p.$2,
@@ -188,7 +165,7 @@ class _StatsContent extends StatelessWidget {
         : <String, dynamic>{};
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
       children: [
         // ── Revenue hero — số liệu trần trên nền trắng, không gradient ────
         Container(
@@ -196,17 +173,17 @@ class _StatsContent extends StatelessWidget {
           decoration: BoxDecoration(
             color: c.surface,
             borderRadius: BorderRadius.circular(AppRadius.card),
-            boxShadow: c.cardShadow,
+            border: Border.all(color: c.divider),
           ),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Icon(Icons.payments_outlined, size: 14, color: c.textSecondary),
               const SizedBox(width: 6),
-              Text('Tổng doanh thu',
+              Text('TỔNG PHÍ SHIP',
                   style: TextStyle(
                       fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w800,
                       color: c.textSecondary)),
             ]),
             const SizedBox(height: 8),
@@ -235,7 +212,7 @@ class _StatsContent extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
               child: _StatCard(
-            label: 'Đang chạy',
+            label: 'Đang xử lý',
             value: active.toString(),
             icon: Icons.local_shipping_rounded,
             color: c.info,
@@ -298,7 +275,7 @@ class _StatsContent extends StatelessWidget {
         decoration: BoxDecoration(
           color: c.surface,
           borderRadius: BorderRadius.circular(AppRadius.card),
-          boxShadow: c.cardShadow,
+          border: Border.all(color: c.divider),
         ),
         child: child,
       );
@@ -348,7 +325,7 @@ class _StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        boxShadow: c.cardShadow,
+        border: Border.all(color: c.divider),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(
@@ -450,7 +427,24 @@ class _DailyChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final maxCount = daily
+    final now = DateTime.now();
+    final chartData = List.generate(7, (index) {
+      final date = now.subtract(Duration(days: 6 - index));
+      final key =
+          '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      dynamic match;
+      for (final item in daily) {
+        if (item is Map && item['date']?.toString() == key) {
+          match = item;
+          break;
+        }
+      }
+      return <String, dynamic>{
+        'date': key,
+        'count': match == null ? 0 : Fmt.toInt(match['count']),
+      };
+    });
+    final maxCount = chartData
         .map((d) => Fmt.toInt(d['count']))
         .fold(1, (a, b) => a > b ? a : b);
 
@@ -458,10 +452,12 @@ class _DailyChart extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
-        children: daily.map((d) {
+        children: chartData.map((d) {
           final count = Fmt.toInt(d['count']);
           final date = d['date'] as String? ?? '';
-          final label = date.length >= 10 ? date.substring(5) : date;
+          final label = date.length >= 10
+              ? '${date.substring(8, 10)}/${date.substring(5, 7)}'
+              : date;
           final ratio = maxCount > 0 ? count / maxCount : 0.0;
           final isMax = count > 0 && count == maxCount;
           final barHeight =

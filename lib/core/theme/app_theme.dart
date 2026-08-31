@@ -195,7 +195,7 @@ class AppTheme {
       error: p.danger,
     );
 
-    final textTheme = GoogleFonts.beVietnamProTextTheme(
+    final textTheme = GoogleFonts.robotoCondensedTextTheme(
       ThemeData(colorScheme: colorScheme).textTheme,
     ).apply(
       bodyColor: p.textPrimary,
@@ -220,7 +220,7 @@ class AppTheme {
         shadowColor: p.shadow,
         centerTitle: true,
         iconTheme: IconThemeData(color: p.textPrimary),
-        titleTextStyle: GoogleFonts.beVietnamPro(
+        titleTextStyle: GoogleFonts.robotoCondensed(
           fontSize: 17,
           fontWeight: FontWeight.w600,
           color: p.textPrimary,
@@ -252,7 +252,7 @@ class AppTheme {
         backgroundColor: brightness == Brightness.light
             ? const Color(0xFF1F2937)
             : p.surfaceAlt,
-        contentTextStyle: GoogleFonts.beVietnamPro(
+        contentTextStyle: GoogleFonts.robotoCondensed(
           fontSize: 14,
           color: Colors.white,
         ),
@@ -295,7 +295,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.full)),
           minimumSize: const Size(double.infinity, 50),
-          textStyle: GoogleFonts.beVietnamPro(
+          textStyle: GoogleFonts.robotoCondensed(
             fontSize: 15,
             fontWeight: FontWeight.w700,
           ),
@@ -307,7 +307,7 @@ class AppTheme {
           side: BorderSide(color: p.primary, width: 1.5),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.full)),
-          textStyle: GoogleFonts.beVietnamPro(
+          textStyle: GoogleFonts.robotoCondensed(
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
@@ -316,7 +316,7 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: p.primary,
-          textStyle: GoogleFonts.beVietnamPro(
+          textStyle: GoogleFonts.robotoCondensed(
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),

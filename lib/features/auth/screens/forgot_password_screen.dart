@@ -153,21 +153,19 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     final safeT = MediaQuery.of(context).padding.top;
     final bottom = MediaQuery.of(context).viewInsets.bottom;
     final safeB = MediaQuery.of(context).padding.bottom;
+    final c = context.colors;
+    final digits = _phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
+    final displayPhone = digits.length == 10
+        ? '${digits.substring(0, 4)} ${digits.substring(4, 7)} ${digits.substring(7)}'
+        : _phoneCtrl.text.trim();
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: c.background,
       resizeToAvoidBottomInset: false,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFFFF6F0), Colors.white],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            stops: [0.0, 0.55],
-          ),
-        ),
+        color: c.surface,
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(28, safeT + 24, 28, bottom + safeB + 32),
+          padding: EdgeInsets.fromLTRB(24, safeT + 20, 24, bottom + safeB + 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -180,20 +178,22 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                       })
                     : context.pop(),
                 child: Container(
-                  width: 38,
-                  height: 38,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
-                    borderRadius: BorderRadius.circular(10),
+                    color: c.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(color: c.divider),
                   ),
-                  child: const Icon(Icons.arrow_back_ios_new_rounded,
-                      size: 16, color: AppColors.textPrimary),
+                  child: Icon(Icons.arrow_back_ios_new_rounded,
+                      size: 17, color: c.textPrimary),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 20),
 
               // ── Chỉ báo 2 bước ────────────────────────────────────────
-              StepProgressBar(currentStep: _step2 ? 2 : 1, totalSteps: 2),
+              StepProgressBar(
+                  currentStep: _step2 ? 2 : 1, totalSteps: 2, showLabel: false),
               const SizedBox(height: 24),
 
               // ── Icon ─────────────────────────────────────────────────
@@ -219,13 +219,26 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     letterSpacing: -0.5),
               ),
               const SizedBox(height: 6),
-              Text(
-                _step2
-                    ? 'Nhập mã 6 số vừa gửi tới ${_phoneCtrl.text.trim()} và đặt mật khẩu mới'
-                    : 'Nhập số điện thoại để nhận mã xác nhận',
-                style: const TextStyle(
-                    fontSize: 14, color: AppColors.textSecondary, height: 1.5),
-              ),
+              if (_step2)
+                Text.rich(
+                  TextSpan(
+                    style: TextStyle(
+                        fontSize: 14, color: c.textSecondary, height: 1.5),
+                    children: [
+                      const TextSpan(text: 'Nhập mã 6 số vừa gửi tới '),
+                      TextSpan(
+                        text: displayPhone,
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700, color: c.textPrimary),
+                      ),
+                      const TextSpan(text: ' và đặt mật khẩu mới'),
+                    ],
+                  ),
+                )
+              else
+                Text('Nhập số điện thoại để nhận mã xác nhận',
+                    style: TextStyle(
+                        fontSize: 14, color: c.textSecondary, height: 1.5)),
               const SizedBox(height: 32),
 
               // ── Step 1: Phone ─────────────────────────────────────────
@@ -239,6 +252,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                         const SizedBox(height: 8),
                         PhoneField(
                           controller: _phoneCtrl,
+                          fillColor: c.background,
+                          outlined: true,
                           textInputAction: TextInputAction.done,
                           onFieldSubmitted: (_) => _sendOtp(),
                           validator: Validators.phone,
@@ -270,6 +285,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     AppField(
                       controller: _passCtrl,
                       hint: 'Tối thiểu 6 ký tự',
+                      fillColor: c.background,
+                      outlined: true,
                       prefixIcon: Icon(Icons.lock_outline_rounded,
                           size: 20, color: context.colors.textSecondary),
                       obscureText: _obscure1,
@@ -292,6 +309,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     AppField(
                       controller: _confCtrl,
                       hint: 'Nhập lại mật khẩu mới',
+                      fillColor: c.background,
+                      outlined: true,
                       prefixIcon: Icon(Icons.lock_outline_rounded,
                           size: 20, color: context.colors.textSecondary),
                       obscureText: _obscure2,
@@ -355,7 +374,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.md)),
+                        borderRadius: BorderRadius.circular(AppRadius.full)),
                   ),
                   child: _loading
                       ? const SizedBox(

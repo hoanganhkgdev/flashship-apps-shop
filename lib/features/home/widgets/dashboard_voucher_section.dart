@@ -5,6 +5,8 @@ part of '../screens/home_screen.dart';
 // OFF) dùng ở sheet chọn mã trong màn tạo đơn, phù hợp làm điểm nhấn
 // khuyến mãi ở trang chủ thay vì nơi cần so sánh nhiều mã cùng lúc.
 
+// Voucher vẫn được giữ để có thể tái sử dụng ở chiến dịch khuyến mãi sau này.
+// ignore: unused_element
 class _VoucherSection extends ConsumerWidget {
   const _VoucherSection();
 
@@ -114,18 +116,18 @@ class _EmptyOrders extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         decoration: BoxDecoration(
             color: c.surface,
             borderRadius: BorderRadius.circular(AppRadius.card),
             boxShadow: c.cardShadow),
         child: Column(children: [
           Icon(Icons.inventory_2_outlined,
-              size: 48, color: c.textTertiary.withValues(alpha: 0.5)),
-          const SizedBox(height: 10),
+              size: 30, color: c.textTertiary.withValues(alpha: 0.5)),
+          const SizedBox(height: 7),
           Text('Chưa có đơn hàng nào',
               style: TextStyle(
                   fontSize: 14,

@@ -79,7 +79,7 @@ class _CreateBatchOrderScreenState
   // Id của _Stop đang mở rộng để nhập liệu — null nghĩa là tất cả đang thu gọn.
   String? _expandedStopId;
 
-  // Cân nặng chỉ áp dụng khi loại hàng hiện tại có hasWeight (bưu kiện) — nếu
+  // Cân nặng chỉ áp dụng khi loại hàng hiện tại có hasWeight (kiện hàng) — nếu
   // người dùng từng gõ cân nặng rồi đổi sang loại khác, không để giá trị cũ
   // âm thầm lọt vào estimate/submit của loại hàng không liên quan.
   double? get _cargoWeight {
@@ -491,12 +491,33 @@ class _CreateBatchOrderScreenState
         _handleBackPress();
       },
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.colors.background,
         appBar: AppBar(
-          title: const Text('Đơn gộp nhiều điểm'),
-          leading: IconButton(
-            icon: const Icon(Icons.close_rounded),
-            onPressed: _handleBackPress,
+          backgroundColor: context.colors.background,
+          centerTitle: false,
+          leadingWidth: 80,
+          titleSpacing: 8,
+          title: const Text('Đơn gộp nhiều điểm',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          leading: Padding(
+            padding: const EdgeInsets.only(left: 20),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: GestureDetector(
+                onTap: _handleBackPress,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: context.colors.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(color: context.colors.divider),
+                  ),
+                  child: Icon(Icons.close_rounded,
+                      size: 20, color: context.colors.textPrimary),
+                ),
+              ),
+            ),
           ),
         ),
         body: Column(
@@ -508,12 +529,12 @@ class _CreateBatchOrderScreenState
                   // ── Pickup ─────────────────────────────────────────────
                   _sectionHeader('Lấy hàng tại cửa hàng'),
                   Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 12),
+                    margin: const EdgeInsets.symmetric(horizontal: 20),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(AppRadius.card),
-                      boxShadow: context.colors.cardShadow,
+                      border: Border.all(color: context.colors.divider),
                     ),
                     child: Column(children: [
                       GestureDetector(
@@ -539,12 +560,12 @@ class _CreateBatchOrderScreenState
                   // ── Cargo type ─────────────────────────────────────────
                   _sectionHeader('Loại hàng'),
                   Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 12),
+                    margin: const EdgeInsets.symmetric(horizontal: 20),
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(AppRadius.card),
-                      boxShadow: context.colors.cardShadow,
+                      border: Border.all(color: context.colors.divider),
                     ),
                     child: Row(
                       children: cargoTypes.map((c) {
@@ -594,7 +615,7 @@ class _CreateBatchOrderScreenState
                     ),
                   ),
 
-                  // Cân nặng chung — chỉ hiện khi loại hàng có hasWeight (bưu kiện)
+                  // Cân nặng chung — chỉ hiện khi loại hàng có hasWeight (kiện hàng)
                   if (cargoTypeOf(_cargoType).hasWeight) ...[
                     const SizedBox(height: 1),
                     Container(
@@ -619,7 +640,7 @@ class _CreateBatchOrderScreenState
                   const SizedBox(height: 8),
 
                   // ── Stops ──────────────────────────────────────────────
-                  _sectionHeader('Các điểm giao hàng'),
+                  _sectionHeader('Các điểm giao hàng (${_stops.length})'),
                   ReorderableListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -648,7 +669,7 @@ class _CreateBatchOrderScreenState
                   // Thêm điểm
                   if (_stops.length < 10)
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
                       child: OutlinedButton.icon(
                         onPressed: _addStop,
                         icon: const Icon(Icons.add_location_rounded, size: 18),
@@ -671,12 +692,11 @@ class _CreateBatchOrderScreenState
 
                   // Ghi chú chung
                   Container(
-                    color: Colors.white,
-                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.fromLTRB(20, 8, 20, 0),
                     child: AppField(
                       controller: _noteCtrl,
                       hint: 'Ghi chú cho tài xế...',
-                      maxLines: 2,
+                      maxLines: 1,
                     ),
                   ),
 
@@ -689,9 +709,7 @@ class _CreateBatchOrderScreenState
             Container(
               decoration: BoxDecoration(
                 color: context.colors.surface,
-                borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(AppRadius.xl)),
-                boxShadow: context.colors.cardShadow,
+                border: Border(top: BorderSide(color: context.colors.divider)),
               ),
               padding: EdgeInsets.fromLTRB(
                   16, 16, 16, MediaQuery.of(context).padding.bottom + 12),
@@ -816,8 +834,8 @@ class _CreateBatchOrderScreenState
   }
 
   Widget _sectionHeader(String text) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
-        child: Text(text,
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
+        child: Text(text.toUpperCase(),
             style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
@@ -833,8 +851,8 @@ class _CreateBatchOrderScreenState
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(8),
+        color: context.colors.surfaceAlt,
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Row(children: [
         Icon(icon, size: 18, color: color),
@@ -910,7 +928,7 @@ class _StopCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      isExpanded ? _buildExpanded() : _buildCollapsed();
+      isExpanded ? _buildExpanded(context) : _buildCollapsed();
 
   // ── Thu gọn: 1 hàng ~50px ───────────────────────────────────────────────
   Widget _buildCollapsed() {
@@ -921,11 +939,11 @@ class _StopCard extends StatelessWidget {
     ];
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(12, 0, 12, 2),
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        boxShadow: Palette.light.cardShadow,
+        border: Border.all(color: Palette.light.divider),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -992,14 +1010,13 @@ class _StopCard extends StatelessWidget {
   }
 
   // ── Mở rộng: header + đủ 5 field, viền primary nổi bật ──────────────────
-  Widget _buildExpanded() {
+  Widget _buildExpanded(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(12, 0, 12, 2),
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: AppColors.primary, width: 1.4),
-        boxShadow: Palette.light.cardShadow,
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -1075,8 +1092,8 @@ class _StopCard extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
-                    borderRadius: BorderRadius.circular(8),
+                    color: context.colors.surfaceAlt,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
                   child: Row(children: [
                     const Icon(Icons.location_on_rounded,

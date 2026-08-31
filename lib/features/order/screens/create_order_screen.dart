@@ -1,5 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart'
-    show TextInputFormatter, FilteringTextInputFormatter, TextInputType;
+    show
+        FilteringTextInputFormatter,
+        SystemUiOverlayStyle,
+        TextInputFormatter,
+        TextInputType;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -51,7 +57,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   // Cargo
   String _cargoType = 'food';
 
-  // Detail info (filled via bottom sheet)
+  // Thông tin đơn được nhập trực tiếp trên màn hình.
   String _receiverPhone = '';
   String _receiverName = '';
   String _senderName = '';
@@ -60,8 +66,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   double? _cargoWeight;
   int? _codAmount;
 
-  // True khi người dùng đã tự tay chọn địa chỉ hoặc lưu chi tiết đơn (xem
-  // _pickAddress()/_openDetailSheet()) — KHÔNG bật khi dữ liệu chỉ tới từ
+  // True khi người dùng đã tự tay chọn địa chỉ hoặc nhập thông tin đơn (xem
+  // _pickAddress()) — KHÔNG bật khi dữ liệu chỉ tới từ
   // _prefillFromProfile()/_prefillFromReorder()/_applyDeliveryPrefill(), vì
   // lúc đó người dùng chưa mất công nhập gì thực sự. Dùng làm điều kiện
   // cảnh báo thoát màn (xem PopScope trong build()).
@@ -80,8 +86,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   String? _voucherCode;
   String? _voucherLabel;
   int? _voucherDiscount;
+  Timer? _weightEstimateDebounce;
 
-  // Giao hàng/Lấy hàng ngoài chuyển đổi được ngay trên màn (tab ở đầu trang)
+  // Giao hàng/Lấy hàng chuyển đổi được ngay trên màn (tab ở đầu trang)
   // thay vì phải thoát ra chọn lại — xem _switchOrderType().
   bool _isOutbound = true;
 
@@ -119,7 +126,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _estimate());
   }
 
-  // Đổi Giao hàng ⇄ Lấy hàng ngoài = shop đổi vai trò gửi/nhận — hoán đổi
+  // Đổi Giao hàng ⇄ Lấy hàng = shop đổi vai trò gửi/nhận — hoán đổi
   // điểm lấy/giao và người gửi/nhận cho đúng vai trò mới (chính là phép
   // _swapAddresses() đã có sẵn, vì shop luôn đứng ở phía vừa prefill).
   void _switchOrderType(bool outbound) {
@@ -205,6 +212,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
   @override
   void dispose() {
+    _weightEstimateDebounce?.cancel();
     super.dispose();
   }
 
@@ -326,7 +334,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
   int get _finalFee {
     if (_fee == null) return 0;
-    return (_fee! - (_voucherDiscount ?? 0)).clamp(0, _fee!);
+    final discountedDeliveryFee =
+        (_fee! - (_voucherDiscount ?? 0)).clamp(0, _fee!);
+    return discountedDeliveryFee + _nightSurcharge;
   }
 
   Future<void> _openVoucherSheet() async {
@@ -373,11 +383,11 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     }
 
     if (_receiverPhone.trim().isEmpty) {
-      await _openDetailSheet();
+      setState(() => _error = 'Vui lòng nhập số điện thoại người nhận');
       return;
     }
     if (!_isOutbound && _senderPhone.trim().isEmpty) {
-      await _openDetailSheet();
+      setState(() => _error = 'Vui lòng nhập số điện thoại người giao');
       return;
     }
     final contactError = CreateOrderValidator.contacts(
@@ -494,43 +504,44 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     }
   }
 
-  // ── Detail sheet ────────────────────────────────────────────────────────────
-
-  Future<void> _openDetailSheet() async {
-    final cargo = cargoTypes.firstWhere((c) => c.key == _cargoType);
-    await showModalBottomSheet(
+  Future<void> _openReceiverPhonePopup() async {
+    final value = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(AppRadius.xl))),
-      builder: (ctx) => _DetailSheet(
-        cargo: cargo,
-        isOutbound: _isOutbound,
-        receiverPhone: _receiverPhone,
-        receiverName: _receiverName,
-        senderName: _senderName,
-        senderPhone: _senderPhone,
-        note: _note,
-        cargoWeight: _cargoWeight,
-        codAmount: _codAmount,
-        onSave: (result) {
-          setState(() {
-            _userEdited = true;
-            _receiverPhone = result.receiverPhone;
-            _receiverName = result.receiverName;
-            _senderName = result.senderName;
-            _senderPhone = result.senderPhone;
-            _note = result.note;
-            _cargoWeight = result.cargoWeight;
-            _codAmount = result.codAmount;
-            _error = null;
-          });
-          _estimate();
-        },
+      backgroundColor: Colors.transparent,
+      builder: (_) => _PhoneInputSheet(
+        initialValue: _receiverPhone,
+        title: _isOutbound
+            ? 'Số điện thoại người nhận'
+            : 'Số điện thoại cửa hàng nhận',
+        description: 'Nhập số điện thoại để tài xế liên hệ khi giao hàng.',
       ),
     );
+    if (value == null || !mounted) return;
+    setState(() {
+      _receiverPhone = value;
+      _userEdited = true;
+      _error = null;
+    });
+  }
+
+  Future<void> _openSenderPhonePopup() async {
+    final value = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _PhoneInputSheet(
+        initialValue: _senderPhone,
+        title: 'Số điện thoại người giao',
+        description: 'Nhập số điện thoại để tài xế liên hệ tại điểm lấy.',
+      ),
+    );
+    if (value == null || !mounted) return;
+    setState(() {
+      _senderPhone = value;
+      _userEdited = true;
+      _error = null;
+    });
   }
 
   // ── Exit confirmation ────────────────────────────────────────────────────
@@ -591,6 +602,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return PopScope(
       canPop: !_userEdited,
@@ -598,474 +610,572 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         if (didPop) return;
         _handleBackPress();
       },
-      child: Scaffold(
-        body: SafeArea(
-          bottom: false,
-          child: Column(children: [
-            // ── Header ──────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-              child: Row(children: [
-                GestureDetector(
-                  onTap: _handleBackPress,
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: c.surface,
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                      boxShadow: c.cardShadow,
-                    ),
-                    child: Icon(Icons.arrow_back_ios_new_rounded,
-                        size: 17, color: c.textPrimary),
-                  ),
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+          statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+        ),
+        child: Scaffold(
+          backgroundColor: c.surface,
+          body: SafeArea(
+            bottom: false,
+            child: Column(children: [
+              // ── Header ──────────────────────────────────────────────────
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                decoration: BoxDecoration(
+                  color: c.surface,
+                  border: Border(bottom: BorderSide(color: c.divider)),
                 ),
-                const SizedBox(width: 14),
-                Text('Đặt đơn',
-                    style: TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.w800,
-                        color: c.textPrimary)),
-              ]),
-            ),
-
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ── Toggle Giao hàng / Lấy hàng ngoài ────────────────
-                    Container(
-                      decoration: BoxDecoration(
-                        color: c.surfaceAlt,
-                        borderRadius: BorderRadius.circular(AppRadius.full),
-                      ),
-                      padding: const EdgeInsets.all(4),
-                      child: Row(children: [
-                        Expanded(
-                          child: _OrderTypeTab(
-                            label: 'Giao hàng',
-                            selected: _isOutbound,
-                            onTap: () => _switchOrderType(true),
-                          ),
-                        ),
-                        Expanded(
-                          child: _OrderTypeTab(
-                            label: 'Lấy hàng ngoài',
-                            selected: !_isOutbound,
-                            onTap: () => _switchOrderType(false),
-                          ),
-                        ),
-                      ]),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // ── Route card ────────────────────────────────────────
-                    Container(
+                child: Row(children: [
+                  GestureDetector(
+                    onTap: _handleBackPress,
+                    child: Container(
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
                         color: c.surface,
-                        borderRadius: BorderRadius.circular(AppRadius.card),
-                        boxShadow: c.cardShadow,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        border: Border.all(color: c.divider),
                       ),
-                      padding: const EdgeInsets.all(18),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Column(children: [
-                              Container(
-                                width: 12,
-                                height: 12,
-                                decoration: BoxDecoration(
-                                    color: c.primary, shape: BoxShape.circle),
-                              ),
-                              Container(
-                                width: 2,
-                                height: 44,
-                                margin: const EdgeInsets.symmetric(vertical: 4),
-                                color: c.divider,
-                              ),
-                              Container(
-                                width: 12,
-                                height: 12,
-                                decoration: BoxDecoration(
-                                    color: c.accent2,
-                                    borderRadius: BorderRadius.circular(3)),
-                              ),
-                            ]),
+                      child: Icon(Icons.arrow_back_ios_new_rounded,
+                          size: 17, color: c.textPrimary),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Text('Đặt đơn',
+                      style: TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                          color: c.textPrimary)),
+                ]),
+              ),
+
+              Expanded(
+                child: ColoredBox(
+                  color: c.background,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ── Toggle Giao hàng / Lấy hàng ──────────────────────
+                        Container(
+                          decoration: BoxDecoration(
+                            color: c.background,
+                            borderRadius: BorderRadius.circular(AppRadius.full),
+                            border: Border.all(color: c.divider),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () => _pickAddress(isPickup: true),
-                                  child: _AddressRow(
-                                    label: 'ĐIỂM LẤY HÀNG',
-                                    address: _pickupAddr,
-                                    placeName: _pickupPlaceName,
-                                    placeholder: _isOutbound
-                                        ? 'Chọn địa chỉ lấy hàng'
-                                        : 'Chọn địa điểm lấy',
-                                  ),
-                                ),
-                                const SizedBox(height: 18),
-                                GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () => _pickAddress(isPickup: false),
-                                  child: _AddressRow(
-                                    label: 'ĐIỂM GIAO HÀNG',
-                                    address: _deliveryAddr,
-                                    placeName: _deliveryPlaceName,
-                                    placeholder: _isOutbound
-                                        ? 'Chọn địa chỉ giao hàng'
-                                        : 'Chọn địa chỉ cửa hàng',
-                                  ),
-                                ),
-                              ],
+                          padding: const EdgeInsets.all(4),
+                          child: Row(children: [
+                            Expanded(
+                              child: _OrderTypeTab(
+                                label: 'Giao hàng',
+                                selected: _isOutbound,
+                                onTap: () => _switchOrderType(true),
+                              ),
                             ),
+                            Expanded(
+                              child: _OrderTypeTab(
+                                label: 'Lấy hàng',
+                                selected: !_isOutbound,
+                                onTap: () => _switchOrderType(false),
+                              ),
+                            ),
+                          ]),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // ── Route card ────────────────────────────────────────
+                        Container(
+                          decoration: BoxDecoration(
+                            color: c.surface,
+                            borderRadius: BorderRadius.circular(AppRadius.card),
+                            border: Border.all(color: c.divider),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.only(top: 38),
-                            child: GestureDetector(
-                              onTap:
-                                  _pickupAddr != null && _deliveryAddr != null
+                          padding: const EdgeInsets.all(18),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Column(children: [
+                                  Container(
+                                    width: 12,
+                                    height: 12,
+                                    decoration: BoxDecoration(
+                                        color: c.primary,
+                                        shape: BoxShape.circle),
+                                  ),
+                                  Container(
+                                    width: 2,
+                                    height: 44,
+                                    margin:
+                                        const EdgeInsets.symmetric(vertical: 4),
+                                    color: c.divider,
+                                  ),
+                                  Container(
+                                    width: 12,
+                                    height: 12,
+                                    decoration: BoxDecoration(
+                                        color: c.accent2,
+                                        borderRadius: BorderRadius.circular(3)),
+                                  ),
+                                ]),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: () => _pickAddress(isPickup: true),
+                                      child: _AddressRow(
+                                        label: 'ĐIỂM LẤY HÀNG',
+                                        address: _pickupAddr,
+                                        placeName: _pickupPlaceName,
+                                        placeholder: _isOutbound
+                                            ? 'Chọn địa chỉ lấy hàng'
+                                            : 'Chọn địa điểm lấy',
+                                      ),
+                                    ),
+                                    const SizedBox(height: 18),
+                                    GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: () =>
+                                          _pickAddress(isPickup: false),
+                                      child: _AddressRow(
+                                        label: 'ĐIỂM GIAO HÀNG',
+                                        address: _deliveryAddr,
+                                        placeName: _deliveryPlaceName,
+                                        placeholder: _isOutbound
+                                            ? 'Chọn địa chỉ giao hàng'
+                                            : 'Chọn địa chỉ cửa hàng',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 38),
+                                child: GestureDetector(
+                                  onTap: _pickupAddr != null &&
+                                          _deliveryAddr != null
                                       ? _swapAddresses
                                       : () => _pickAddress(isPickup: false),
-                              child: Icon(
-                                _pickupAddr != null && _deliveryAddr != null
-                                    ? Icons.swap_vert_rounded
-                                    : Icons.chevron_right_rounded,
-                                size: 20,
-                                color: c.textTertiary,
+                                  child: Icon(
+                                    _pickupAddr != null && _deliveryAddr != null
+                                        ? Icons.swap_vert_rounded
+                                        : Icons.chevron_right_rounded,
+                                    size: 20,
+                                    color: c.textTertiary,
+                                  ),
+                                ),
                               ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // ── Liên hệ + COD ─────────────────────────────────────
+                        Container(
+                          decoration: BoxDecoration(
+                            color: c.surface,
+                            borderRadius: BorderRadius.circular(AppRadius.card),
+                            border: Border.all(color: c.divider),
+                          ),
+                          child: Column(children: [
+                            _PopupInfoRow(
+                              icon: _showPhoneWarning
+                                  ? Icons.error_outline_rounded
+                                  : Icons.phone_iphone_rounded,
+                              label: _isOutbound
+                                  ? 'SĐT người nhận'
+                                  : 'SĐT cửa hàng nhận',
+                              value: _receiverPhone,
+                              placeholder: 'Bắt buộc',
+                              warn: _showPhoneWarning,
+                              onTap: _openReceiverPhonePopup,
+                            ),
+                            if (!_isOutbound) ...[
+                              Divider(height: 1, indent: 16, color: c.divider),
+                              _PopupInfoRow(
+                                icon: Icons.call_outlined,
+                                label: 'SĐT người giao',
+                                value: _senderPhone,
+                                placeholder: 'Bắt buộc',
+                                warn: _submitAttempted &&
+                                    _senderPhone.trim().isEmpty,
+                                onTap: _openSenderPhonePopup,
+                              ),
+                            ],
+                            Divider(height: 1, indent: 16, color: c.divider),
+                            _InlineOrderField(
+                              key: ValueKey(
+                                  'cod-${_isOutbound ? 'delivery' : 'pickup'}'),
+                              icon: Icons.payments_outlined,
+                              label: 'Tiền thu hộ (COD)',
+                              initialValue: _codAmount == null
+                                  ? ''
+                                  : NumberFormat('#,###', 'vi_VN')
+                                      .format(_codAmount)
+                                      .replaceAll(',', '.'),
+                              hint: 'Không bắt buộc',
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                _ThousandsFormatter(),
+                              ],
+                              suffixText: 'đ',
+                              onChanged: (value) {
+                                final digits = value.replaceAll('.', '').trim();
+                                _codAmount = digits.isEmpty
+                                    ? null
+                                    : int.tryParse(digits);
+                                _userEdited = true;
+                              },
+                            ),
+                          ]),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // ── Loại hàng ──────────────────────────────────────────
+                        Row(children: [
+                          Icon(Icons.inventory_2_outlined,
+                              size: 17, color: c.textSecondary),
+                          const SizedBox(width: 7),
+                          Text('Loại hàng',
+                              style: TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: c.textPrimary)),
+                        ]),
+                        const SizedBox(height: 10),
+                        Row(children: [
+                          for (final cargo in cargoTypes) ...[
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _cargoType = cargo.key;
+                                    if (!cargo.hasWeight) _cargoWeight = null;
+                                    _fee = null;
+                                  });
+                                  _estimate();
+                                },
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 150),
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 12, horizontal: 4),
+                                  decoration: BoxDecoration(
+                                    color: _cargoType == cargo.key
+                                        ? c.primarySoft
+                                        : c.surface,
+                                    borderRadius:
+                                        BorderRadius.circular(AppRadius.md),
+                                    border: Border.all(
+                                      color: _cargoType == cargo.key
+                                          ? c.primary
+                                          : c.divider,
+                                      width: _cargoType == cargo.key ? 1.5 : 1,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(cargo.icon,
+                                          size: 22,
+                                          color: _cargoType == cargo.key
+                                              ? c.primary
+                                              : c.textSecondary),
+                                      const SizedBox(height: 6),
+                                      Text(cargo.label,
+                                          textAlign: TextAlign.center,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                              fontSize: 11.5,
+                                              fontWeight:
+                                                  _cargoType == cargo.key
+                                                      ? FontWeight.w700
+                                                      : FontWeight.w600,
+                                              color: _cargoType == cargo.key
+                                                  ? c.primary
+                                                  : c.textSecondary)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (cargo.key != cargoTypes.last.key)
+                              const SizedBox(width: 10),
+                          ],
+                        ]),
+                        if (cargoTypes
+                            .firstWhere((cargo) => cargo.key == _cargoType)
+                            .hasWeight) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: c.surface,
+                              borderRadius: BorderRadius.circular(AppRadius.md),
+                              border: Border.all(color: c.divider),
+                            ),
+                            child: _InlineOrderField(
+                              key: ValueKey('weight-$_cargoType'),
+                              icon: Icons.scale_outlined,
+                              label: 'Khối lượng',
+                              initialValue: _cargoWeight?.toString() ?? '',
+                              hint: 'Nhập số ký',
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
+                              suffixText: 'kg',
+                              onChanged: (value) {
+                                _cargoWeight = double.tryParse(
+                                    value.trim().replaceAll(',', '.'));
+                                _userEdited = true;
+                                _weightEstimateDebounce?.cancel();
+                                _weightEstimateDebounce = Timer(
+                                  const Duration(milliseconds: 500),
+                                  _estimate,
+                                );
+                              },
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                    const SizedBox(height: 14),
+                        const SizedBox(height: 16),
 
-                    // ── Liên hệ + COD ─────────────────────────────────────
-                    Container(
-                      decoration: BoxDecoration(
-                        color: c.surface,
-                        borderRadius: BorderRadius.circular(AppRadius.card),
-                        boxShadow: c.cardShadow,
-                      ),
-                      child: Column(children: [
-                        GestureDetector(
-                          onTap: _openDetailSheet,
-                          child: _InfoRow(
-                            icon: _showPhoneWarning
-                                ? Icons.error_outline_rounded
-                                : Icons.phone_iphone_rounded,
-                            label: 'SĐT người nhận',
-                            value: _receiverPhone.isNotEmpty
-                                ? _receiverPhone
-                                : null,
-                            placeholder:
-                                _showPhoneWarning ? 'Thiếu SĐT' : 'Bắt buộc',
-                            warn: _showPhoneWarning,
+                        Container(
+                          decoration: BoxDecoration(
+                            color: c.surface,
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            border: Border.all(color: c.divider),
                           ),
-                        ),
-                        Divider(height: 1, indent: 16, color: c.divider),
-                        GestureDetector(
-                          onTap: _openDetailSheet,
-                          child: _InfoRow(
-                            icon: Icons.payments_outlined,
-                            label: 'Tiền thu hộ (COD)',
-                            value: (_codAmount != null && _codAmount! > 0)
-                                ? Fmt.currency(_codAmount!)
-                                : null,
-                            placeholder: 'Không bắt buộc',
-                          ),
-                        ),
-                      ]),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // ── Loại hàng ──────────────────────────────────────────
-                    Text('Loại hàng',
-                        style: TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                            color: c.textPrimary)),
-                    const SizedBox(height: 10),
-                    Row(children: [
-                      for (final cargo in cargoTypes) ...[
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _cargoType = cargo.key;
-                                _fee = null;
-                              });
-                              _estimate();
+                          child: TextFormField(
+                            key: ValueKey('note-${widget.reorderFrom != null}'),
+                            initialValue: _note,
+                            minLines: 1,
+                            maxLines: 3,
+                            textCapitalization: TextCapitalization.sentences,
+                            onChanged: (value) {
+                              _note = value;
+                              _userEdited = true;
                             },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 12, horizontal: 4),
-                              decoration: BoxDecoration(
-                                color: _cargoType == cargo.key
-                                    ? c.primarySoft
-                                    : c.surface,
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.md),
-                                border: Border.all(
-                                  color: _cargoType == cargo.key
-                                      ? c.primary
-                                      : c.divider,
-                                  width: _cargoType == cargo.key ? 1.5 : 1,
-                                ),
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(cargo.icon,
-                                      size: 22,
-                                      color: _cargoType == cargo.key
-                                          ? c.primary
-                                          : c.textSecondary),
-                                  const SizedBox(height: 6),
-                                  Text(cargo.label,
-                                      textAlign: TextAlign.center,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                          fontSize: 11.5,
-                                          fontWeight: _cargoType == cargo.key
-                                              ? FontWeight.w700
-                                              : FontWeight.w600,
-                                          color: _cargoType == cargo.key
-                                              ? c.primary
-                                              : c.textSecondary)),
-                                ],
-                              ),
+                            style:
+                                TextStyle(fontSize: 13.5, color: c.textPrimary),
+                            decoration: InputDecoration(
+                              prefixIcon: Icon(Icons.notes_rounded,
+                                  size: 19, color: c.textSecondary),
+                              hintText: 'Ghi chú cho tài xế (không bắt buộc)',
+                              hintStyle: TextStyle(
+                                  fontSize: 13.5, color: c.textTertiary),
+                              filled: false,
+                              fillColor: Colors.transparent,
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              contentPadding:
+                                  const EdgeInsets.symmetric(vertical: 15),
                             ),
                           ),
                         ),
-                        if (cargo.key != cargoTypes.last.key)
-                          const SizedBox(width: 10),
-                      ],
-                    ]),
-                    const SizedBox(height: 16),
+                        const SizedBox(height: 20),
 
-                    // ── Ghi chú — bấm để mở sheet chi tiết (cùng nơi lưu
-                    // note thật, tránh 2 nguồn chỉnh sửa cho cùng 1 field) ──
-                    GestureDetector(
-                      onTap: _openDetailSheet,
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
-                        decoration: BoxDecoration(
-                          color: c.surface,
-                          borderRadius: BorderRadius.circular(AppRadius.md),
-                          border: Border.all(color: c.divider),
-                        ),
-                        child: Text(
-                          _note.isNotEmpty
-                              ? _note
-                              : 'Ghi chú cho tài xế (không bắt buộc)',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: 13.5,
-                              color: _note.isNotEmpty
-                                  ? c.textPrimary
-                                  : c.textTertiary),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // ── Ước tính phí ───────────────────────────────────────
-                    Container(
-                      decoration: BoxDecoration(
-                        color: c.surface,
-                        borderRadius: BorderRadius.circular(AppRadius.card),
-                        boxShadow: c.cardShadow,
-                      ),
-                      padding: const EdgeInsets.all(18),
-                      child: _loadingFee
-                          ? const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 8),
-                              child: Center(
-                                  child: SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2))),
-                            )
-                          : Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (_distanceKm != null) ...[
-                                  _FeeRow(
-                                    label: 'Khoảng cách ước tính',
-                                    value:
-                                        '${_distanceKm!.toStringAsFixed(1)} km',
-                                  ),
-                                  const SizedBox(height: 8),
-                                ],
-                                _FeeRow(
-                                  label: 'Phí giao hàng',
-                                  value:
-                                      _fee == null ? '—' : Fmt.currency(_fee!),
-                                ),
-                                if (_nightSurcharge > 0) ...[
-                                  const SizedBox(height: 8),
-                                  Row(children: [
-                                    Icon(Icons.nightlight_round,
-                                        size: 13, color: c.warning),
-                                    const SizedBox(width: 6),
-                                    Text('Phụ phí đêm',
-                                        style: TextStyle(
-                                            fontSize: 13, color: c.warning)),
-                                    const Spacer(),
-                                    Text('+${Fmt.currency(_nightSurcharge)}',
-                                        style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: c.warning)),
-                                  ]),
-                                ],
-                                const SizedBox(height: 8),
-                                GestureDetector(
-                                  onTap:
-                                      _fee == null ? null : _openVoucherSheet,
-                                  child: _voucherCode != null
-                                      ? Row(children: [
-                                          Icon(Icons.local_offer_rounded,
-                                              size: 15, color: c.accent2),
-                                          const SizedBox(width: 6),
-                                          Expanded(
-                                            child: Text(
-                                                'Voucher $_voucherCode${_voucherLabel != null ? ' · $_voucherLabel' : ''}',
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: c.accent2)),
-                                          ),
-                                          Text(
-                                              '-${Fmt.currency(_voucherDiscount ?? 0)}',
-                                              style: TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: c.accent2)),
-                                          const SizedBox(width: 8),
-                                          GestureDetector(
-                                            onTap: () =>
-                                                setState(_removeVoucher),
-                                            child: Icon(Icons.close_rounded,
-                                                size: 16,
-                                                color: c.textTertiary),
-                                          ),
-                                        ])
-                                      : Row(children: [
-                                          Icon(Icons.local_offer_outlined,
-                                              size: 15, color: c.accent2),
-                                          const SizedBox(width: 6),
-                                          Text('Bạn có mã giảm giá?',
-                                              style: TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: c.accent2)),
-                                        ]),
-                                ),
-                                const SizedBox(height: 4),
-                                Divider(height: 17, color: c.divider),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                        // ── Ước tính phí ───────────────────────────────────────
+                        Container(
+                          decoration: BoxDecoration(
+                            color: c.surface,
+                            borderRadius: BorderRadius.circular(AppRadius.card),
+                            border: Border.all(color: c.divider),
+                          ),
+                          padding: const EdgeInsets.all(18),
+                          child: _loadingFee
+                              ? const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 8),
+                                  child: Center(
+                                      child: SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2))),
+                                )
+                              : Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Tổng cộng',
-                                        style: TextStyle(
-                                            fontSize: 14.5,
-                                            fontWeight: FontWeight.w700,
-                                            color: c.textPrimary)),
-                                    Text(
-                                        _fee == null
-                                            ? '—'
-                                            : Fmt.currency(_finalFee),
-                                        style: TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w800,
-                                            color: c.primary)),
+                                    if (_distanceKm != null) ...[
+                                      _FeeRow(
+                                        label: 'Khoảng cách ước tính',
+                                        value:
+                                            '${_distanceKm!.toStringAsFixed(1)} km',
+                                      ),
+                                      const SizedBox(height: 8),
+                                    ],
+                                    _FeeRow(
+                                      label: 'Phí giao hàng',
+                                      value: _fee == null
+                                          ? '—'
+                                          : Fmt.currency(_fee!),
+                                    ),
+                                    if (_nightSurcharge > 0) ...[
+                                      const SizedBox(height: 8),
+                                      Row(children: [
+                                        Icon(Icons.nightlight_round,
+                                            size: 13, color: c.warning),
+                                        const SizedBox(width: 6),
+                                        Text('Phụ phí đêm',
+                                            style: TextStyle(
+                                                fontSize: 13,
+                                                color: c.warning)),
+                                        const Spacer(),
+                                        Text(
+                                            '+${Fmt.currency(_nightSurcharge)}',
+                                            style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: c.warning)),
+                                      ]),
+                                    ],
+                                    const SizedBox(height: 8),
+                                    GestureDetector(
+                                      onTap: _fee == null
+                                          ? null
+                                          : _openVoucherSheet,
+                                      child: _voucherCode != null
+                                          ? Row(children: [
+                                              Icon(Icons.local_offer_rounded,
+                                                  size: 15, color: c.accent2),
+                                              const SizedBox(width: 6),
+                                              Expanded(
+                                                child: Text(
+                                                    'Voucher $_voucherCode${_voucherLabel != null ? ' · $_voucherLabel' : ''}',
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                        fontSize: 13,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        color: c.accent2)),
+                                              ),
+                                              Text(
+                                                  '-${Fmt.currency(_voucherDiscount ?? 0)}',
+                                                  style: TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: c.accent2)),
+                                              const SizedBox(width: 8),
+                                              GestureDetector(
+                                                onTap: () =>
+                                                    setState(_removeVoucher),
+                                                child: Icon(Icons.close_rounded,
+                                                    size: 16,
+                                                    color: c.textTertiary),
+                                              ),
+                                            ])
+                                          : Row(children: [
+                                              Icon(Icons.local_offer_outlined,
+                                                  size: 15, color: c.accent2),
+                                              const SizedBox(width: 6),
+                                              Text('Bạn có mã giảm giá?',
+                                                  style: TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: c.accent2)),
+                                            ]),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Divider(height: 17, color: c.divider),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text('Tổng cộng',
+                                            style: TextStyle(
+                                                fontSize: 14.5,
+                                                fontWeight: FontWeight.w700,
+                                                color: c.textPrimary)),
+                                        Text(
+                                            _fee == null
+                                                ? '—'
+                                                : Fmt.currency(_finalFee),
+                                            style: TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.w800,
+                                                color: c.primary)),
+                                      ],
+                                    ),
                                   ],
                                 ),
-                              ],
-                            ),
-                    ),
-
-                    if (_error != null) ...[
-                      const SizedBox(height: 12),
-                      Row(children: [
-                        Icon(Icons.error_outline_rounded,
-                            color: c.danger, size: 14),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(_error!,
-                              style: TextStyle(color: c.danger, fontSize: 12)),
                         ),
-                      ]),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ]),
-        ),
-        bottomNavigationBar: SafeArea(
-          top: false,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-            decoration: BoxDecoration(
-              color: c.surface,
-              border: Border(top: BorderSide(color: c.divider)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Tổng cộng',
-                        style:
-                            TextStyle(fontSize: 11.5, color: c.textTertiary)),
-                    Text(_fee == null ? '—' : Fmt.currency(_finalFee),
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: c.primary)),
-                  ],
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: SizedBox(
-                    height: 52,
-                    child: FilledButton(
-                      onPressed: _submitting ? null : _submit,
-                      child: _submitting
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white))
-                          : const Text('Đặt đơn'),
+
+                        if (_error != null) ...[
+                          const SizedBox(height: 12),
+                          Row(children: [
+                            Icon(Icons.error_outline_rounded,
+                                color: c.danger, size: 14),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(_error!,
+                                  style:
+                                      TextStyle(color: c.danger, fontSize: 12)),
+                            ),
+                          ]),
+                        ],
+                      ],
                     ),
                   ),
                 ),
-              ],
+              ),
+            ]),
+          ),
+          bottomNavigationBar: SafeArea(
+            top: false,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+              decoration: BoxDecoration(
+                color: c.surface,
+                border: Border(top: BorderSide(color: c.divider)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Tổng cộng',
+                          style:
+                              TextStyle(fontSize: 11.5, color: c.textTertiary)),
+                      Text(_fee == null ? '—' : Fmt.currency(_finalFee),
+                          style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: c.primary)),
+                    ],
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: SizedBox(
+                      height: 52,
+                      child: FilledButton(
+                        onPressed: _submitting ? null : _submit,
+                        child: _submitting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white))
+                            : const Text('Đặt đơn'),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -1074,7 +1184,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   }
 }
 
-// ─── Toggle tab (Giao hàng / Lấy hàng ngoài) ─────────────────────────────────
+// ─── Toggle tab (Giao hàng / Lấy hàng) ───────────────────────────────────────
 
 class _OrderTypeTab extends StatelessWidget {
   final String label;
@@ -1094,7 +1204,6 @@ class _OrderTypeTab extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? c.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(AppRadius.full),
-          boxShadow: selected ? c.cardShadow : null,
         ),
         alignment: Alignment.center,
         child: Text(label,
@@ -1159,45 +1268,512 @@ class _AddressRow extends StatelessWidget {
   }
 }
 
-// ─── Dòng thông tin (SĐT người nhận / COD) ───────────────────────────────────
+// ─── Ô nhập nhanh thông tin đơn ──────────────────────────────────────────────
 
-class _InfoRow extends StatelessWidget {
+class _PhoneInputSheet extends StatefulWidget {
+  final String initialValue;
+  final String title;
+  final String description;
+
+  const _PhoneInputSheet({
+    required this.initialValue,
+    required this.title,
+    required this.description,
+  });
+
+  @override
+  State<_PhoneInputSheet> createState() => _PhoneInputSheetState();
+}
+
+class _PhoneInputSheetState extends State<_PhoneInputSheet> {
+  late final TextEditingController _controller;
+  String? _validationMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _confirm() {
+    final phone = _controller.text.trim();
+    if (phone.isEmpty) {
+      setState(() => _validationMessage = 'Vui lòng nhập SĐT');
+      return;
+    }
+    Navigator.pop(context, phone);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 180),
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+          decoration: BoxDecoration(
+            color: c.surface,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: c.divider,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  widget.title,
+                  style: TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w800,
+                      color: c.textPrimary),
+                ),
+                const SizedBox(height: 6),
+                Text(widget.description,
+                    style: TextStyle(fontSize: 13.5, color: c.textSecondary)),
+                const SizedBox(height: 18),
+                TextField(
+                  controller: _controller,
+                  autofocus: true,
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _confirm(),
+                  decoration: InputDecoration(
+                    prefixIcon: Icon(Icons.phone_iphone_rounded,
+                        color: _validationMessage == null
+                            ? c.textSecondary
+                            : c.danger),
+                    hintText: 'Nhập số điện thoại',
+                    errorText: _validationMessage,
+                    filled: true,
+                    fillColor: c.background,
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      borderSide: BorderSide(color: c.divider),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      borderSide: BorderSide(color: c.primary, width: 1.5),
+                    ),
+                    errorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      borderSide: BorderSide(color: c.danger),
+                    ),
+                    focusedErrorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      borderSide: BorderSide(color: c.danger, width: 1.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: _confirm,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(52),
+                      backgroundColor: c.primary,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999)),
+                    ),
+                    child: const Text('Xác nhận',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CodAmountSheet extends StatefulWidget {
+  const _CodAmountSheet();
+
+  @override
+  State<_CodAmountSheet> createState() => _CodAmountSheetState();
+}
+
+class _CodAmountSheetState extends State<_CodAmountSheet> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _confirm() {
+    final digits = _controller.text.replaceAll('.', '').trim();
+    Navigator.pop(context, digits.isEmpty ? 0 : int.parse(digits));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 180),
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+          decoration: BoxDecoration(
+            color: c.surface,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: c.divider,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text('Tiền thu hộ (COD)',
+                    style: TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                        color: c.textPrimary)),
+                const SizedBox(height: 6),
+                Text('Nhập số tiền tài xế cần thu từ người nhận.',
+                    style: TextStyle(fontSize: 13.5, color: c.textSecondary)),
+                const SizedBox(height: 18),
+                TextField(
+                  controller: _controller,
+                  autofocus: true,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    _ThousandsFormatter(),
+                  ],
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _confirm(),
+                  style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: c.textPrimary),
+                  decoration: InputDecoration(
+                    prefixIcon:
+                        Icon(Icons.payments_outlined, color: c.textSecondary),
+                    hintText: '0',
+                    suffixText: 'đ',
+                    filled: true,
+                    fillColor: c.background,
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      borderSide: BorderSide(color: c.divider),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      borderSide: BorderSide(color: c.primary, width: 1.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: _confirm,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(52),
+                      backgroundColor: c.primary,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999)),
+                    ),
+                    child: const Text('Xác nhận',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OrderNoteSheet extends StatefulWidget {
+  final String initialValue;
+
+  const _OrderNoteSheet({required this.initialValue});
+
+  @override
+  State<_OrderNoteSheet> createState() => _OrderNoteSheetState();
+}
+
+class _OrderNoteSheetState extends State<_OrderNoteSheet> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _confirm() => Navigator.pop(context, _controller.text.trim());
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 180),
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+          decoration: BoxDecoration(
+            color: c.surface,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: c.divider,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text('Ghi chú cho tài xế',
+                    style: TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                        color: c.textPrimary)),
+                const SizedBox(height: 6),
+                Text('Thêm hướng dẫn về hàng hóa hoặc điểm giao nhận.',
+                    style: TextStyle(fontSize: 13.5, color: c.textSecondary)),
+                const SizedBox(height: 18),
+                TextField(
+                  controller: _controller,
+                  autofocus: true,
+                  minLines: 3,
+                  maxLines: 5,
+                  textCapitalization: TextCapitalization.sentences,
+                  textInputAction: TextInputAction.newline,
+                  decoration: InputDecoration(
+                    hintText: 'Nhập ghi chú (không bắt buộc)',
+                    alignLabelWithHint: true,
+                    filled: true,
+                    fillColor: c.background,
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      borderSide: BorderSide(color: c.divider),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      borderSide: BorderSide(color: c.primary, width: 1.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: _confirm,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(52),
+                      backgroundColor: c.primary,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999)),
+                    ),
+                    child: const Text('Xác nhận',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PopupInfoRow extends StatelessWidget {
   final IconData icon;
   final String label;
-  final String? value;
+  final String value;
   final String placeholder;
   final bool warn;
-  const _InfoRow({
+  final VoidCallback onTap;
+
+  const _PopupInfoRow({
     required this.icon,
     required this.label,
     required this.value,
     required this.placeholder,
+    required this.onTap,
     this.warn = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final accent = warn ? c.danger : c.textSecondary;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.card),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Row(children: [
+          Icon(icon, size: 19, color: warn ? c.danger : c.textSecondary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w600,
+                    color: warn ? c.danger : c.textPrimary)),
+          ),
+          SizedBox(
+            width: 120,
+            child: Text(
+              value.isEmpty ? placeholder : value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: value.isEmpty ? FontWeight.w500 : FontWeight.w700,
+                  color: value.isEmpty
+                      ? (warn ? c.danger : c.textTertiary)
+                      : c.textPrimary),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Icon(Icons.chevron_right_rounded, size: 18, color: c.textTertiary),
+        ]),
+      ),
+    );
+  }
+}
+
+class _InlineOrderField extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String initialValue;
+  final String hint;
+  final TextInputType keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final String? suffixText;
+  final ValueChanged<String> onChanged;
+  const _InlineOrderField({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.initialValue,
+    required this.hint,
+    required this.keyboardType,
+    required this.onChanged,
+    this.inputFormatters,
+    this.suffixText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Row(children: [
-        Icon(icon, size: 19, color: accent),
+        Icon(icon, size: 19, color: c.textSecondary),
         const SizedBox(width: 12),
-        Expanded(
+        SizedBox(
+          width: 142,
           child: Text(label,
               style: TextStyle(
                   fontSize: 14.5,
                   fontWeight: FontWeight.w600,
-                  color: warn ? c.danger : c.textPrimary)),
+                  color: c.textPrimary)),
         ),
-        Text(value ?? placeholder,
+        Expanded(
+          child: TextFormField(
+            initialValue: initialValue,
+            keyboardType: keyboardType,
+            inputFormatters: inputFormatters,
+            textAlign: TextAlign.right,
+            onChanged: onChanged,
             style: TextStyle(
                 fontSize: 13.5,
-                fontWeight: value != null ? FontWeight.w700 : FontWeight.w500,
-                color: value != null
-                    ? c.textPrimary
-                    : (warn ? c.danger : c.textTertiary))),
+                fontWeight: FontWeight.w700,
+                color: c.textPrimary),
+            decoration: InputDecoration(
+              hintText: hint,
+              suffixText: suffixText,
+              filled: false,
+              fillColor: Colors.transparent,
+              hintStyle: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
+                  color: c.textTertiary),
+              suffixStyle: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: c.textPrimary),
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(vertical: 10),
+            ),
+          ),
+        ),
       ]),
     );
   }
@@ -1241,8 +1817,8 @@ class _DetailResult {
     required this.senderName,
     required this.senderPhone,
     required this.note,
-    this.cargoWeight,
-    this.codAmount,
+    required this.cargoWeight,
+    required this.codAmount,
   });
 }
 
@@ -1265,8 +1841,8 @@ class _DetailSheet extends StatefulWidget {
     required this.senderName,
     required this.senderPhone,
     required this.note,
-    this.cargoWeight,
-    this.codAmount,
+    required this.cargoWeight,
+    required this.codAmount,
     required this.onSave,
   });
 

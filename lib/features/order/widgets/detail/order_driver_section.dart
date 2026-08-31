@@ -4,10 +4,39 @@ part of '../../screens/order_detail_screen.dart';
 
 class _DriverCard extends StatelessWidget {
   final OrderModel order;
-  const _DriverCard({required this.order});
+  final double? realtimeLat;
+  final double? realtimeLng;
+
+  const _DriverCard({
+    required this.order,
+    this.realtimeLat,
+    this.realtimeLng,
+  });
 
   Future<void> _call(String phone) async {
     await callPhone(phone);
+  }
+
+  Future<void> _openDriverLocation(BuildContext context) async {
+    final driver = order.driver!;
+    final lat = realtimeLat ?? driver.latitude;
+    final lng = realtimeLng ?? driver.longitude;
+    if (lat == null || lng == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chưa nhận được vị trí của tài xế')),
+      );
+      return;
+    }
+    final uri = Uri.https('www.google.com', '/maps/search/', {
+      'api': '1',
+      'query': '$lat,$lng',
+    });
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không thể mở Google Maps')),
+      );
+    }
   }
 
   @override
@@ -26,19 +55,26 @@ class _DriverCard extends StatelessWidget {
             : '${parts.first[0]}${parts.last[0]}'.toUpperCase();
     return _FlatCard(
       child: Row(children: [
-        Container(
+        SizedBox(
           width: 52,
           height: 52,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: c.accent2,
+          child: ClipOval(
+            child: driver.avatarUrl?.trim().isNotEmpty == true
+                ? Image.network(
+                    driver.avatarUrl!.trim(),
+                    width: 52,
+                    height: 52,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _DriverInitialsAvatar(
+                      initials: initials,
+                      color: c.accent2,
+                    ),
+                  )
+                : _DriverInitialsAvatar(
+                    initials: initials,
+                    color: c.accent2,
+                  ),
           ),
-          alignment: Alignment.center,
-          child: Text(initials,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800)),
         ),
         const SizedBox(width: 14),
         Expanded(
@@ -60,12 +96,39 @@ class _DriverCard extends StatelessWidget {
           ],
         )),
         _ActionBtn(
+            icon: Icons.map_outlined,
+            color: c.accent2,
+            onTap: () => _openDriverLocation(context)),
+        const SizedBox(width: 8),
+        _ActionBtn(
             icon: Icons.call_rounded,
             color: c.primary,
             onTap: () => _call(driver.phone)),
       ]),
     );
   }
+}
+
+class _DriverInitialsAvatar extends StatelessWidget {
+  final String initials;
+  final Color color;
+
+  const _DriverInitialsAvatar({
+    required this.initials,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) => ColoredBox(
+        color: color,
+        child: Center(
+          child: Text(initials,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800)),
+        ),
+      );
 }
 
 class _ActionBtn extends StatelessWidget {
@@ -94,11 +157,8 @@ class _ActionBtn extends StatelessWidget {
 
 class _DriverMapCard extends StatefulWidget {
   final OrderModel order;
-  final double? realtimeLat, realtimeLng;
   const _DriverMapCard({
     required this.order,
-    this.realtimeLat,
-    this.realtimeLng,
   });
 
   @override
@@ -136,10 +196,10 @@ class _DriverMapCardState extends State<_DriverMapCard> {
   @override
   void didUpdateWidget(covariant _DriverMapCard old) {
     super.didUpdateWidget(old);
-    final newLat = widget.realtimeLat ?? widget.order.driver?.latitude;
-    final newLng = widget.realtimeLng ?? widget.order.driver?.longitude;
-    final oldLat = old.realtimeLat ?? old.order.driver?.latitude;
-    final oldLng = old.realtimeLng ?? old.order.driver?.longitude;
+    final newLat = widget.order.driver?.latitude;
+    final newLng = widget.order.driver?.longitude;
+    final oldLat = old.order.driver?.latitude;
+    final oldLng = old.order.driver?.longitude;
     if (newLat != null &&
         newLng != null &&
         (newLat != oldLat || newLng != oldLng)) {
@@ -186,8 +246,8 @@ class _DriverMapCardState extends State<_DriverMapCard> {
 
   Set<gm.Marker> get _markers {
     final s = <gm.Marker>{};
-    final dLat = widget.realtimeLat ?? widget.order.driver?.latitude;
-    final dLng = widget.realtimeLng ?? widget.order.driver?.longitude;
+    final dLat = widget.order.driver?.latitude;
+    final dLng = widget.order.driver?.longitude;
     if (dLat != null) {
       s.add(gm.Marker(
         markerId: const gm.MarkerId('driver'),
@@ -228,9 +288,8 @@ class _DriverMapCardState extends State<_DriverMapCard> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final dLat = widget.realtimeLat ?? widget.order.driver?.latitude ?? 10.0452;
-    final dLng =
-        widget.realtimeLng ?? widget.order.driver?.longitude ?? 105.7469;
+    final dLat = widget.order.driver?.latitude ?? 10.0452;
+    final dLng = widget.order.driver?.longitude ?? 105.7469;
 
     return _FlatCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

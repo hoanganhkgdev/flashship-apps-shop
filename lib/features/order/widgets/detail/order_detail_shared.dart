@@ -14,7 +14,7 @@ class _FlatCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.colors.surface,
           borderRadius: BorderRadius.circular(AppRadius.card),
-          boxShadow: context.colors.cardShadow,
+          border: Border.all(color: context.colors.divider),
         ),
         child: child,
       );

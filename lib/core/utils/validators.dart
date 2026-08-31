@@ -11,7 +11,8 @@ class Validators {
     return null;
   }
 
-  static String? required(String? v, {String message = 'Trường này là bắt buộc'}) {
+  static String? required(String? v,
+      {String message = 'Trường này là bắt buộc'}) {
     if (v == null || v.trim().isEmpty) return message;
     return null;
   }

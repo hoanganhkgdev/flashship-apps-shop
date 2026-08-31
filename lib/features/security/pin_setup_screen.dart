@@ -14,16 +14,16 @@ class PinSetupScreen extends ConsumerStatefulWidget {
 }
 
 class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
-  String  _firstPin = '';
-  String  _input    = '';
-  int     _step     = 1;
+  String _firstPin = '';
+  String _input = '';
+  int _step = 1;
   String? _error;
 
   void _onDigit(String d) {
     if (_input.length >= 4) return;
     setState(() {
       _input += d;
-      _error  = null;
+      _error = null;
     });
     if (_input.length == 4) _onComplete();
   }
@@ -38,8 +38,8 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
       final entered = _input;
       setState(() {
         _firstPin = entered;
-        _input    = '';
-        _step     = 2;
+        _input = '';
+        _step = 2;
       });
       return;
     }
@@ -49,10 +49,10 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
       if (mounted) Navigator.pop(context, true);
     } else {
       setState(() {
-        _error    = 'Mã PIN không khớp, vui lòng thử lại';
-        _input    = '';
+        _error = 'Mã PIN không khớp, vui lòng thử lại';
+        _input = '';
         _firstPin = '';
-        _step     = 1;
+        _step = 1;
       });
     }
   }
@@ -76,7 +76,8 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
           children: [
             const SizedBox(height: 8),
             Container(
-              width: 64, height: 64,
+              width: 64,
+              height: 64,
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
@@ -87,7 +88,9 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
             const SizedBox(height: 20),
             Text(_step == 1 ? 'Tạo mã PIN' : 'Nhập lại mã PIN',
                 style: const TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary)),
             const SizedBox(height: 8),
             Text(
               _step == 1

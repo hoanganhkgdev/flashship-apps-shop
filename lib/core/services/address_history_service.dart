@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AddressHistoryItem {
-  final String  address;
-  final double  lat;
-  final double  lng;
+  final String address;
+  final double lat;
+  final double lng;
   final String? placeName;
 
   const AddressHistoryItem({
@@ -15,31 +15,31 @@ class AddressHistoryItem {
   });
 
   Map<String, dynamic> toJson() => {
-    'address':   address,
-    'lat':       lat,
-    'lng':       lng,
-    if (placeName != null) 'place_name': placeName,
-  };
+        'address': address,
+        'lat': lat,
+        'lng': lng,
+        if (placeName != null) 'place_name': placeName,
+      };
 
   factory AddressHistoryItem.fromJson(Map<String, dynamic> json) =>
       AddressHistoryItem(
-        address:   json['address']    as String,
-        lat:       (json['lat']   as num).toDouble(),
-        lng:       (json['lng']   as num).toDouble(),
+        address: json['address'] as String,
+        lat: (json['lat'] as num).toDouble(),
+        lng: (json['lng'] as num).toDouble(),
         placeName: json['place_name'] as String?,
       );
 }
 
 class AddressHistoryService {
-  static const _key      = 'shop_address_history_v1';
+  static const _key = 'shop_address_history_v1';
   static const _maxItems = 10;
 
   static Future<List<AddressHistoryItem>> load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw   = prefs.getString(_key);
+      final raw = prefs.getString(_key);
       if (raw == null) return [];
-      final list  = jsonDecode(raw) as List;
+      final list = jsonDecode(raw) as List;
       return list
           .map((e) => AddressHistoryItem.fromJson(e as Map<String, dynamic>))
           .toList();
@@ -51,7 +51,7 @@ class AddressHistoryService {
   static Future<void> save(AddressHistoryItem item) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final list  = await load();
+      final list = await load();
       list.removeWhere((e) => e.address == item.address);
       list.insert(0, item);
       final trimmed = list.take(_maxItems).toList();
@@ -63,7 +63,7 @@ class AddressHistoryService {
   static Future<void> remove(String address) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final list  = await load();
+      final list = await load();
       list.removeWhere((e) => e.address == address);
       await prefs.setString(
           _key, jsonEncode(list.map((e) => e.toJson()).toList()));

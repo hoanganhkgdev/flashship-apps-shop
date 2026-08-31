@@ -21,7 +21,8 @@ class AddressAutocompleteField extends StatefulWidget {
   });
 
   @override
-  State<AddressAutocompleteField> createState() => _AddressAutocompleteFieldState();
+  State<AddressAutocompleteField> createState() =>
+      _AddressAutocompleteFieldState();
 }
 
 class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
@@ -66,7 +67,10 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
     setState(() => _searching = true);
     final results = await AddressSearchService.search(query);
     if (!mounted) return;
-    setState(() { _suggestions = results; _searching = false; });
+    setState(() {
+      _suggestions = results;
+      _searching = false;
+    });
     if (results.isNotEmpty && _focusNode.hasFocus) {
       _showOverlay();
     } else {
@@ -131,32 +135,42 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
             borderRadius: BorderRadius.circular(12),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: _suggestions.map((r) => InkWell(
-                onTap: () => _onSuggestionTap(r),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.location_on_rounded, size: 18, color: AppColors.primary),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(r.mainText,
-                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                                maxLines: 1, overflow: TextOverflow.ellipsis),
-                            if (r.secondaryText.isNotEmpty)
-                              Text(r.secondaryText,
-                                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                                  maxLines: 1, overflow: TextOverflow.ellipsis),
-                          ],
+              children: _suggestions
+                  .map((r) => InkWell(
+                        onTap: () => _onSuggestionTap(r),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.location_on_rounded,
+                                  size: 18, color: AppColors.primary),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(r.mainText,
+                                        style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis),
+                                    if (r.secondaryText.isNotEmpty)
+                                      Text(r.secondaryText,
+                                          style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppColors.textSecondary),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              )).toList(),
+                      ))
+                  .toList(),
             ),
           ),
         ),
@@ -176,7 +190,9 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
       children: [
         Text(widget.label,
             style: const TextStyle(
-                fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary)),
         const SizedBox(height: 8),
         CompositedTransformTarget(
           link: _layerLink,
@@ -187,17 +203,21 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
             minLines: 1,
             decoration: InputDecoration(
               hintText: widget.hint,
-              hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+              hintStyle:
+                  const TextStyle(color: AppColors.textSecondary, fontSize: 14),
               filled: widget.fillColor != null ? true : null,
               fillColor: widget.fillColor,
               prefixIcon: _searching
                   ? const Padding(
                       padding: EdgeInsets.all(12),
                       child: SizedBox(
-                          width: 18, height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)),
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: AppColors.primary)),
                     )
-                  : const Icon(Icons.location_on_rounded, color: AppColors.primary),
+                  : const Icon(Icons.location_on_rounded,
+                      color: AppColors.primary),
               suffixIcon: IconButton(
                 icon: const Icon(Icons.map_rounded, color: AppColors.primary),
                 tooltip: 'Chọn trên bản đồ',

@@ -16,43 +16,38 @@ class CreateOrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── Thanh CTA tối màu — bấm vào là vào thẳng luồng giao hàng
-        // (đúng hành động phổ biến nhất) ─────────────────────────────
-        _QuickCreateBar(onTap: onDeliveryTap, onBatchTap: onBatchTap),
-        const SizedBox(height: 16),
-
-        // ── 2 ô thao tác chính ────────────────────────────────────────
-        Row(children: [
-          Expanded(
-            child: _ShortcutCard(
-              icon: Icons.local_shipping_outlined,
-              title: 'Giao hàng',
-              subtitle: 'Shop giao đơn cho khách',
-              color: colors.primary,
-              backgroundColor: colors.primarySoft,
-              onTap: onDeliveryTap,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _ShortcutCard(
-              icon: Icons.location_on_outlined,
-              title: 'Lấy hàng ngoài',
-              subtitle: 'Tài xế lấy hộ hàng hoá',
-              color: colors.accent2,
-              backgroundColor: colors.accent2Soft,
-              onTap: onPickupTap,
-            ),
-          ),
-        ]),
-      ],
-    );
+    return Row(children: [
+      Expanded(
+        child: _ShortcutCard(
+          icon: Icons.delivery_dining_outlined,
+          title: 'Giao hàng',
+          color: colors.primary,
+          onTap: onDeliveryTap,
+        ),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        child: _ShortcutCard(
+          icon: Icons.location_on_outlined,
+          title: 'Lấy hàng',
+          color: colors.primary,
+          onTap: onPickupTap,
+        ),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        child: _ShortcutCard(
+          icon: Icons.route_outlined,
+          title: 'Đơn gộp',
+          color: colors.primary,
+          onTap: onBatchTap,
+        ),
+      ),
+    ]);
   }
 }
 
+// ignore: unused_element
 class _QuickCreateBar extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onBatchTap;
@@ -111,17 +106,13 @@ class _QuickCreateBar extends StatelessWidget {
 class _ShortcutCard extends StatelessWidget {
   final IconData icon;
   final String title;
-  final String subtitle;
   final Color color;
-  final Color backgroundColor;
   final VoidCallback onTap;
 
   const _ShortcutCard({
     required this.icon,
     required this.title,
-    required this.subtitle,
     required this.color,
-    required this.backgroundColor,
     required this.onTap,
   });
 
@@ -129,30 +120,23 @@ class _ShortcutCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     return Material(
-      color: colors.surface,
+      color: Colors.white,
       borderRadius: BorderRadius.circular(AppRadius.md),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.md),
         child: Container(
           decoration: BoxDecoration(
+            color: Colors.white,
             borderRadius: BorderRadius.circular(AppRadius.md),
-            boxShadow: colors.cardShadow,
+            border: Border.all(color: colors.divider),
           ),
-          constraints: const BoxConstraints(minHeight: 140),
-          padding: const EdgeInsets.all(16),
+          constraints: const BoxConstraints(minHeight: 70),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 13),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: backgroundColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: color, size: 20),
-              ),
+              Icon(icon, color: color, size: 24),
               const SizedBox(height: 10),
               Text(title,
                   maxLines: 1,
@@ -160,12 +144,7 @@ class _ShortcutCard extends StatelessWidget {
                   style: TextStyle(
                       color: colors.textPrimary,
                       fontSize: 13.5,
-                      fontWeight: FontWeight.w700)),
-              const SizedBox(height: 3),
-              Text(subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: colors.textTertiary, fontSize: 11.5)),
+                      fontWeight: FontWeight.w800)),
             ],
           ),
         ),

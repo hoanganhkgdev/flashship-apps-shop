@@ -17,7 +17,8 @@ class PinDots extends StatelessWidget {
         final active = i < filled;
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 9),
-          width: 16, height: 16,
+          width: 16,
+          height: 16,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: active ? AppColors.primary : Colors.transparent,
@@ -35,9 +36,9 @@ class PinDots extends StatelessWidget {
 /// xoá (phải).
 class PinKeypad extends StatelessWidget {
   final ValueChanged<String> onDigit;
-  final VoidCallback         onDelete;
-  final VoidCallback?        onBiometric;
-  final bool                 showBiometric;
+  final VoidCallback onDelete;
+  final VoidCallback? onBiometric;
+  final bool showBiometric;
 
   const PinKeypad({
     super.key,
@@ -47,7 +48,8 @@ class PinKeypad extends StatelessWidget {
     this.showBiometric = false,
   });
 
-  Widget _key(BuildContext context, {String? label, Widget? child, VoidCallback? onTap}) {
+  Widget _key(BuildContext context,
+      {String? label, Widget? child, VoidCallback? onTap}) {
     final c = context.colors;
     return Expanded(
       child: InkWell(
@@ -59,7 +61,9 @@ class PinKeypad extends StatelessWidget {
             child: child ??
                 Text(label ?? '',
                     style: TextStyle(
-                        fontSize: 28, fontWeight: FontWeight.w600, color: c.textPrimary)),
+                        fontSize: 28,
+                        fontWeight: FontWeight.w600,
+                        color: c.textPrimary)),
           ),
         ),
       ),
@@ -90,12 +94,14 @@ class PinKeypad extends StatelessWidget {
           _key(context,
               onTap: showBiometric ? onBiometric : null,
               child: showBiometric
-                  ? Icon(Icons.fingerprint_rounded, size: 30, color: AppColors.primary)
+                  ? Icon(Icons.fingerprint_rounded,
+                      size: 30, color: AppColors.primary)
                   : const SizedBox.shrink()),
           _key(context, label: '0', onTap: () => onDigit('0')),
           _key(context,
               onTap: onDelete,
-              child: Icon(Icons.backspace_outlined, size: 24, color: c.textSecondary)),
+              child: Icon(Icons.backspace_outlined,
+                  size: 24, color: c.textSecondary)),
         ]),
       ],
     );

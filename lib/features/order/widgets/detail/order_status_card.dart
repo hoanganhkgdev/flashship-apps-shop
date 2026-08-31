@@ -7,9 +7,8 @@ class _StatusCard extends StatelessWidget {
   const _StatusCard({required this.order});
 
   static const _steps = [
-    ('pending', 'Đã đặt', Icons.check_rounded),
-    ('assigned', 'Tài xế\nnhận', Icons.check_rounded),
-    ('on_the_way', 'Đang\ngiao', Icons.local_shipping_rounded),
+    ('assigned', 'Đã nhận', Icons.check_rounded),
+    ('processing', 'Đã lấy', Icons.delivery_dining_rounded),
     ('completed', 'Hoàn thành', Icons.check_rounded),
   ];
 
@@ -17,7 +16,6 @@ class _StatusCard extends StatelessWidget {
     'pending',
     'assigned',
     'processing',
-    'on_the_way',
     'completed'
   ];
 
@@ -37,10 +35,9 @@ class _StatusCard extends StatelessWidget {
                 final (key, label, stepIcon) = _steps[i ~/ 2];
                 final stepIdx = _statusOrder.indexOf(key);
                 final isDone = currentIdx >= stepIdx && currentIdx != -1;
-                final isCurrent = order.status == key ||
-                    (order.status == 'processing' && key == 'assigned');
+                final isCurrent = order.status == key;
                 return SizedBox(
-                  width: 58,
+                  width: 72,
                   child: Column(children: [
                     Container(
                       width: 30,

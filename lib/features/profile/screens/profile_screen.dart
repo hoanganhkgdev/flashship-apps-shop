@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../core/theme/theme_mode_provider.dart';
 import '../../legal/legal_page_screen.dart';
 import '../../../core/widgets/app_form_widgets.dart';
@@ -16,26 +17,49 @@ import '../../auth/providers/cities_provider.dart';
 import '../../auth/widgets/city_picker_sheet.dart';
 import '../providers/support_config_provider.dart';
 import '../../order/providers/order_provider.dart';
+import '../../stats/stats_repository.dart';
 import '../../../core/widgets/address_picker_screen.dart';
 import '../../../core/widgets/map_picker_screen.dart';
 import '../../security/pin_setup_screen.dart';
 import '../../security/providers/pin_provider.dart';
 import 'devices_screen.dart';
 
+final _profileStatsProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return ref.read(statsRepositoryProvider).fetch(period: 'month');
+});
+
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user   = ref.watch(authProvider).user;
+    final user = ref.watch(authProvider).user;
+    if (user == null) return const SizedBox.shrink();
+    return _ProfileOverview(
+      user: user,
+      onAvatarTap: () => _pickAvatar(context, ref),
+      onSettingsTap: () => _showProfileSettings(context, ref, user),
+      onAddressTap: () => context.push('/address-book'),
+      onDevicesTap: () => Navigator.push(
+          context, MaterialPageRoute(builder: (_) => const DevicesScreen())),
+      onPasswordTap: () => _showPasswordSheet(context, ref),
+      onSupportTap: () => _showSupport(context),
+      onLogout: () => _logout(context, ref),
+    );
+  }
+
+  // ignore: unused_element
+  Widget _buildLegacy(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authProvider).user;
     final orders = ref.watch(orderListProvider).orders;
     if (user == null) return const SizedBox.shrink();
 
-    final c         = context.colors;
+    final c = context.colors;
     final completed = orders.where((o) => o.isCompleted).length;
-    final active    = orders.where((o) => o.isActive).length;
+    final active = orders.where((o) => o.isActive).length;
     final themeMode = ref.watch(themeModeProvider);
-    final topPad    = MediaQuery.of(context).padding.top;
+    final topPad = MediaQuery.of(context).padding.top;
     final bottomPad = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
@@ -45,7 +69,6 @@ class ProfileScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             // ── Hero header — gradient cam san hô + thẻ thống kê trắng nổi
             // đè xuống nội dung dưới ─────────────────────────────────────
             Stack(clipBehavior: Clip.none, children: [
@@ -73,71 +96,86 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ),
                   Column(children: [
-                  // Edit avatar
-                  GestureDetector(
-                    onTap: () => _pickAvatar(context, ref),
-                    child: Stack(children: [
-                      Container(
-                        width: 86, height: 86,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 3),
-                        ),
-                        child: ClipOval(
-                          child: user.avatarUrl != null
-                              ? Image.network(user.avatarUrl!, fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
-                                      _AvatarInitials(initials: user.initials))
-                              : _AvatarInitials(initials: user.initials),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 0, right: 0,
-                        child: Container(
-                          width: 24, height: 24,
+                    // Edit avatar
+                    GestureDetector(
+                      onTap: () => _pickAvatar(context, ref),
+                      child: Stack(children: [
+                        Container(
+                          width: 86,
+                          height: 86,
                           decoration: BoxDecoration(
-                            color: Colors.white,
                             shape: BoxShape.circle,
-                            border: Border.all(
-                                color: c.primary.withValues(alpha: 0.3), width: 1.5),
+                            border: Border.all(color: Colors.white, width: 3),
                           ),
-                          child: Icon(Icons.camera_alt_rounded,
-                              size: 13, color: c.primary),
+                          child: ClipOval(
+                            child: user.avatarUrl != null
+                                ? Image.network(user.avatarUrl!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) =>
+                                        _AvatarInitials(
+                                            initials: user.initials))
+                                : _AvatarInitials(initials: user.initials),
+                          ),
                         ),
-                      ),
-                    ]),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(user.name,
-                      style: const TextStyle(
-                          fontSize: 19, fontWeight: FontWeight.w800,
-                          color: Colors.white, letterSpacing: -0.3)),
-                  const SizedBox(height: 4),
-                  Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.phone_rounded,
-                        size: 12, color: Colors.white.withValues(alpha: 0.82)),
-                    const SizedBox(width: 4),
-                    Text(user.phone,
-                        style: TextStyle(
-                            fontSize: 13, color: Colors.white.withValues(alpha: 0.82))),
-                    if (user.cityName?.isNotEmpty == true) ...[
-                      Text('  ·  ',
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.6))),
-                      Icon(Icons.location_on_rounded,
-                          size: 12, color: Colors.white.withValues(alpha: 0.75)),
-                      const SizedBox(width: 2),
-                      Text(user.cityName!,
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                  color: c.primary.withValues(alpha: 0.3),
+                                  width: 1.5),
+                            ),
+                            child: Icon(Icons.camera_alt_rounded,
+                                size: 13, color: c.primary),
+                          ),
+                        ),
+                      ]),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(user.name,
+                        style: const TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: -0.3)),
+                    const SizedBox(height: 4),
+                    Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.phone_rounded,
+                          size: 12,
+                          color: Colors.white.withValues(alpha: 0.82)),
+                      const SizedBox(width: 4),
+                      Text(user.phone,
                           style: TextStyle(
-                              fontSize: 13, color: Colors.white.withValues(alpha: 0.75))),
-                    ],
-                  ]),
+                              fontSize: 13,
+                              color: Colors.white.withValues(alpha: 0.82))),
+                      if (user.cityName?.isNotEmpty == true) ...[
+                        Text('  ·  ',
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.6))),
+                        Icon(Icons.location_on_rounded,
+                            size: 12,
+                            color: Colors.white.withValues(alpha: 0.75)),
+                        const SizedBox(width: 2),
+                        Text(user.cityName!,
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.white.withValues(alpha: 0.75))),
+                      ],
+                    ]),
                   ]),
                 ]),
               ),
 
               // ── Thẻ thống kê trắng nổi ──────────────────────────────────
               Positioned(
-                left: 16, right: 16, bottom: -44,
+                left: 16,
+                right: 16,
+                bottom: -44,
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
@@ -146,21 +184,28 @@ class ProfileScreen extends ConsumerWidget {
                     boxShadow: [
                       BoxShadow(
                           color: Colors.black.withValues(alpha: 0.07),
-                          blurRadius: 16, offset: const Offset(0, 4)),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4)),
                     ],
                   ),
                   child: Row(children: [
-                    _HeroStat(label: 'Tổng đơn',
+                    _HeroStat(
+                        label: 'Tổng đơn',
                         value: orders.length.toString(),
-                        icon: Icons.receipt_long_rounded, color: c.primary),
+                        icon: Icons.receipt_long_rounded,
+                        color: c.primary),
                     _HeroDivider(),
-                    _HeroStat(label: 'Hoàn thành',
+                    _HeroStat(
+                        label: 'Hoàn thành',
                         value: completed.toString(),
-                        icon: Icons.done_all_rounded, color: c.success),
+                        icon: Icons.done_all_rounded,
+                        color: c.success),
                     _HeroDivider(),
-                    _HeroStat(label: 'Đang chạy',
+                    _HeroStat(
+                        label: 'Đang chạy',
                         value: active.toString(),
-                        icon: Icons.local_shipping_rounded, color: c.info),
+                        icon: Icons.local_shipping_rounded,
+                        color: c.info),
                   ]),
                 ),
               ),
@@ -204,14 +249,15 @@ class ProfileScreen extends ConsumerWidget {
                   value: ref.watch(pinProvider).isEnabled,
                   onChanged: (v) => _togglePinLock(context, ref, v),
                 ),
-                onTap: () => _togglePinLock(context, ref, !ref.read(pinProvider).isEnabled),
+                onTap: () => _togglePinLock(
+                    context, ref, !ref.read(pinProvider).isEnabled),
               ),
               _SettingsRow(
                 icon: Icons.devices_rounded,
                 iconBg: const Color(0xFF5AC8FA),
                 label: 'Thiết bị đăng nhập',
-                onTap: () => Navigator.push(
-                    context, MaterialPageRoute(builder: (_) => const DevicesScreen())),
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const DevicesScreen())),
               ),
             ]),
 
@@ -247,21 +293,25 @@ class ProfileScreen extends ConsumerWidget {
                 icon: Icons.shield_outlined,
                 iconBg: const Color(0xFF007AFF),
                 label: 'Chính sách quyền riêng tư',
-                onTap: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const LegalPageScreen(
-                      slug:  'privacy-policy',
-                      title: 'Chính sách quyền riêng tư',
-                    ))),
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const LegalPageScreen(
+                              slug: 'privacy-policy',
+                              title: 'Chính sách quyền riêng tư',
+                            ))),
               ),
               _SettingsRow(
                 icon: Icons.description_outlined,
                 iconBg: const Color(0xFF5856D6),
                 label: 'Điều khoản sử dụng',
-                onTap: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const LegalPageScreen(
-                      slug:  'terms-of-service',
-                      title: 'Điều khoản sử dụng',
-                    ))),
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const LegalPageScreen(
+                              slug: 'terms-of-service',
+                              title: 'Điều khoản sử dụng',
+                            ))),
               ),
             ]),
 
@@ -291,8 +341,8 @@ class ProfileScreen extends ConsumerWidget {
             const SizedBox(height: 28),
             Center(
               child: Text('FlashShip Shop',
-                  style: TextStyle(fontSize: 12,
-                      color: context.colors.textTertiary)),
+                  style: TextStyle(
+                      fontSize: 12, color: context.colors.textTertiary)),
             ),
           ],
         ),
@@ -302,9 +352,100 @@ class ProfileScreen extends ConsumerWidget {
 
   // ── Helpers ───────────────────────────────────────────────────────────────────
 
+  void _showSupport(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: _SupportSection(),
+        ),
+      ),
+    );
+  }
+
+  void _showProfileSettings(
+      BuildContext context, WidgetRef ref, ShopUserModel user) {
+    final c = context.colors;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: c.divider, borderRadius: BorderRadius.circular(2)),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('Chỉnh sửa thông tin'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _showEditSheet(context, ref, user);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.phone_iphone_rounded),
+              title: const Text('Đổi số điện thoại'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _showChangePhoneSheet(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.dark_mode_outlined),
+              title: const Text('Chế độ hiển thị'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _showThemeModeSheet(context, ref);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.pin_outlined),
+              title: const Text('Khoá bằng mã PIN'),
+              trailing: Switch(
+                value: ref.read(pinProvider).isEnabled,
+                onChanged: (value) {
+                  Navigator.pop(sheetContext);
+                  _togglePinLock(context, ref, value);
+                },
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.shield_outlined),
+              title: const Text('Chính sách quyền riêng tư'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const LegalPageScreen(
+                            slug: 'privacy-policy',
+                            title: 'Chính sách quyền riêng tư')));
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_forever_outlined, color: c.danger),
+              title: Text('Xóa tài khoản', style: TextStyle(color: c.danger)),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _deleteAccount(context, ref);
+              },
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
   static String _themeModeLabel(ThemeMode mode) => switch (mode) {
-        ThemeMode.light  => 'Sáng',
-        ThemeMode.dark   => 'Tối',
+        ThemeMode.light => 'Sáng',
+        ThemeMode.dark => 'Tối',
         ThemeMode.system => 'Hệ thống',
       };
 
@@ -314,8 +455,7 @@ class ProfileScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) {
         final c = ctx.colors;
-        Widget option(ThemeMode mode, IconData icon, String label) =>
-            ListTile(
+        Widget option(ThemeMode mode, IconData icon, String label) => ListTile(
               leading: Icon(icon, color: c.textSecondary),
               title: Text(label,
                   style: TextStyle(fontSize: 15, color: c.textPrimary)),
@@ -335,7 +475,8 @@ class ProfileScreen extends ConsumerWidget {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text('Chế độ hiển thị',
-                    style: TextStyle(fontSize: 16,
+                    style: TextStyle(
+                        fontSize: 16,
                         fontWeight: FontWeight.w800,
                         color: c.textPrimary)),
               ),
@@ -356,18 +497,16 @@ class ProfileScreen extends ConsumerWidget {
     final img = await ImagePicker()
         .pickImage(source: ImageSource.gallery, imageQuality: 80);
     if (img == null) return;
-    final err =
-        await ref.read(authProvider.notifier).uploadAvatar(img.path);
+    final err = await ref.read(authProvider.notifier).uploadAvatar(img.path);
     if (err != null && context.mounted) {
       AppSnackbar.error(context, err);
     }
   }
 
-  void _showEditSheet(
-      BuildContext context, WidgetRef ref, ShopUserModel user) {
+  void _showEditSheet(BuildContext context, WidgetRef ref, ShopUserModel user) {
     final nameCtrl = TextEditingController(text: user.name);
     final addrCtrl = TextEditingController(text: user.address ?? '');
-    int?    cityId   = user.cityId;
+    int? cityId = user.cityId;
     String? cityName = user.cityName;
 
     showModalBottomSheet(
@@ -378,139 +517,145 @@ class ProfileScreen extends ConsumerWidget {
           final c = ctx.colors;
           return Padding(
             padding: EdgeInsets.only(
-              left: 20, right: 20, top: 12,
+              left: 20,
+              right: 20,
+              top: 12,
               bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
             ),
-            child: Column(mainAxisSize: MainAxisSize.min,
+            child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-              Center(child: Container(
-                width: 36, height: 4,
-                decoration: BoxDecoration(
-                  color: c.divider,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              )),
-              const SizedBox(height: 16),
-              const Text('Chỉnh sửa thông tin',
-                  style: TextStyle(
-                      fontSize: 17, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 20),
-              const AppLabel('Tên cửa hàng'),
-              const SizedBox(height: 8),
-              AppField(controller: nameCtrl, hint: 'Tên cửa hàng'),
-              const SizedBox(height: 14),
-              const AppLabel('Địa chỉ'),
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: () async {
-                  final result = await Navigator.of(ctx).push<MapPickResult>(
-                    MaterialPageRoute(
-                      builder: (_) => const AddressPickerScreen(
-                          title: 'Địa chỉ cửa hàng'),
+                  Center(
+                      child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: c.divider,
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                  );
-                  if (result != null) {
-                    setSt(() {
-                      addrCtrl.text = result.address;
-                    });
-                  }
-                },
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: c.surfaceAlt,
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                  ),
-                  child: Row(children: [
-                    Expanded(
-                      child: Text(
-                        addrCtrl.text.isNotEmpty
-                            ? addrCtrl.text
-                            : 'Chọn địa chỉ...',
-                        style: TextStyle(
-                            fontSize: 15,
-                            color: addrCtrl.text.isNotEmpty
-                                ? c.textPrimary
-                                : c.textSecondary),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(Icons.location_on_outlined,
-                        size: 18, color: c.primary),
-                  ]),
-                ),
-              ),
-              const SizedBox(height: 14),
-              Consumer(builder: (_, cRef, __) {
-                final citiesAsync = cRef.watch(citiesProvider);
-                return citiesAsync.maybeWhen(
-                  data: (cities) => Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const AppLabel('Khu vực'),
-                      const SizedBox(height: 8),
-                      GestureDetector(
-                        onTap: () async {
-                          final result = await showCityPicker(
-                            ctx,
-                            cities: cities,
-                            selectedId: cityId,
-                          );
-                          if (result != null) {
-                            setSt(() {
-                              cityId   = result.id;
-                              cityName = result.name;
-                            });
-                          }
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 15),
-                          decoration: BoxDecoration(
-                            color: c.surfaceAlt,
-                            borderRadius:
-                                BorderRadius.circular(AppRadius.sm),
-                          ),
-                          child: Row(children: [
-                            Expanded(child: Text(
-                                cityName ?? 'Chọn khu vực...',
-                                style: TextStyle(
-                                    fontSize: 15,
-                                    color: cityName != null
-                                        ? c.textPrimary
-                                        : c.textSecondary))),
-                            Icon(Icons.keyboard_arrow_down_rounded,
-                                size: 20, color: c.textSecondary),
-                          ]),
+                  )),
+                  const SizedBox(height: 16),
+                  const Text('Chỉnh sửa thông tin',
+                      style:
+                          TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 20),
+                  const AppLabel('Tên cửa hàng'),
+                  const SizedBox(height: 8),
+                  AppField(controller: nameCtrl, hint: 'Tên cửa hàng'),
+                  const SizedBox(height: 14),
+                  const AppLabel('Địa chỉ'),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () async {
+                      final result =
+                          await Navigator.of(ctx).push<MapPickResult>(
+                        MaterialPageRoute(
+                          builder: (_) => const AddressPickerScreen(
+                              title: 'Địa chỉ cửa hàng'),
                         ),
+                      );
+                      if (result != null) {
+                        setSt(() {
+                          addrCtrl.text = result.address;
+                        });
+                      }
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: c.surfaceAlt,
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
                       ),
-                    ],
+                      child: Row(children: [
+                        Expanded(
+                          child: Text(
+                            addrCtrl.text.isNotEmpty
+                                ? addrCtrl.text
+                                : 'Chọn địa chỉ...',
+                            style: TextStyle(
+                                fontSize: 15,
+                                color: addrCtrl.text.isNotEmpty
+                                    ? c.textPrimary
+                                    : c.textSecondary),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(Icons.location_on_outlined,
+                            size: 18, color: c.primary),
+                      ]),
+                    ),
                   ),
-                  orElse: () => const SizedBox.shrink(),
-                );
-              }),
-              const SizedBox(height: 24),
-              AppButton(
-                label: 'Lưu thay đổi',
-                onPressed: () async {
-                  Navigator.pop(ctx);
-                  final err =
-                      await ref.read(authProvider.notifier).updateProfile(
-                    name:    nameCtrl.text.trim(),
-                    address: addrCtrl.text.trim(),
-                    cityId:  cityId,
-                  );
-                  if (err != null && context.mounted) {
-                    AppSnackbar.error(context, err);
-                  }
-                },
-              ),
-            ]),
+                  const SizedBox(height: 14),
+                  Consumer(builder: (_, cRef, __) {
+                    final citiesAsync = cRef.watch(citiesProvider);
+                    return citiesAsync.maybeWhen(
+                      data: (cities) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const AppLabel('Khu vực'),
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: () async {
+                              final result = await showCityPicker(
+                                ctx,
+                                cities: cities,
+                                selectedId: cityId,
+                              );
+                              if (result != null) {
+                                setSt(() {
+                                  cityId = result.id;
+                                  cityName = result.name;
+                                });
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 15),
+                              decoration: BoxDecoration(
+                                color: c.surfaceAlt,
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.sm),
+                              ),
+                              child: Row(children: [
+                                Expanded(
+                                    child: Text(cityName ?? 'Chọn khu vực...',
+                                        style: TextStyle(
+                                            fontSize: 15,
+                                            color: cityName != null
+                                                ? c.textPrimary
+                                                : c.textSecondary))),
+                                Icon(Icons.keyboard_arrow_down_rounded,
+                                    size: 20, color: c.textSecondary),
+                              ]),
+                            ),
+                          ),
+                        ],
+                      ),
+                      orElse: () => const SizedBox.shrink(),
+                    );
+                  }),
+                  const SizedBox(height: 24),
+                  AppButton(
+                    label: 'Lưu thay đổi',
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      final err =
+                          await ref.read(authProvider.notifier).updateProfile(
+                                name: nameCtrl.text.trim(),
+                                address: addrCtrl.text.trim(),
+                                cityId: cityId,
+                              );
+                      if (err != null && context.mounted) {
+                        AppSnackbar.error(context, err);
+                      }
+                    },
+                  ),
+                ]),
           );
         },
       ),
@@ -519,60 +664,61 @@ class ProfileScreen extends ConsumerWidget {
 
   void _showPasswordSheet(BuildContext context, WidgetRef ref) {
     final currCtrl = TextEditingController();
-    final newCtrl  = TextEditingController();
+    final newCtrl = TextEditingController();
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (ctx) => Padding(
         padding: EdgeInsets.only(
-          left: 20, right: 20, top: 12,
+          left: 20,
+          right: 20,
+          top: 12,
           bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
         ),
-        child: Column(mainAxisSize: MainAxisSize.min,
+        child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-          Center(child: Container(
-              width: 36, height: 4,
-              decoration: BoxDecoration(color: ctx.colors.divider,
-                  borderRadius: BorderRadius.circular(2)))),
-          const SizedBox(height: 16),
-          const Text('Đổi mật khẩu',
-              style: TextStyle(
-                  fontSize: 17, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 20),
-          const AppLabel('Mật khẩu hiện tại'),
-          const SizedBox(height: 8),
-          AppField(
-              controller: currCtrl,
-              hint: '••••••••',
-              obscureText: true),
-          const SizedBox(height: 14),
-          const AppLabel('Mật khẩu mới'),
-          const SizedBox(height: 8),
-          AppField(
-              controller: newCtrl,
-              hint: '••••••••',
-              obscureText: true),
-          const SizedBox(height: 24),
-          AppButton(
-            label: 'Xác nhận',
-            onPressed: () async {
-              Navigator.pop(ctx);
-              final err = await ref
-                  .read(authProvider.notifier)
-                  .changePassword(
-                      current: currCtrl.text, next: newCtrl.text);
-              if (context.mounted) {
-                if (err == null) {
-                  AppSnackbar.success(context, 'Đổi mật khẩu thành công');
-                } else {
-                  AppSnackbar.error(context, err);
-                }
-              }
-            },
-          ),
-        ]),
+              Center(
+                  child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                          color: ctx.colors.divider,
+                          borderRadius: BorderRadius.circular(2)))),
+              const SizedBox(height: 16),
+              const Text('Đổi mật khẩu',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 20),
+              const AppLabel('Mật khẩu hiện tại'),
+              const SizedBox(height: 8),
+              AppField(
+                  controller: currCtrl, hint: '••••••••', obscureText: true),
+              const SizedBox(height: 14),
+              const AppLabel('Mật khẩu mới'),
+              const SizedBox(height: 8),
+              AppField(
+                  controller: newCtrl, hint: '••••••••', obscureText: true),
+              const SizedBox(height: 24),
+              AppButton(
+                label: 'Xác nhận',
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  final err = await ref
+                      .read(authProvider.notifier)
+                      .changePassword(
+                          current: currCtrl.text, next: newCtrl.text);
+                  if (context.mounted) {
+                    if (err == null) {
+                      AppSnackbar.success(context, 'Đổi mật khẩu thành công');
+                    } else {
+                      AppSnackbar.error(context, err);
+                    }
+                  }
+                },
+              ),
+            ]),
       ),
     );
   }
@@ -591,7 +737,8 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _togglePinLock(BuildContext context, WidgetRef ref, bool enable) async {
+  Future<void> _togglePinLock(
+      BuildContext context, WidgetRef ref, bool enable) async {
     final notifier = ref.read(pinProvider.notifier);
     if (!enable) {
       await notifier.setEnabled(false);
@@ -618,8 +765,7 @@ class ProfileScreen extends ConsumerWidget {
         content: Text(
           'Tất cả dữ liệu cửa hàng, lịch sử đơn hàng sẽ bị xóa vĩnh viễn. '
           'Hành động này không thể hoàn tác.',
-          style:
-              TextStyle(color: ctx.colors.textSecondary, height: 1.5),
+          style: TextStyle(color: ctx.colors.textSecondary, height: 1.5),
         ),
         actions: [
           TextButton(
@@ -628,8 +774,7 @@ class ProfileScreen extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(
-                foregroundColor: ctx.colors.danger),
+            style: TextButton.styleFrom(foregroundColor: ctx.colors.danger),
             child: const Text('Tiếp tục',
                 style: TextStyle(fontWeight: FontWeight.w700)),
           ),
@@ -647,8 +792,7 @@ class ProfileScreen extends ConsumerWidget {
         content: Text(
           'Nhấn "Xóa vĩnh viễn" để xác nhận. '
           'Đơn hàng đang chờ sẽ bị huỷ tự động.',
-          style:
-              TextStyle(color: ctx.colors.textSecondary, height: 1.5),
+          style: TextStyle(color: ctx.colors.textSecondary, height: 1.5),
         ),
         actions: [
           TextButton(
@@ -657,8 +801,7 @@ class ProfileScreen extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(
-                foregroundColor: ctx.colors.danger),
+            style: TextButton.styleFrom(foregroundColor: ctx.colors.danger),
             child: const Text('Xóa vĩnh viễn',
                 style: TextStyle(fontWeight: FontWeight.w700)),
           ),
@@ -680,8 +823,7 @@ class ProfileScreen extends ConsumerWidget {
         title: const Text('Đăng xuất?',
             style: TextStyle(fontWeight: FontWeight.w700)),
         content: Text('Bạn muốn đăng xuất khỏi tài khoản này?',
-            style:
-                TextStyle(color: ctx.colors.textSecondary)),
+            style: TextStyle(color: ctx.colors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -689,8 +831,7 @@ class ProfileScreen extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(
-                foregroundColor: ctx.colors.danger),
+            style: TextButton.styleFrom(foregroundColor: ctx.colors.danger),
             child: const Text('Đăng xuất',
                 style: TextStyle(fontWeight: FontWeight.w700)),
           ),
@@ -701,12 +842,381 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
+class _ProfileOverview extends ConsumerWidget {
+  final ShopUserModel user;
+  final VoidCallback onAvatarTap;
+  final VoidCallback onSettingsTap;
+  final VoidCallback onAddressTap;
+  final VoidCallback onDevicesTap;
+  final VoidCallback onPasswordTap;
+  final VoidCallback onSupportTap;
+  final VoidCallback onLogout;
+
+  const _ProfileOverview({
+    required this.user,
+    required this.onAvatarTap,
+    required this.onSettingsTap,
+    required this.onAddressTap,
+    required this.onDevicesTap,
+    required this.onPasswordTap,
+    required this.onSupportTap,
+    required this.onLogout,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
+    final stats = ref.watch(_profileStatsProvider).valueOrNull ?? const {};
+    final revenue = Fmt.toInt(stats['revenue']);
+    final total = Fmt.toInt(stats['total']);
+    final completed = Fmt.toInt(stats['completed']);
+    final cancelled = Fmt.toInt(stats['cancelled']);
+    final daily = stats['daily'] is List
+        ? (stats['daily'] as List)
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList()
+        : <Map<String, dynamic>>[];
+    final top = MediaQuery.of(context).padding.top;
+
+    return Scaffold(
+      backgroundColor: c.background,
+      body: RefreshIndicator(
+        color: c.primary,
+        onRefresh: () async => ref.invalidate(_profileStatsProvider),
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            Container(
+              padding: EdgeInsets.fromLTRB(20, top + 18, 20, 16),
+              decoration: BoxDecoration(
+                color: c.surface,
+                border: Border(bottom: BorderSide(color: c.divider)),
+              ),
+              child: Column(children: [
+                Row(children: [
+                  Text('Hồ sơ',
+                      style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: c.textPrimary)),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: onSettingsTap,
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: c.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: c.divider),
+                      ),
+                      child: Icon(Icons.settings_outlined,
+                          color: c.textPrimary, size: 20),
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 16),
+                Row(children: [
+                  GestureDetector(
+                    onTap: onAvatarTap,
+                    child: Container(
+                      width: 54,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        color: c.primarySoft,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: user.avatarUrl != null
+                          ? Image.network(user.avatarUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  _ProfileInitials(user.initials))
+                          : _ProfileInitials(user.initials),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(user.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                color: c.textPrimary)),
+                        const SizedBox(height: 3),
+                        Text(
+                            [
+                              user.phone,
+                              if (user.cityName?.isNotEmpty == true)
+                                user.cityName!,
+                            ].join(' · '),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 12, color: c.textSecondary)),
+                      ],
+                    ),
+                  ),
+                ]),
+              ]),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: Row(children: [
+                Expanded(
+                  child: _ProfileStatCard(
+                    icon: Icons.bar_chart_rounded,
+                    iconColor: c.primary,
+                    label: 'Phí ship tháng',
+                    value: Fmt.currency(revenue),
+                    caption: '$completed đơn đã hoàn thành',
+                    captionColor: c.success,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _ProfileStatCard(
+                    icon: Icons.inventory_2_outlined,
+                    iconColor: c.accent2,
+                    label: 'Đơn tháng này',
+                    value: '$total',
+                    caption: '$completed hoàn thành · $cancelled huỷ',
+                    captionColor: c.textTertiary,
+                  ),
+                ),
+              ]),
+            ),
+            const SizedBox(height: 16),
+            _WeeklyOrdersCard(daily: daily),
+            const SizedBox(height: 20),
+            _SettingsCard(rows: [
+              _SettingsRow(
+                icon: Icons.location_on_outlined,
+                iconBg: c.textSecondary,
+                label: 'Sổ địa chỉ',
+                onTap: onAddressTap,
+              ),
+              _SettingsRow(
+                icon: Icons.phone_iphone_rounded,
+                iconBg: c.textSecondary,
+                label: 'Thiết bị đăng nhập',
+                onTap: onDevicesTap,
+              ),
+              _SettingsRow(
+                icon: Icons.lock_outline_rounded,
+                iconBg: c.textSecondary,
+                label: 'Đổi mật khẩu',
+                onTap: onPasswordTap,
+              ),
+              _SettingsRow(
+                icon: Icons.help_outline_rounded,
+                iconBg: c.textSecondary,
+                label: 'Hỗ trợ',
+                onTap: onSupportTap,
+              ),
+            ]),
+            const SizedBox(height: 14),
+            Center(
+              child: TextButton(
+                onPressed: onLogout,
+                style: TextButton.styleFrom(foregroundColor: c.danger),
+                child: const Text('Đăng xuất',
+                    style:
+                        TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+              ),
+            ),
+            const SizedBox(height: 36),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileInitials extends StatelessWidget {
+  final String initials;
+  const _ProfileInitials(this.initials);
+
+  @override
+  Widget build(BuildContext context) => ColoredBox(
+        color: context.colors.surface,
+        child: Center(
+          child: Text(initials,
+              style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: context.colors.primary)),
+        ),
+      );
+}
+
+class _ProfileStatCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final String value;
+  final String caption;
+  final Color captionColor;
+
+  const _ProfileStatCard({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.value,
+    required this.caption,
+    required this.captionColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      height: 118,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: c.divider),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: .12),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(icon, size: 16, color: iconColor),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: c.textSecondary)),
+          ),
+        ]),
+        const Spacer(),
+        Text(value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: c.textPrimary)),
+        const SizedBox(height: 2),
+        Text(caption,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w600,
+                color: captionColor)),
+      ]),
+    );
+  }
+}
+
+class _WeeklyOrdersCard extends StatelessWidget {
+  final List<Map<String, dynamic>> daily;
+  const _WeeklyOrdersCard({required this.daily});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final now = DateTime.now();
+    final days = List.generate(7, (index) {
+      final day = now.subtract(Duration(days: 6 - index));
+      final key =
+          '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+      Map<String, dynamic>? item;
+      for (final entry in daily) {
+        if (entry['date']?.toString() == key) {
+          item = entry;
+          break;
+        }
+      }
+      return (day, Fmt.toInt(item?['count']));
+    });
+    final maxCount = days.fold<int>(
+        1, (current, item) => item.$2 > current ? item.$2 : current);
+    const labels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: c.divider),
+      ),
+      child: Column(children: [
+        Row(children: [
+          Text('Đơn hàng 7 ngày qua',
+              style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: c.textPrimary)),
+          const Spacer(),
+          Text('Tuần này',
+              style: TextStyle(fontSize: 11.5, color: c.textTertiary)),
+        ]),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 86,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: days.map((item) {
+              final isToday = item.$1.day == now.day &&
+                  item.$1.month == now.month &&
+                  item.$1.year == now.year;
+              final height = 22 + (item.$2 / maxCount * 42);
+              final weekdayLabel = labels[item.$1.weekday - 1];
+              return Expanded(
+                child:
+                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    height: height,
+                    width: 38,
+                    decoration: BoxDecoration(
+                      color: isToday ? c.primary : c.primarySoft,
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(7)),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(weekdayLabel,
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight:
+                              isToday ? FontWeight.w700 : FontWeight.w400,
+                          color: isToday ? c.primary : c.textTertiary)),
+                ]),
+              );
+            }).toList(),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
 // ─── Hero stat item ───────────────────────────────────────────────────────────
 
 class _HeroStat extends StatelessWidget {
-  final String   label, value;
+  final String label, value;
   final IconData icon;
-  final Color    color;
+  final Color color;
   const _HeroStat({
     required this.label,
     required this.value,
@@ -720,7 +1230,8 @@ class _HeroStat extends StatelessWidget {
     return Expanded(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
-          width: 36, height: 36,
+          width: 36,
+          height: 36,
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.12),
             shape: BoxShape.circle,
@@ -736,8 +1247,7 @@ class _HeroStat extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 color: c.textPrimary)),
         const SizedBox(height: 2),
-        Text(label,
-            style: TextStyle(fontSize: 11, color: c.textSecondary)),
+        Text(label, style: TextStyle(fontSize: 11, color: c.textSecondary)),
       ]),
     );
   }
@@ -745,9 +1255,8 @@ class _HeroStat extends StatelessWidget {
 
 class _HeroDivider extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => Container(
-        width: 1, height: 36,
-        color: context.colors.divider);
+  Widget build(BuildContext context) =>
+      Container(width: 1, height: 36, color: context.colors.divider);
 }
 
 class _AvatarInitials extends StatelessWidget {
@@ -794,11 +1303,11 @@ class _SettingsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        boxShadow: c.cardShadow,
+        border: Border.all(color: c.divider),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppRadius.card),
@@ -807,8 +1316,7 @@ class _SettingsCard extends StatelessWidget {
             final isLast = e.key == rows.length - 1;
             return Column(children: [
               e.value,
-              if (!isLast)
-                Divider(height: 1, indent: 58, color: c.divider),
+              if (!isLast) Divider(height: 1, color: c.divider),
             ]);
           }).toList(),
         ),
@@ -836,7 +1344,8 @@ class _SupportSection extends ConsumerWidget {
         ),
         child: Center(
           child: SizedBox(
-            width: 18, height: 18,
+            width: 18,
+            height: 18,
             child: CircularProgressIndicator(strokeWidth: 2, color: c.primary),
           ),
         ),
@@ -845,13 +1354,16 @@ class _SupportSection extends ConsumerWidget {
       data: (items) {
         if (items.isEmpty) return const SizedBox.shrink();
         return _SettingsCard(
-          rows: items.map((item) => _SettingsRow(
-            icon:      item.materialIcon ?? Icons.link_rounded,
-            assetIcon: item.assetIcon,
-            iconBg:    item.displayColor,
-            label:     item.title,
-            onTap: () => launchUrl(item.uri, mode: LaunchMode.externalApplication),
-          )).toList(),
+          rows: items
+              .map((item) => _SettingsRow(
+                    icon: item.materialIcon ?? Icons.link_rounded,
+                    assetIcon: item.assetIcon,
+                    iconBg: item.displayColor,
+                    label: item.title,
+                    onTap: () => launchUrl(item.uri,
+                        mode: LaunchMode.externalApplication),
+                  ))
+              .toList(),
         );
       },
     );
@@ -861,13 +1373,13 @@ class _SupportSection extends ConsumerWidget {
 // ─── Settings row ─────────────────────────────────────────────────────────────
 
 class _SettingsRow extends StatelessWidget {
-  final IconData   icon;
-  final String?    assetIcon;
-  final Color      iconBg;
-  final String     label;
-  final Color?     labelColor;
-  final bool       showChevron;
-  final Widget?    trailing;
+  final IconData icon;
+  final String? assetIcon;
+  final Color iconBg;
+  final String label;
+  final Color? labelColor;
+  final bool showChevron;
+  final Widget? trailing;
   final VoidCallback? onTap;
 
   const _SettingsRow({
@@ -889,13 +1401,15 @@ class _SettingsRow extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 14, vertical: 13),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
           child: Row(children: [
             Container(
-              width: 30, height: 30,
+              width: 22,
+              height: 22,
               decoration: BoxDecoration(
-                color: assetIcon != null ? const Color(0xFFFFF0E6) : iconBg,
+                color: assetIcon != null
+                    ? const Color(0xFFFFF0E6)
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: assetIcon != null
@@ -903,9 +1417,9 @@ class _SettingsRow extends StatelessWidget {
                       padding: const EdgeInsets.all(6),
                       child: Image.asset(assetIcon!),
                     )
-                  : Icon(icon, size: 16, color: Colors.white),
+                  : Icon(icon, size: 18, color: iconBg),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(label,
                   style: TextStyle(
@@ -939,11 +1453,11 @@ class _ChangePhoneSheet extends ConsumerStatefulWidget {
 
 class _ChangePhoneSheetState extends ConsumerState<_ChangePhoneSheet> {
   final _phoneCtrl = TextEditingController();
-  final _otpCtl    = OtpInputController();
+  final _otpCtl = OtpInputController();
 
-  int    _step        = 1;
-  String _lockedPhone  = '';
-  int    _countdown   = 60;
+  int _step = 1;
+  String _lockedPhone = '';
+  int _countdown = 60;
   Timer? _timer;
 
   @override
@@ -958,7 +1472,10 @@ class _ChangePhoneSheetState extends ConsumerState<_ChangePhoneSheet> {
     _countdown = 60;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (_countdown <= 0) { t.cancel(); return; }
+      if (_countdown <= 0) {
+        t.cancel();
+        return;
+      }
       setState(() => _countdown--);
     });
   }
@@ -971,7 +1488,7 @@ class _ChangePhoneSheetState extends ConsumerState<_ChangePhoneSheet> {
     if (ok) {
       setState(() {
         _lockedPhone = phone;
-        _step        = 2;
+        _step = 2;
       });
       _startCountdown();
     } else {
@@ -981,7 +1498,8 @@ class _ChangePhoneSheetState extends ConsumerState<_ChangePhoneSheet> {
 
   Future<void> _resend() async {
     if (_countdown > 0) return;
-    final ok = await ref.read(authProvider.notifier).sendChangePhoneOtp(_lockedPhone);
+    final ok =
+        await ref.read(authProvider.notifier).sendChangePhoneOtp(_lockedPhone);
     if (ok) _startCountdown();
     if (mounted) setState(() {});
   }
@@ -1004,93 +1522,99 @@ class _ChangePhoneSheetState extends ConsumerState<_ChangePhoneSheet> {
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
-    final c    = context.colors;
+    final c = context.colors;
 
     return Padding(
       padding: EdgeInsets.only(
-        left: 20, right: 20, top: 12,
+        left: 20,
+        right: 20,
+        top: 12,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
-      child: Column(mainAxisSize: MainAxisSize.min,
+      child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-        Center(child: Container(
-            width: 36, height: 4,
-            decoration: BoxDecoration(color: c.divider,
-                borderRadius: BorderRadius.circular(2)))),
-        const SizedBox(height: 16),
-        const Text('Đổi số điện thoại',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 16),
-        StepProgressBar(currentStep: _step, totalSteps: 2),
-        const SizedBox(height: 20),
-
-        if (_step == 1) ...[
-          const AppLabel('Số điện thoại mới'),
-          const SizedBox(height: 8),
-          AppField(
-            controller: _phoneCtrl,
-            hint: '09xxxxxxxx',
-            keyboardType: TextInputType.phone,
-          ),
-          if (auth.error != null) ...[
-            const SizedBox(height: 14),
-            AppErrorBox(auth.error!),
-          ],
-          const SizedBox(height: 24),
-          AppButton(
-            label: 'Gửi mã OTP',
-            onPressed: _sendOtp,
-            isLoading: auth.isLoading,
-          ),
-        ] else ...[
-          Text.rich(TextSpan(
-            style: TextStyle(fontSize: 14, color: c.textSecondary),
-            children: [
-              const TextSpan(text: 'Nhập mã 6 số đã gửi tới '),
-              TextSpan(
-                text: _lockedPhone,
-                style: TextStyle(fontWeight: FontWeight.w700, color: c.textPrimary),
+            Center(
+                child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: c.divider,
+                        borderRadius: BorderRadius.circular(2)))),
+            const SizedBox(height: 16),
+            const Text('Đổi số điện thoại',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 16),
+            StepProgressBar(currentStep: _step, totalSteps: 2),
+            const SizedBox(height: 20),
+            if (_step == 1) ...[
+              const AppLabel('Số điện thoại mới'),
+              const SizedBox(height: 8),
+              AppField(
+                controller: _phoneCtrl,
+                hint: '09xxxxxxxx',
+                keyboardType: TextInputType.phone,
+              ),
+              if (auth.error != null) ...[
+                const SizedBox(height: 14),
+                AppErrorBox(auth.error!),
+              ],
+              const SizedBox(height: 24),
+              AppButton(
+                label: 'Gửi mã OTP',
+                onPressed: _sendOtp,
+                isLoading: auth.isLoading,
+              ),
+            ] else ...[
+              Text.rich(TextSpan(
+                style: TextStyle(fontSize: 14, color: c.textSecondary),
+                children: [
+                  const TextSpan(text: 'Nhập mã 6 số đã gửi tới '),
+                  TextSpan(
+                    text: _lockedPhone,
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700, color: c.textPrimary),
+                  ),
+                ],
+              )),
+              const SizedBox(height: 20),
+              OtpInput(
+                controller: _otpCtl,
+                onChanged: (otp) {
+                  if (otp.length == 6) _verify();
+                },
+              ),
+              if (auth.error != null) ...[
+                const SizedBox(height: 14),
+                AppErrorBox(auth.error!),
+              ],
+              const SizedBox(height: 24),
+              AppButton(
+                label: 'Xác nhận',
+                onPressed: _otpCtl.otp.length == 6 ? _verify : null,
+                isLoading: auth.isLoading,
+              ),
+              const SizedBox(height: 16),
+              Center(
+                child: _countdown > 0
+                    ? Text(
+                        'Gửi lại sau $_countdown giây',
+                        style: TextStyle(fontSize: 14, color: c.textSecondary),
+                      )
+                    : GestureDetector(
+                        onTap: _resend,
+                        child: const Text(
+                          'Gửi lại mã OTP',
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary),
+                        ),
+                      ),
               ),
             ],
-          )),
-          const SizedBox(height: 20),
-          OtpInput(
-            controller: _otpCtl,
-            onChanged: (otp) {
-              if (otp.length == 6) _verify();
-            },
-          ),
-          if (auth.error != null) ...[
-            const SizedBox(height: 14),
-            AppErrorBox(auth.error!),
-          ],
-          const SizedBox(height: 24),
-          AppButton(
-            label: 'Xác nhận',
-            onPressed: _otpCtl.otp.length == 6 ? _verify : null,
-            isLoading: auth.isLoading,
-          ),
-          const SizedBox(height: 16),
-          Center(
-            child: _countdown > 0
-                ? Text(
-                    'Gửi lại sau $_countdown giây',
-                    style: TextStyle(fontSize: 14, color: c.textSecondary),
-                  )
-                : GestureDetector(
-                    onTap: _resend,
-                    child: const Text(
-                      'Gửi lại mã OTP',
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary),
-                    ),
-                  ),
-          ),
-        ],
-      ]),
+          ]),
     );
   }
 }

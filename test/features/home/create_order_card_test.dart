@@ -26,17 +26,16 @@ void main() {
     );
   }
 
-  testWidgets('shows the primary and secondary order actions', (tester) async {
+  testWidgets('shows the three order actions', (tester) async {
     await tester.pumpWidget(buildCard(
       onDelivery: () {},
       onPickup: () {},
       onBatch: () {},
     ));
 
-    expect(find.text('Tạo đơn ngay'), findsOneWidget);
     expect(find.text('Giao hàng'), findsOneWidget);
-    expect(find.text('Lấy hàng ngoài'), findsOneWidget);
-    expect(find.byKey(const ValueKey('batch-order-action')), findsOneWidget);
+    expect(find.text('Lấy hàng'), findsOneWidget);
+    expect(find.text('Đơn gộp'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -50,9 +49,9 @@ void main() {
 
     await tester.tap(find.text('Giao hàng'));
     expect(selected, 'delivery');
-    await tester.tap(find.text('Lấy hàng ngoài'));
+    await tester.tap(find.text('Lấy hàng'));
     expect(selected, 'pickup');
-    await tester.tap(find.byKey(const ValueKey('batch-order-action')));
+    await tester.tap(find.text('Đơn gộp'));
     expect(selected, 'batch');
   });
 }

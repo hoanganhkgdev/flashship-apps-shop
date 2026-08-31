@@ -7,20 +7,16 @@ class _OrderInfoCard extends StatelessWidget {
   const _OrderInfoCard({required this.order});
 
   static const _cargoInfo = {
-    'food': (Icons.lunch_dining_rounded, 'Đồ ăn', Color(0xFFF59E0B)),
-    'flowers': (
-      Icons.local_florist_rounded,
-      'Hoa / Trái cây',
-      Color(0xFFEC4899)
-    ),
-    'parcel': (Icons.inventory_2_rounded, 'Bưu kiện', Color(0xFF6B7280)),
+    'food': (Icons.lunch_dining_rounded, 'Thực phẩm', Color(0xFFF59E0B)),
+    'flowers': (Icons.local_florist_rounded, 'Giỏ hoa', Color(0xFFEC4899)),
+    'parcel': (Icons.inventory_2_rounded, 'Kiện hàng', Color(0xFF6B7280)),
   };
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final cargo = _cargoInfo[order.cargoType] ??
-        (Icons.inventory_2_rounded, 'Bưu kiện', const Color(0xFF6B7280));
+        (Icons.inventory_2_rounded, 'Kiện hàng', const Color(0xFF6B7280));
 
     return _FlatCard(
       child: Column(children: [
@@ -84,8 +80,7 @@ class _CompactInfoRow extends StatelessWidget {
 class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String label, value;
-  final Color? valueColor;
-  const _InfoRow(this.icon, this.label, this.value, {this.valueColor});
+  const _InfoRow(this.icon, this.label, this.value);
 
   @override
   Widget build(BuildContext context) {
@@ -97,9 +92,7 @@ class _InfoRow extends StatelessWidget {
       const Spacer(),
       Text(value,
           style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: valueColor ?? c.textPrimary)),
+              fontSize: 13, fontWeight: FontWeight.w600, color: c.textPrimary)),
     ]);
   }
 }

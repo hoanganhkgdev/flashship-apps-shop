@@ -9,31 +9,32 @@ import '../theme/app_theme.dart';
 import 'map_picker_screen.dart';
 
 class AddressPickerScreen extends ConsumerStatefulWidget {
-  final String  title;
+  final String title;
   final String? initialQuery;
 
   const AddressPickerScreen({
     super.key,
-    this.title        = 'Chọn địa chỉ',
+    this.title = 'Chọn địa chỉ',
     this.initialQuery,
   });
 
   @override
-  ConsumerState<AddressPickerScreen> createState() => _AddressPickerScreenState();
+  ConsumerState<AddressPickerScreen> createState() =>
+      _AddressPickerScreenState();
 }
 
 class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
     with SingleTickerProviderStateMixin {
   final _controller = TextEditingController();
-  final _focusNode  = FocusNode();
+  final _focusNode = FocusNode();
   late final TabController _tabController;
 
-  List<AddressHistoryItem> _history     = [];
-  List<AddressResult>      _suggestions = [];
-  bool _searching  = false;
-  bool _selecting  = false;
-  int  _savedLimit   = 10;
-  int  _historyLimit = 5;
+  List<AddressHistoryItem> _history = [];
+  List<AddressResult> _suggestions = [];
+  bool _searching = false;
+  bool _selecting = false;
+  int _savedLimit = 10;
+  int _historyLimit = 5;
   Timer? _debounce;
   // Địa chỉ đã lưu đang thử geocode lại (thiếu lat/lng sẵn có) — hiện
   // spinner đúng tile đó thay vì chặn im lặng như trước.
@@ -51,8 +52,8 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
         _onChanged(widget.initialQuery!);
       });
     } else {
-      WidgetsBinding.instance.addPostFrameCallback(
-          (_) => _focusNode.requestFocus());
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _focusNode.requestFocus());
     }
   }
 
@@ -74,14 +75,20 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
   void _onChanged(String value) {
     _debounce?.cancel();
     if (value.trim().length < 3) {
-      setState(() { _suggestions = []; _searching = false; });
+      setState(() {
+        _suggestions = [];
+        _searching = false;
+      });
       return;
     }
     setState(() => _searching = true);
     _debounce = Timer(const Duration(milliseconds: 400), () async {
       final results = await AddressSearchService.search(value);
       if (!mounted) return;
-      setState(() { _suggestions = results; _searching = false; });
+      setState(() {
+        _suggestions = results;
+        _searching = false;
+      });
     });
   }
 
@@ -94,11 +101,17 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
     if (detail != null && detail.lat != null && detail.lng != null) {
       final pn = r.mainText != r.display ? r.mainText : null;
       final item = AddressHistoryItem(
-          address: detail.display, lat: detail.lat!, lng: detail.lng!, placeName: pn);
+          address: detail.display,
+          lat: detail.lat!,
+          lng: detail.lng!,
+          placeName: pn);
       await AddressHistoryService.save(item);
       if (!mounted) return;
       Navigator.of(context).pop(MapPickResult(
-          address: detail.display, lat: detail.lat!, lng: detail.lng!, placeName: pn));
+          address: detail.display,
+          lat: detail.lat!,
+          lng: detail.lng!,
+          placeName: pn));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -113,37 +126,46 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
   Future<void> _selectFromSaved(AddressEntry entry) async {
     if (entry.lat != null && entry.lng != null) {
       Navigator.of(context).pop(MapPickResult(
-        address:      entry.address,
-        lat:          entry.lat!,
-        lng:          entry.lng!,
-        placeName:    entry.displayName,
-        contactName:  entry.name,
+        address: entry.address,
+        lat: entry.lat!,
+        lng: entry.lng!,
+        placeName: entry.displayName,
+        contactName: entry.name,
         contactPhone: entry.phone,
       ));
       return;
     }
 
-    setState(() { _selecting = true; _retryingEntryId = entry.id; });
+    setState(() {
+      _selecting = true;
+      _retryingEntryId = entry.id;
+    });
     final result = await AddressSearchService.getDetail(AddressResult(
-      display: entry.address, mainText: entry.address,
-      secondaryText: '', placeId: '',
+      display: entry.address,
+      mainText: entry.address,
+      secondaryText: '',
+      placeId: '',
     ));
     if (!mounted) return;
-    setState(() { _selecting = false; _retryingEntryId = null; });
+    setState(() {
+      _selecting = false;
+      _retryingEntryId = null;
+    });
 
     if (result != null && result.lat != null && result.lng != null) {
       Navigator.of(context).pop(MapPickResult(
-        address:      result.display,
-        lat:          result.lat!,
-        lng:          result.lng!,
-        placeName:    entry.displayName,
-        contactName:  entry.name,
+        address: result.display,
+        lat: result.lat!,
+        lng: result.lng!,
+        placeName: entry.displayName,
+        contactName: entry.name,
         contactPhone: entry.phone,
       ));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(
-            'Không tìm được toạ độ cho địa chỉ này, vui lòng sửa lại trong Sổ địa chỉ.')),
+        const SnackBar(
+            content: Text(
+                'Không tìm được toạ độ cho địa chỉ này, vui lòng sửa lại trong Sổ địa chỉ.')),
       );
     }
   }
@@ -152,7 +174,10 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
     await AddressHistoryService.save(item);
     if (!mounted) return;
     Navigator.of(context).pop(MapPickResult(
-        address: item.address, lat: item.lat, lng: item.lng, placeName: item.placeName));
+        address: item.address,
+        lat: item.lat,
+        lng: item.lng,
+        placeName: item.placeName));
   }
 
   Future<void> _removeHistory(AddressHistoryItem item) async {
@@ -185,14 +210,31 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
     final savedEntries = ref.watch(addressProvider).valueOrNull ?? [];
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.colors.background,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded,
-              color: AppColors.textPrimary),
-          onPressed: () => Navigator.of(context).pop(),
+        centerTitle: false,
+        toolbarHeight: 72,
+        leadingWidth: 80,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 20),
+          child: Center(
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  border: Border.all(color: context.colors.divider),
+                ),
+                child: const Icon(Icons.arrow_back_ios_new_rounded,
+                    size: 17, color: AppColors.textPrimary),
+              ),
+            ),
+          ),
         ),
         title: Text(widget.title,
             style: const TextStyle(
@@ -206,20 +248,21 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
 
           // ── Search field ──────────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
             child: TextField(
               controller: _controller,
               focusNode: _focusNode,
               onChanged: _onChanged,
-              style: const TextStyle(
-                  fontSize: 15, color: AppColors.textPrimary),
+              style:
+                  const TextStyle(fontSize: 15, color: AppColors.textPrimary),
               decoration: InputDecoration(
                 hintText: 'Nhập địa chỉ...',
                 hintStyle: const TextStyle(
                     color: AppColors.textSecondary, fontSize: 14),
                 prefixIcon: Container(
                   margin: const EdgeInsets.all(8),
-                  width: 36, height: 36,
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
                     color: AppColors.primary,
                     borderRadius: BorderRadius.circular(8),
@@ -231,10 +274,10 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
                     ? const Padding(
                         padding: EdgeInsets.all(14),
                         child: SizedBox(
-                          width: 16, height: 16,
+                          width: 16,
+                          height: 16,
                           child: CircularProgressIndicator(
-                              strokeWidth: 1.5,
-                              color: AppColors.textSecondary),
+                              strokeWidth: 1.5, color: AppColors.textSecondary),
                         ),
                       )
                     : _controller.text.isNotEmpty
@@ -249,15 +292,19 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
                         : null,
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 filled: true,
-                fillColor: const Color(0xFFF6F6F6),
+                fillColor: context.colors.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+                  borderSide: BorderSide(color: context.colors.divider),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: context.colors.divider),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                      color: AppColors.primary, width: 1.5),
+                  borderSide:
+                      const BorderSide(color: AppColors.primary, width: 1.5),
                 ),
               ),
             ),
@@ -271,7 +318,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
           if (_showHistory) ...[
             // Chọn trên bản đồ
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
               child: InkWell(
                 onTap: _openMap,
                 borderRadius: BorderRadius.circular(12),
@@ -280,23 +327,24 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: AppColors.primary, width: 1.4),
+                    border: Border.all(color: context.colors.divider),
                   ),
                   child: Row(children: [
                     Container(
-                      width: 36, height: 36,
+                      width: 36,
+                      height: 36,
                       decoration: BoxDecoration(
                         color: context.colors.primarySoft,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.map_rounded,
+                      child: const Icon(Icons.location_on_outlined,
                           color: AppColors.primary, size: 18),
                     ),
                     const SizedBox(width: 12),
                     const Text('Chọn vị trí trên bản đồ',
                         style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
                             color: AppColors.primary)),
                     const Spacer(),
                     const Icon(Icons.chevron_right_rounded,
@@ -308,12 +356,13 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
 
             // Segmented tabs
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
               child: Container(
                 height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0F0F0),
+                  color: context.colors.background,
                   borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: context.colors.divider),
                 ),
                 padding: const EdgeInsets.all(3),
                 child: TabBar(
@@ -322,13 +371,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
                   indicator: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(7),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.07),
-                        blurRadius: 4,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
+                    border: Border.all(color: context.colors.divider),
                   ),
                   indicatorSize: TabBarIndicatorSize.tab,
                   labelColor: AppColors.primary,
@@ -384,15 +427,14 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
                           label: 'Chưa có tìm kiếm gần đây',
                         )
                       : _HistoryTab(
-                          history:    _history,
-                          limit:      _historyLimit,
-                          onSelect:   _selectFromHistory,
-                          onRemove:   _removeHistory,
+                          history: _history,
+                          limit: _historyLimit,
+                          onSelect: _selectFromHistory,
+                          onRemove: _removeHistory,
                           onClearAll: _clearAllHistory,
                           onLoadMore: _history.length > _historyLimit
-                              ? () => setState(() =>
-                                  _historyLimit = (_historyLimit + 5)
-                                      .clamp(0, _history.length))
+                              ? () => setState(() => _historyLimit =
+                                  (_historyLimit + 5).clamp(0, _history.length))
                               : null,
                         ),
 
@@ -403,12 +445,12 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
                           label: 'Chưa có địa chỉ đã lưu',
                         )
                       : _SavedTab(
-                          entries:  savedEntries,
-                          limit:    _savedLimit,
+                          entries: savedEntries,
+                          limit: _savedLimit,
                           retryingEntryId: _retryingEntryId,
                           onLoadMore: savedEntries.length > _savedLimit
-                              ? () => setState(() =>
-                                  _savedLimit = (_savedLimit + 10)
+                              ? () => setState(() => _savedLimit =
+                                  (_savedLimit + 10)
                                       .clamp(0, savedEntries.length))
                               : null,
                           onSelect: _selectFromSaved,
@@ -422,7 +464,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
                   ? const SizedBox.shrink()
                   : _SearchResultList(
                       suggestions: _suggestions,
-                      onSelect:    _selectFromSearch,
+                      onSelect: _selectFromSearch,
                     ),
             ),
         ],
@@ -447,7 +489,8 @@ class _TabBadge extends StatelessWidget {
       ),
       child: Text('$count',
           style: const TextStyle(
-              fontSize: 10, fontWeight: FontWeight.w700,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
               color: AppColors.primary)),
     );
   }
@@ -457,7 +500,7 @@ class _TabBadge extends StatelessWidget {
 
 class _EmptyTab extends StatelessWidget {
   final IconData icon;
-  final String   label;
+  final String label;
   const _EmptyTab({required this.icon, required this.label});
 
   @override
@@ -467,8 +510,8 @@ class _EmptyTab extends StatelessWidget {
         Icon(icon, size: 40, color: AppColors.textSecondary),
         const SizedBox(height: 10),
         Text(label,
-            style: const TextStyle(
-                fontSize: 14, color: AppColors.textSecondary)),
+            style:
+                const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
       ]),
     );
   }
@@ -502,13 +545,15 @@ class _SavedAddressTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFFF7F7F8),
+          color: c.surface,
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: c.divider),
         ),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // ── Avatar ──
           Container(
-            width: 40, height: 40,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: missingCoords ? c.surfaceAlt : c.primarySoft,
               shape: BoxShape.circle,
@@ -516,7 +561,8 @@ class _SavedAddressTile extends StatelessWidget {
             alignment: Alignment.center,
             child: isRetrying
                 ? SizedBox(
-                    width: 18, height: 18,
+                    width: 18,
+                    height: 18,
                     child: CircularProgressIndicator(
                         strokeWidth: 2, color: c.primary),
                   )
@@ -537,10 +583,12 @@ class _SavedAddressTile extends StatelessWidget {
                 Row(children: [
                   Flexible(
                     child: Text(entry.displayName,
-                        style: TextStyle(fontSize: 14,
+                        style: TextStyle(
+                            fontSize: 14,
                             fontWeight: FontWeight.w800,
                             color: c.textPrimary),
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
                   ),
                   if (hasLabel) ...[
                     const SizedBox(width: 6),
@@ -552,7 +600,8 @@ class _SavedAddressTile extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(entry.label!,
-                          style: TextStyle(fontSize: 8,
+                          style: TextStyle(
+                              fontSize: 8,
                               fontWeight: FontWeight.w700,
                               color: c.primary)),
                     ),
@@ -566,10 +615,12 @@ class _SavedAddressTile extends StatelessWidget {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(entry.phone,
-                        style: TextStyle(fontSize: 12,
+                        style: TextStyle(
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: c.textSecondary),
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
                   ),
                 ]),
                 const SizedBox(height: 3),
@@ -585,15 +636,18 @@ class _SavedAddressTile extends StatelessWidget {
                               isRetrying
                                   ? 'Đang tìm toạ độ...'
                                   : 'Chưa có toạ độ · nhấn để định vị lại',
-                              style: TextStyle(fontSize: 10.5,
+                              style: TextStyle(
+                                  fontSize: 10.5,
                                   fontWeight: FontWeight.w600,
                                   color: c.warning),
-                              maxLines: 1, overflow: TextOverflow.ellipsis),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
                         ),
                       ])
                     : Text(entry.address,
                         style: TextStyle(fontSize: 10.5, color: c.textTertiary),
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
@@ -611,11 +665,11 @@ class _SavedAddressTile extends StatelessWidget {
 // ── Saved tab ─────────────────────────────────────────────────────────────────
 
 class _SavedTab extends StatelessWidget {
-  final List<AddressEntry>          entries;
-  final int                         limit;
+  final List<AddressEntry> entries;
+  final int limit;
   final void Function(AddressEntry) onSelect;
-  final VoidCallback?               onLoadMore;
-  final int?                        retryingEntryId;
+  final VoidCallback? onLoadMore;
+  final int? retryingEntryId;
 
   const _SavedTab({
     required this.entries,
@@ -629,7 +683,7 @@ class _SavedTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final visible = entries.take(limit).toList();
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
       itemCount: visible.length + (onLoadMore != null ? 1 : 0),
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (_, i) {
@@ -639,7 +693,8 @@ class _SavedTab extends StatelessWidget {
             child: Text(
               'Xem thêm (${entries.length - limit} địa chỉ)',
               style: const TextStyle(
-                  fontSize: 13, color: AppColors.primary,
+                  fontSize: 13,
+                  color: AppColors.primary,
                   fontWeight: FontWeight.w600),
             ),
           );
@@ -655,12 +710,12 @@ class _SavedTab extends StatelessWidget {
 }
 
 class _HistoryTab extends StatelessWidget {
-  final List<AddressHistoryItem>          history;
-  final int                               limit;
+  final List<AddressHistoryItem> history;
+  final int limit;
   final void Function(AddressHistoryItem) onSelect;
   final void Function(AddressHistoryItem) onRemove;
-  final VoidCallback                      onClearAll;
-  final VoidCallback?                     onLoadMore;
+  final VoidCallback onClearAll;
+  final VoidCallback? onLoadMore;
 
   const _HistoryTab({
     required this.history,
@@ -677,10 +732,12 @@ class _HistoryTab extends StatelessWidget {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
+          padding: const EdgeInsets.fromLTRB(20, 12, 12, 8),
           child: Row(children: [
             const Text('Gần đây',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
                     color: AppColors.textSecondary)),
             const Spacer(),
             TextButton(
@@ -689,13 +746,16 @@ class _HistoryTab extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   minimumSize: const Size(0, 0)),
               child: const Text('Xóa tất cả',
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.danger)),
             ),
           ]),
         ),
         Expanded(
           child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
             itemCount: visible.length + (onLoadMore != null ? 1 : 0),
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (_, i) {
@@ -705,7 +765,8 @@ class _HistoryTab extends StatelessWidget {
                   child: Text(
                     'Xem thêm (${history.length - limit} địa chỉ)',
                     style: const TextStyle(
-                        fontSize: 13, color: AppColors.primary,
+                        fontSize: 13,
+                        color: AppColors.primary,
                         fontWeight: FontWeight.w600),
                   ),
                 );
@@ -731,15 +792,18 @@ class _HistoryTab extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF7F7F8),
+                      color: context.colors.surface,
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: context.colors.divider),
                     ),
                     child: Row(children: [
                       Container(
-                        width: 36, height: 36,
+                        width: 36,
+                        height: 36,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: context.colors.background,
                           borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: context.colors.divider),
                         ),
                         child: const Icon(Icons.history_rounded,
                             size: 18, color: AppColors.textSecondary),
@@ -750,16 +814,20 @@ class _HistoryTab extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(item.placeName ?? item.address,
-                                style: const TextStyle(fontSize: 14,
+                                style: const TextStyle(
+                                    fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textPrimary),
-                                maxLines: 1, overflow: TextOverflow.ellipsis),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis),
                             if (item.placeName != null) ...[
                               const SizedBox(height: 2),
                               Text(item.address,
-                                  style: const TextStyle(fontSize: 12,
+                                  style: const TextStyle(
+                                      fontSize: 12,
                                       color: AppColors.textSecondary),
-                                  maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis),
                             ],
                           ],
                         ),
@@ -779,16 +847,15 @@ class _HistoryTab extends StatelessWidget {
 // ── Search Result List ────────────────────────────────────────────────────────
 
 class _SearchResultList extends StatelessWidget {
-  final List<AddressResult>                  suggestions;
+  final List<AddressResult> suggestions;
   final Future<void> Function(AddressResult) onSelect;
 
-  const _SearchResultList(
-      {required this.suggestions, required this.onSelect});
+  const _SearchResultList({required this.suggestions, required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
       itemCount: suggestions.length,
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (_, i) {
@@ -799,12 +866,14 @@ class _SearchResultList extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF7F7F8),
+              color: context.colors.surface,
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: context.colors.divider),
             ),
             child: Row(children: [
               Container(
-                width: 36, height: 36,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
@@ -830,8 +899,7 @@ class _SearchResultList extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(s.secondaryText,
                           style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary),
+                              fontSize: 12, color: AppColors.textSecondary),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
                     ],

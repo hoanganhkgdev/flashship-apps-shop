@@ -79,34 +79,36 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final c = context.colors;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: c.background,
       resizeToAvoidBottomInset: false,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFFFF6F0), Colors.white],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            stops: [0.0, 0.55],
-          ),
-        ),
+        color: c.surface,
         child: SafeArea(
           child: Column(
             children: [
               // Header
               Padding(
-                padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
+                padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
                 child: Row(children: [
-                  IconButton(
-                    icon:
-                        const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-                    onPressed: () {
+                  GestureDetector(
+                    onTap: () {
                       // Xoá lỗi trước khi quay lại — màn Đăng nhập vẫn đang
                       // mounted phía dưới (push không dispose), tự đọc lại
                       // authProvider.error ngay khi lộ ra nếu không xoá ở đây.
                       ref.read(authProvider.notifier).clearError();
                       context.pop();
                     },
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: c.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        border: Border.all(color: c.divider),
+                      ),
+                      child: Icon(Icons.arrow_back_ios_new_rounded,
+                          size: 17, color: c.textPrimary),
+                    ),
                   ),
                 ]),
               ),
@@ -115,7 +117,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               const Padding(
                 padding: EdgeInsets.fromLTRB(
                     AppSpace.xl, 0, AppSpace.xl, AppSpace.sm),
-                child: StepProgressBar(currentStep: 1, totalSteps: 2),
+                child: StepProgressBar(
+                    currentStep: 1, totalSteps: 2, showLabel: false),
               ),
 
               Expanded(
@@ -149,7 +152,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               controller: _nameCtrl,
                               hint: 'VD: Shop Thời Trang ABC',
                               textInputAction: TextInputAction.next,
-                              fillColor: c.surface,
+                              fillColor: c.background,
                               validator: (v) => (v == null || v.trim().isEmpty)
                                   ? 'Vui lòng nhập tên cửa hàng'
                                   : null,
@@ -161,6 +164,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               controller: _phoneCtrl,
                               textInputAction: TextInputAction.next,
                               validator: Validators.phone,
+                              fillColor: c.background,
                             ),
                           ],
                         ),
@@ -175,7 +179,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             citiesAsync.when(
                               loading: () => _cityLoadingBox(c),
                               error: (_, __) => _cityErrorBox(c),
-                              data: (cities) => _citySelector(c, cities),
+                              data: (cities) {
+                                _selectDefaultCity(cities);
+                                return _citySelector(c, cities);
+                              },
                             ),
                             if (_cityError && _selectedCityId == null) ...[
                               const SizedBox(height: AppSpace.xs),
@@ -187,7 +194,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             const AppLabel('Địa chỉ cửa hàng'),
                             const SizedBox(height: AppSpace.sm),
                             _AddressField(
-                                controller: _addressCtrl, fillColor: c.surface),
+                                controller: _addressCtrl,
+                                fillColor: c.background),
                           ],
                         ),
                         const SizedBox(height: AppSpace.lg),
@@ -204,7 +212,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               obscureText: _obscure,
                               textInputAction: TextInputAction.done,
                               onFieldSubmitted: (_) => _sendOtp(),
-                              fillColor: c.surface,
+                              fillColor: c.background,
                               suffixIcon: GestureDetector(
                                 onTap: () =>
                                     setState(() => _obscure = !_obscure),
@@ -271,7 +279,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
         decoration: BoxDecoration(
-          color: c.surfaceAlt,
+          color: c.background,
           borderRadius: BorderRadius.circular(AppRadius.sm),
           border: _cityError && _selectedCityId == null
               ? Border.all(color: AppColors.danger)
@@ -297,6 +305,26 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         ]),
       ),
     );
+  }
+
+  void _selectDefaultCity(List<CityItem> cities) {
+    if (_selectedCityId != null || cities.isEmpty) return;
+    CityItem selected = cities.first;
+    for (final city in cities) {
+      final name = city.name.toLowerCase();
+      if (name.contains('hồ chí minh') || name.contains('ho chi minh')) {
+        selected = city;
+        break;
+      }
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _selectedCityId != null) return;
+      setState(() {
+        _selectedCityId = selected.id;
+        _selectedCityName = selected.name;
+        _cityError = false;
+      });
+    });
   }
 
   Widget _cityLoadingBox(Palette c) => Container(
@@ -367,7 +395,7 @@ class _AddressField extends StatelessWidget {
       );
 }
 
-// ── Khối nhóm field (nền surfaceAlt, label in hoa) ────────────────────────
+// ── Khối nhóm field ──────────────────────────────────────────────────────
 class _SectionCard extends StatelessWidget {
   final String title;
   final List<Widget> children;
@@ -380,8 +408,9 @@ class _SectionCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpace.lg),
       decoration: BoxDecoration(
-        color: c.surfaceAlt,
+        color: c.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: c.divider),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

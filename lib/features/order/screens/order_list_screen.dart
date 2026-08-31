@@ -30,7 +30,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
   static const _filters = [
     ('all', 'Tất cả'),
     ('pending', 'Chờ xử lý'),
-    ('delivering', 'Đang giao'),
+    ('processing', 'Đang xử lý'),
     ('completed', 'Hoàn thành'),
     ('cancelled', 'Đã huỷ'),
   ];
@@ -71,11 +71,10 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
     final c = context.colors;
 
     final displayed = switch (filter) {
-      'pending' => all
-          .where((o) =>
-              const ['pending', 'assigned', 'processing'].contains(o.status))
+      'pending' => all.where((o) => o.status == 'pending').toList(),
+      'processing' => all
+          .where((o) => const ['assigned', 'processing'].contains(o.status))
           .toList(),
-      'delivering' => all.where((o) => o.status == 'on_the_way').toList(),
       'completed' => all.where((o) => o.isCompleted).toList(),
       'cancelled' => all.where((o) => o.isCancelled).toList(),
       _ => all,
@@ -89,9 +88,12 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
         children: [
           // ── Header ────────────────────────────────────────────────────
           Container(
-            color: c.background,
             padding: EdgeInsets.fromLTRB(
-                20, MediaQuery.of(context).padding.top + 16, 20, 0),
+                20, MediaQuery.of(context).padding.top + 18, 20, 16),
+            decoration: BoxDecoration(
+              color: c.surface,
+              border: Border(bottom: BorderSide(color: c.divider)),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -125,7 +127,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                       decoration: BoxDecoration(
                         color: c.surface,
                         borderRadius: BorderRadius.circular(AppRadius.md),
-                        boxShadow: c.cardShadow,
+                        border: Border.all(color: c.divider),
                       ),
                       child: Icon(
                         _searchExpanded
@@ -137,10 +139,9 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                     ),
                   ),
                 ]),
-                const SizedBox(height: 14),
-
                 // Thanh tìm kiếm
                 if (_searchExpanded) ...[
+                  const SizedBox(height: 14),
                   AppField(
                     controller: _searchCtrl,
                     hint: 'Tìm mã đơn, SĐT người nhận...',
@@ -149,49 +150,47 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                     onChanged: (v) =>
                         ref.read(_searchQueryProvider.notifier).state = v,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 2),
                 ],
-
-                // Filter chips — pill rời, cuộn ngang, chip đang chọn tô đặc
-                // màu primary thay vì khối nền xám bọc chung như trước.
-                SizedBox(
-                  height: 38,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _filters.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (_, i) {
-                      final f = _filters[i];
-                      final selected = filter == f.$1;
-                      return GestureDetector(
-                        onTap: () =>
-                            ref.read(_filterProvider.notifier).state = f.$1,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: selected ? c.primary : c.surface,
-                            borderRadius: BorderRadius.circular(AppRadius.full),
-                            border:
-                                selected ? null : Border.all(color: c.divider),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(f.$2,
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: selected
-                                      ? FontWeight.w700
-                                      : FontWeight.w600,
-                                  color: selected
-                                      ? Colors.white
-                                      : c.textSecondary)),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 13),
               ],
+            ),
+          ),
+
+          // Filter chips — pill rời, cuộn ngang.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+            child: SizedBox(
+              height: 38,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _filters.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, i) {
+                  final f = _filters[i];
+                  final selected = filter == f.$1;
+                  return GestureDetector(
+                    onTap: () =>
+                        ref.read(_filterProvider.notifier).state = f.$1,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: selected ? c.primary : c.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.full),
+                        border: selected ? null : Border.all(color: c.divider),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(f.$2,
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight:
+                                  selected ? FontWeight.w700 : FontWeight.w600,
+                              color:
+                                  selected ? Colors.white : c.textSecondary)),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
 
@@ -217,7 +216,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                               all.isNotEmpty;
                           return ListView.separated(
                             controller: _scrollCtrl,
-                            padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
+                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
                             itemCount: displayed.length + (showFooter ? 1 : 0),
                             separatorBuilder: (_, __) =>
                                 const SizedBox(height: 10),
@@ -262,8 +261,7 @@ class _ActiveSummary extends StatelessWidget {
   static List<(String, String, Color)> _steps(Palette c) => [
         ('pending', 'Chờ tài xế', c.warning),
         ('assigned', 'Đã nhận', c.primary),
-        ('processing', 'Đang lấy', const Color(0xFF8B5CF6)),
-        ('on_the_way', 'Đang giao', c.success),
+        ('processing', 'Đã lấy', c.success),
       ];
 
   @override
@@ -376,7 +374,7 @@ class _OrderCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: c.surface,
           borderRadius: BorderRadius.circular(AppRadius.card),
-          boxShadow: c.cardShadow,
+          border: Border.all(color: c.divider),
         ),
         clipBehavior: Clip.antiAlias,
         child: Padding(
@@ -408,7 +406,10 @@ class _OrderCard extends StatelessWidget {
                         .withValues(alpha: context.isDark ? 0.2 : 0.12),
                     borderRadius: BorderRadius.circular(AppRadius.full),
                   ),
-                  child: Text(Fmt.orderStatus(order.status),
+                  child: Text(
+                      order.status == 'processing'
+                          ? 'Đã lấy hàng'
+                          : Fmt.orderStatus(order.status),
                       style: TextStyle(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w700,
@@ -439,7 +440,9 @@ class _OrderCard extends StatelessWidget {
               Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
                 Expanded(
                   child: Text(
-                    'COD ${Fmt.currency(order.codAmount ?? 0)} · ${cargoMeta.label}',
+                    dimmed
+                        ? 'Khách huỷ đơn'
+                        : 'COD ${Fmt.currency(order.codAmount ?? 0)} · ${cargoMeta.label}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -480,8 +483,8 @@ class _EmptyState extends StatelessWidget {
             ? 'Không tìm thấy đơn phù hợp'
             : filter == 'pending'
                 ? 'Không có đơn chờ xử lý'
-                : filter == 'delivering'
-                    ? 'Không có đơn đang giao'
+                : filter == 'processing'
+                    ? 'Không có đơn đang xử lý'
                     : filter == 'all'
                         ? 'Chưa có đơn hàng nào'
                         : 'Không có đơn phù hợp',

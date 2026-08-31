@@ -12,9 +12,10 @@ class CargoType {
 }
 
 const cargoTypes = [
-  CargoType('food',    'Đồ ăn',          Icons.lunch_dining_rounded,  Color(0xFFF59E0B)),
-  CargoType('flowers', 'Hoa / Trái cây', Icons.local_florist_rounded, Color(0xFFEC4899)),
-  CargoType('parcel',  'Bưu kiện',       Icons.inventory_2_rounded,   Color(0xFF6B7280),
+  CargoType('food', 'Thực phẩm', Icons.lunch_dining_rounded, Color(0xFFF59E0B)),
+  CargoType(
+      'flowers', 'Giỏ hoa', Icons.local_florist_rounded, Color(0xFFEC4899)),
+  CargoType('parcel', 'Kiện hàng', Icons.inventory_2_rounded, Color(0xFF6B7280),
       hasWeight: true),
 ];
 

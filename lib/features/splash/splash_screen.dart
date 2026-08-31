@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/router/app_router.dart';
@@ -20,15 +21,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   // Logo: scale (overshoot nhẹ) + fade khi vào màn hình.
   late final AnimationController _logoCtrl;
-  late final Animation<double>    _logoScale;
-  late final Animation<double>    _logoFade;
+  late final Animation<double> _logoScale;
+  late final Animation<double> _logoFade;
 
   // Brand text: fade + trượt lên nhẹ, chạy sau logo một nhịp.
   late final Animation<double> _textFade;
   late final Animation<double> _textSlide;
-
-  // Progress bar: chạy đúng 3s khớp với Future.delayed thật bên dưới.
-  late final AnimationController _progressCtrl;
 
   // Chấm sáng chạy dọc tuyến đường, lặp vô hạn.
   late final AnimationController _routeCtrl;
@@ -39,36 +37,35 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     _logoCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 900));
-    _logoScale = Tween<double>(begin: 0.7, end: 1.0).animate(
-        CurvedAnimation(parent: _logoCtrl, curve: Curves.easeOutBack));
+    _logoScale = Tween<double>(begin: 0.7, end: 1.0)
+        .animate(CurvedAnimation(parent: _logoCtrl, curve: Curves.easeOutBack));
     _logoFade = CurvedAnimation(
-        parent: _logoCtrl, curve: const Interval(0.0, 0.7, curve: Curves.easeOut));
+        parent: _logoCtrl,
+        curve: const Interval(0.0, 0.7, curve: Curves.easeOut));
     _textFade = CurvedAnimation(
-        parent: _logoCtrl, curve: const Interval(0.35, 1.0, curve: Curves.easeOut));
+        parent: _logoCtrl,
+        curve: const Interval(0.35, 1.0, curve: Curves.easeOut));
     _textSlide = Tween<double>(begin: 14, end: 0).animate(CurvedAnimation(
-        parent: _logoCtrl, curve: const Interval(0.35, 1.0, curve: Curves.easeOutCubic)));
+        parent: _logoCtrl,
+        curve: const Interval(0.35, 1.0, curve: Curves.easeOutCubic)));
     _logoCtrl.forward();
-
-    _progressCtrl = AnimationController(
-        vsync: this, duration: const Duration(seconds: 3));
-    _progressCtrl.forward();
 
     _routeCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 2200))
       ..repeat(reverse: true);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(appVersionProvider.notifier).check();
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) ref.read(splashReadyProvider.notifier).state = true;
-      });
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _initialize());
+  }
+
+  Future<void> _initialize() async {
+    await ref.read(appVersionProvider.notifier).check();
+    if (!mounted) return;
+    ref.read(splashReadyProvider.notifier).state = true;
   }
 
   @override
   void dispose() {
     _logoCtrl.dispose();
-    _progressCtrl.dispose();
     _routeCtrl.dispose();
     super.dispose();
   }
@@ -88,130 +85,132 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     final size = MediaQuery.of(context).size;
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          // ── Gradient background ──────────────────────────────────────
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.primary, AppColors.primaryDark],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: Scaffold(
+        body: Stack(
+          children: [
+            // ── Gradient background ──────────────────────────────────────
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.primary, AppColors.primaryDark],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
               ),
             ),
-          ),
 
-          // ── Decorative route + moving dot ──────────────────────────────
-          CustomPaint(
-            size: Size(size.width, size.height),
-            painter: _RoutePainter(progress: _routeCtrl),
-          ),
+            // ── Decorative route + moving dot ──────────────────────────────
+            CustomPaint(
+              size: Size(size.width, size.height),
+              painter: _RoutePainter(progress: _routeCtrl),
+            ),
 
-          // ── Content ──────────────────────────────────────────────────
-          SafeArea(
-            child: Column(
-              children: [
-                const Spacer(flex: 2),
+            // ── Content ──────────────────────────────────────────────────
+            SafeArea(
+              child: Column(
+                children: [
+                  const Spacer(flex: 2),
 
-                Center(
-                  child: AnimatedBuilder(
-                    animation: _logoCtrl,
-                    builder: (_, __) => Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Logo trên khối tròn nền trắng translucent
-                        Transform.scale(
-                          scale: _logoScale.value,
-                          child: Opacity(
-                            opacity: _logoFade.value,
-                            child: Container(
-                              padding: const EdgeInsets.all(AppSpace.lg),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white.withValues(alpha: 0.14),
+                  Center(
+                    child: AnimatedBuilder(
+                      animation: _logoCtrl,
+                      builder: (_, __) => Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Biểu tượng shop trên khối nền trắng translucent.
+                          Transform.scale(
+                            scale: _logoScale.value,
+                            child: Opacity(
+                              opacity: _logoFade.value,
+                              child: Container(
+                                width: 120,
+                                height: 120,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(30),
+                                  color: Colors.white.withValues(alpha: 0.18),
+                                ),
+                                child: const Icon(Icons.inventory_2_outlined,
+                                    color: Colors.white, size: 54),
                               ),
-                              child: Image.asset(
-                                  'assets/images/logo-splash.png', width: 140),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: AppSpace.xl + AppSpace.xs),
+                          const SizedBox(height: AppSpace.xl + AppSpace.xs),
 
-                        // Brand name + tagline
-                        Opacity(
-                          opacity: _textFade.value,
-                          child: Transform.translate(
-                            offset: Offset(0, _textSlide.value),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Text(
-                                  'FLASH SHIP',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 2,
-                                    height: 1,
+                          // Brand name + tagline
+                          Opacity(
+                            opacity: _textFade.value,
+                            child: Transform.translate(
+                              offset: Offset(0, _textSlide.value),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text(
+                                    'FLASH SHIP',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 38,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 2,
+                                      height: 1,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: AppSpace.sm),
-                                Text(
-                                  'GIAO HÀNG NHANH NHƯ CHỚP',
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.80),
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                    letterSpacing: 0.2,
+                                  const SizedBox(height: AppSpace.sm),
+                                  Text(
+                                    'GIAO HÀNG NHANH NHƯ CHỚP',
+                                    style: TextStyle(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.80),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 2.2,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const Spacer(flex: 3),
+
+                  // Loading phản ánh thời gian khởi tạo thật, không chờ cố định.
+                  Padding(
+                    padding: const EdgeInsets.only(
+                        bottom: AppSpace.xxl + AppSpace.lg),
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          width: 180,
+                          height: 4,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                            child: LinearProgressIndicator(
+                              backgroundColor:
+                                  Colors.white.withValues(alpha: 0.24),
+                              valueColor:
+                                  const AlwaysStoppedAnimation(Colors.white),
                             ),
                           ),
                         ),
+                        const SizedBox(height: AppSpace.md),
+                        Text('Đang khởi động...',
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.55),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500)),
                       ],
                     ),
                   ),
-                ),
-
-                const Spacer(flex: 3),
-
-                // Loading progress — đo lường được, khớp 3s delay thật
-                Padding(
-                  padding: const EdgeInsets.only(
-                      bottom: AppSpace.xxl + AppSpace.lg),
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        width: 140,
-                        height: 4,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(AppRadius.sm),
-                          child: AnimatedBuilder(
-                            animation: _progressCtrl,
-                            builder: (_, __) => LinearProgressIndicator(
-                              value: _progressCtrl.value,
-                              backgroundColor:
-                                  Colors.white.withValues(alpha: 0.20),
-                              valueColor: AlwaysStoppedAnimation(
-                                  Colors.white.withValues(alpha: 0.85)),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpace.md),
-                      Text('Đang khởi động...',
-                          style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.55),
-                              fontSize: 12)),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -224,15 +223,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         canPop: false,
         child: AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Text('Cập nhật bắt buộc',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
           content: Text(v.message,
               style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                  height: 1.5)),
+                  fontSize: 14, color: AppColors.textSecondary, height: 1.5)),
           actions: [
             SizedBox(
               width: double.infinity,
@@ -269,19 +266,28 @@ class _RoutePainter extends CustomPainter {
     return Path()
       ..moveTo(size.width * 0.14, size.height * 0.10)
       ..cubicTo(
-        size.width * 0.02, size.height * 0.24,
-        size.width * 0.92, size.height * 0.20,
-        size.width * 0.82, size.height * 0.40,
+        size.width * 0.02,
+        size.height * 0.24,
+        size.width * 0.92,
+        size.height * 0.20,
+        size.width * 0.82,
+        size.height * 0.40,
       )
       ..cubicTo(
-        size.width * 0.74, size.height * 0.55,
-        size.width * 0.08, size.height * 0.58,
-        size.width * 0.16, size.height * 0.74,
+        size.width * 0.74,
+        size.height * 0.55,
+        size.width * 0.08,
+        size.height * 0.58,
+        size.width * 0.16,
+        size.height * 0.74,
       )
       ..cubicTo(
-        size.width * 0.20, size.height * 0.82,
-        size.width * 0.70, size.height * 0.84,
-        size.width * 0.80, size.height * 0.92,
+        size.width * 0.20,
+        size.height * 0.82,
+        size.width * 0.70,
+        size.height * 0.84,
+        size.width * 0.80,
+        size.height * 0.92,
       );
   }
 
@@ -315,8 +321,7 @@ class _RoutePainter extends CustomPainter {
     _drawDashedPath(canvas, path, routePaint, dashWidth: 7.0, dashGap: 6.0);
 
     // Điểm dừng đầu (lấy hàng) và cuối (giao hàng)
-    final Offset startPoint =
-        Offset(size.width * 0.14, size.height * 0.10);
+    final Offset startPoint = Offset(size.width * 0.14, size.height * 0.10);
     final Offset endPoint = Offset(size.width * 0.80, size.height * 0.92);
 
     final waypointRing = Paint()

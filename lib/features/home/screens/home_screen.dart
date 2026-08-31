@@ -62,22 +62,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             orderCode: orderCode,
             createdAt: DateTime.now(),
           ));
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-              if (body.isNotEmpty)
-                Text(body, style: const TextStyle(fontSize: 13)),
-            ]),
-        action: orderCode != null
-            ? SnackBarAction(
-                label: 'Xem',
-                onPressed: () => context.push('/order/$orderCode'))
-            : null,
-        duration: const Duration(seconds: 5),
-      ));
       ref.read(orderListProvider.notifier).fetch(refresh: true);
     };
     NotificationService.onOrderTap = (code) {
@@ -90,18 +74,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (currentLocation == '/order/$code') return;
       context.push('/order/$code');
     };
-    // Firebase xoay vòng FCM token định kỳ — đăng ký lại với backend ngay khi
-    // đổi, tránh trường hợp backend giữ token cũ đã hết hiệu lực.
-    NotificationService.onTokenRefresh = (newToken) {
-      ref.read(authProvider.notifier).updateFcmToken(newToken);
-    };
   }
 
   @override
   void dispose() {
     NotificationService.onIncomingNotification = null;
     NotificationService.onOrderTap = null;
-    NotificationService.onTokenRefresh = null;
     super.dispose();
   }
 
@@ -111,16 +89,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         activeIcon: Icons.home_rounded,
         label: 'Trang chủ'),
     AppNavItem(
-        icon: Icons.list_alt_outlined,
-        activeIcon: Icons.list_alt_rounded,
+        icon: Icons.inventory_2_outlined,
+        activeIcon: Icons.inventory_2_rounded,
         label: 'Đơn hàng'),
     AppNavItem(
         icon: Icons.bar_chart_outlined,
         activeIcon: Icons.bar_chart_rounded,
         label: 'Thống kê'),
     AppNavItem(
-        icon: Icons.storefront_outlined,
-        activeIcon: Icons.storefront_rounded,
+        icon: Icons.person_outline_rounded,
+        activeIcon: Icons.person_rounded,
         label: 'Hồ sơ'),
   ];
 

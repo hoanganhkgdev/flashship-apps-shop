@@ -9,7 +9,7 @@ class BiometricAuth {
   static Future<bool> isAvailable() async {
     try {
       final supported = await _auth.isDeviceSupported();
-      final canCheck   = await _auth.canCheckBiometrics;
+      final canCheck = await _auth.canCheckBiometrics;
       return supported && canCheck;
     } catch (_) {
       return false;

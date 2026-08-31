@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 import '../services/location_service.dart';
@@ -6,9 +7,9 @@ import '../theme/app_theme.dart';
 import '../utils/map_style.dart';
 
 class MapPickResult {
-  final String  address;
-  final double  lat;
-  final double  lng;
+  final String address;
+  final double lat;
+  final double lng;
   final String? placeName;
   final String? contactName;
   final String? contactPhone;
@@ -53,7 +54,9 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
       _loadGpsLocation();
     }
     _ensureLocationPermission();
-    loadMapStyle().then((s) { if (mounted) setState(() => _mapStyle = s); });
+    loadMapStyle().then((s) {
+      if (mounted) setState(() => _mapStyle = s);
+    });
   }
 
   // GoogleMap(myLocationEnabled: true) crash nếu chưa có quyền vị trí — xin
@@ -79,7 +82,8 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
     if (_mapReady && _controller != null) {
       await _controller!.animateCamera(
         gm.CameraUpdate.newCameraPosition(
-          gm.CameraPosition(target: gm.LatLng(_centerLat, _centerLng), zoom: 15.5),
+          gm.CameraPosition(
+              target: gm.LatLng(_centerLat, _centerLng), zoom: 15.5),
         ),
       );
     } else {
@@ -128,81 +132,185 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Chọn vị trí shop'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+    final c = context.colors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
       ),
-      body: Stack(
-        children: [
-          gm.GoogleMap(
-            style: _mapStyle,
-            initialCameraPosition: gm.CameraPosition(
-              target: gm.LatLng(_centerLat, _centerLng),
-              zoom: 15.5,
-            ),
-            onMapCreated: _onMapCreated,
-            onCameraMove: _onCameraMove,
-            onCameraIdle: _onCameraIdle,
-            myLocationEnabled: _hasLocationPermission,
-            myLocationButtonEnabled: true,
-            zoomControlsEnabled: false,
-            mapToolbarEnabled: false,
-          ),
-
-          // Pin cố định giữa màn hình
-          const IgnorePointer(
-            child: Center(
-              child: Padding(
-                padding: EdgeInsets.only(bottom: 40),
-                child: Icon(Icons.location_pin, color: AppColors.primary, size: 44),
-              ),
-            ),
-          ),
-
-          // Bottom card xác nhận
-          Positioned(
-            left: 0, right: 0, bottom: 0,
-            child: Container(
-              color: Colors.white,
-              padding: EdgeInsets.fromLTRB(
-                16, 16, 16,
-                MediaQuery.of(context).padding.bottom + 16,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.location_on_rounded, color: AppColors.primary, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _loadingAddress
-                            ? const LinearProgressIndicator()
-                            : Text(
-                                _address ?? 'Đang xác định...',
-                                style: const TextStyle(fontSize: 14, height: 1.4),
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+      child: Scaffold(
+        backgroundColor: c.surface,
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                decoration: BoxDecoration(
+                  color: c.surface,
+                  border: Border(bottom: BorderSide(color: c.divider)),
+                ),
+                child: Row(
+                  children: [
+                    InkWell(
+                      onTap: () => Navigator.of(context).pop(),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: c.surface,
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          border: Border.all(color: c.divider),
+                        ),
+                        child: Icon(Icons.arrow_back_ios_new_rounded,
+                            size: 17, color: c.textPrimary),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  FilledButton(
-                    onPressed: (_loadingAddress || _address == null) ? null : _confirm,
-                    child: const Text('Chọn địa điểm này'),
-                  ),
-                ],
+                    ),
+                    const SizedBox(width: 14),
+                    Text('Chọn vị trí shop',
+                        style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: c.textPrimary)),
+                  ],
+                ),
               ),
-            ),
+              Expanded(
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: gm.GoogleMap(
+                        style: _mapStyle,
+                        initialCameraPosition: gm.CameraPosition(
+                          target: gm.LatLng(_centerLat, _centerLng),
+                          zoom: 15.5,
+                        ),
+                        onMapCreated: _onMapCreated,
+                        onCameraMove: _onCameraMove,
+                        onCameraIdle: _onCameraIdle,
+                        myLocationEnabled: _hasLocationPermission,
+                        myLocationButtonEnabled: false,
+                        zoomControlsEnabled: false,
+                        compassEnabled: false,
+                        mapToolbarEnabled: false,
+                      ),
+                    ),
+                    const IgnorePointer(
+                      child: Center(
+                        child: Padding(
+                          padding: EdgeInsets.only(bottom: 42),
+                          child: Icon(Icons.location_pin,
+                              color: AppColors.primary, size: 58),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 18,
+                      right: 18,
+                      child: Material(
+                        color: c.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        child: InkWell(
+                          onTap: _loadGpsLocation,
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          child: Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(AppRadius.md),
+                              border: Border.all(color: c.divider),
+                              boxShadow: c.cardShadow,
+                            ),
+                            child: Icon(Icons.my_location_rounded,
+                                size: 22, color: c.textPrimary),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.fromLTRB(
+                    20, 18, 20, MediaQuery.paddingOf(context).bottom + 18),
+                decoration: BoxDecoration(
+                  color: c.surface,
+                  border: Border(top: BorderSide(color: c.divider)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.location_on_outlined,
+                            color: c.primary, size: 24),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 180),
+                            layoutBuilder: (currentChild, previousChildren) =>
+                                Stack(
+                              alignment: Alignment.centerLeft,
+                              children: [
+                                ...previousChildren,
+                                if (currentChild != null) currentChild,
+                              ],
+                            ),
+                            child: _loadingAddress
+                                ? Padding(
+                                    key: const ValueKey('loading'),
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: LinearProgressIndicator(
+                                        color: c.primary,
+                                        backgroundColor: c.primarySoft),
+                                  )
+                                : Text(
+                                    _address ?? 'Đang xác định địa chỉ...',
+                                    key: ValueKey(_address),
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        height: 1.35,
+                                        fontWeight: FontWeight.w700,
+                                        color: c.textPrimary),
+                                    textAlign: TextAlign.left,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 54,
+                      child: FilledButton(
+                        onPressed: (_loadingAddress || _address == null)
+                            ? null
+                            : _confirm,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: c.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.full),
+                          ),
+                        ),
+                        child: const Text('Chọn địa điểm này',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

@@ -7,11 +7,13 @@ import '../theme/app_theme.dart';
 class StepProgressBar extends StatelessWidget {
   final int currentStep;
   final int totalSteps;
+  final bool showLabel;
 
   const StepProgressBar({
     super.key,
     required this.currentStep,
     required this.totalSteps,
+    this.showLabel = true,
   });
 
   @override
@@ -39,13 +41,15 @@ class StepProgressBar extends StatelessWidget {
             }),
           ),
         ),
-        const SizedBox(width: AppSpace.md),
-        Text('Bước $currentStep/$totalSteps',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: c.textSecondary,
-            )),
+        if (showLabel) ...[
+          const SizedBox(width: AppSpace.md),
+          Text('Bước $currentStep/$totalSteps',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: c.textSecondary,
+              )),
+        ],
       ],
     );
   }

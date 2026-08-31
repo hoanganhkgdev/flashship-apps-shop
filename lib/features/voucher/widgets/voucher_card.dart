@@ -38,7 +38,7 @@ class VoucherCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c      = context.colors;
+    final c = context.colors;
     final dimmed = !eligible;
     final accent = dimmed ? c.textTertiary : c.success;
 
@@ -56,8 +56,10 @@ class VoucherCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w800,
-                    color: accent, letterSpacing: 0.5),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: accent,
+                    letterSpacing: 0.5),
               ),
             ),
             if (onTap != null) ...[
@@ -136,13 +138,15 @@ class VoucherCard extends StatelessWidget {
               children: [
                 Text(discountText(voucher),
                     style: TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
                         color: dimmed ? c.textTertiary : Colors.white,
                         height: 1)),
                 const SizedBox(height: 2),
                 Text('OFF',
                     style: TextStyle(
-                        fontSize: 8, fontWeight: FontWeight.w700,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w700,
                         letterSpacing: 1.5,
                         color: dimmed
                             ? c.textTertiary

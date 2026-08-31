@@ -9,7 +9,7 @@ class _DashboardTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider).user;
     final orders = ref.watch(orderListProvider);
-    final recent = orders.orders;
+    final active = orders.orders.where((order) => order.isActive).toList();
     final todayAsync = ref.watch(todayStatsProvider);
     final c = context.colors;
 
@@ -40,7 +40,7 @@ class _DashboardTab extends ConsumerWidget {
             // khối "Tài chính" của app driver ─────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
                 child: CreateOrderCard(
                   onDeliveryTap: () => context.push('/create-order',
                       extra: ShopOrderType.delivery),
@@ -51,44 +51,50 @@ class _DashboardTab extends ConsumerWidget {
               ),
             ),
 
-            // ── Voucher — đưa lên ngay dưới khối thao tác, đồng bộ vị trí
-            // nổi bật trong mockup thay vì chôn dưới cùng như trước ────────
-            const SliverToBoxAdapter(child: _VoucherSection()),
-
-            // ── Đơn gần đây ───────────────────────────────────────────────
-            if (recent.isNotEmpty) ...[
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
-                  child: Row(children: [
-                    Expanded(
-                      child: Text('Đơn gần đây',
-                          style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
-                              color: c.textPrimary)),
+            // ── Đơn đang hoạt động ────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 26, 20, 12),
+                child: Row(children: [
+                  Icon(Icons.local_shipping_outlined,
+                      size: 21, color: c.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text('Đơn đang hoạt động',
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: c.textPrimary)),
+                  ),
+                  Container(
+                    constraints: const BoxConstraints(minWidth: 26),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: c.infoSoft,
+                      borderRadius: BorderRadius.circular(AppRadius.full),
                     ),
-                    GestureDetector(
-                      onTap: () => ref.read(_tabProvider.notifier).state = 1,
-                      child: Text('Xem tất cả',
-                          style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: c.primary)),
-                    ),
-                  ]),
-                ),
+                    child: Text('${active.length}',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: c.info)),
+                  ),
+                ]),
               ),
+            ),
+            if (active.isNotEmpty) ...[
               // Mỗi đơn 1 thẻ trắng shadow riêng, cách nhau bằng khoảng trắng
               // — đồng bộ ActiveOrderCard/CompletedOrderCard app driver, thay
               // vì gộp chung 1 khối lớn ngăn bằng Divider như trước.
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 sliver: SliverList.separated(
-                  itemCount: recent.take(3).length,
+                  itemCount: active.take(3).length,
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
                   itemBuilder: (_, i) {
-                    final order = recent[i];
+                    final order = active[i];
                     return _OrderCard(key: ValueKey(order.code), order: order);
                   },
                 ),
@@ -96,6 +102,34 @@ class _DashboardTab extends ConsumerWidget {
             ] else ...[
               SliverToBoxAdapter(child: _EmptyOrders()),
             ],
+
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                child: OutlinedButton(
+                  onPressed: () => ref.read(_tabProvider.notifier).state = 1,
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(46),
+                    foregroundColor: c.primary,
+                    side: BorderSide(color: c.divider),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Xem tất cả đơn hàng',
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w800)),
+                      SizedBox(width: 6),
+                      Icon(Icons.chevron_right_rounded, size: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ),
 
             const SliverToBoxAdapter(child: SizedBox(height: 40)),
           ],

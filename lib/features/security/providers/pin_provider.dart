@@ -15,15 +15,16 @@ class PinState {
     this.isInitialized = false,
   });
 
-  PinState copyWith({bool? isEnabled, bool? hasPin, bool? isInitialized}) => PinState(
-        isEnabled:     isEnabled     ?? this.isEnabled,
-        hasPin:        hasPin        ?? this.hasPin,
+  PinState copyWith({bool? isEnabled, bool? hasPin, bool? isInitialized}) =>
+      PinState(
+        isEnabled: isEnabled ?? this.isEnabled,
+        hasPin: hasPin ?? this.hasPin,
         isInitialized: isInitialized ?? this.isInitialized,
       );
 }
 
 class PinNotifier extends StateNotifier<PinState> {
-  static const _kHashKeyPrefix    = 'shop_pin_hash_';
+  static const _kHashKeyPrefix = 'shop_pin_hash_';
   static const _kEnabledKeyPrefix = 'shop_pin_enabled_';
 
   final Ref _ref;
@@ -50,7 +51,7 @@ class PinNotifier extends StateNotifier<PinState> {
     );
   }
 
-  String get _hashKey    => '$_kHashKeyPrefix$_userId';
+  String get _hashKey => '$_kHashKeyPrefix$_userId';
   String get _enabledKey => '$_kEnabledKeyPrefix$_userId';
 
   Future<void> _load() async {
@@ -60,7 +61,7 @@ class PinNotifier extends StateNotifier<PinState> {
       return;
     }
 
-    final hash       = await _storage.read(key: _hashKey);
+    final hash = await _storage.read(key: _hashKey);
     final enabledStr = await _storage.read(key: _enabledKey);
 
     // Nếu userId đã đổi lại trong lúc đang await (đăng xuất/đăng nhập dồn
@@ -69,8 +70,8 @@ class PinNotifier extends StateNotifier<PinState> {
     if (userId != _userId) return;
 
     state = state.copyWith(
-      hasPin:        hash != null,
-      isEnabled:     enabledStr == 'true' && hash != null,
+      hasPin: hash != null,
+      isEnabled: enabledStr == 'true' && hash != null,
       isInitialized: true,
     );
   }
@@ -97,7 +98,8 @@ class PinNotifier extends StateNotifier<PinState> {
   String _hash(String pin) => sha256.convert(utf8.encode(pin)).toString();
 }
 
-final pinProvider = StateNotifierProvider<PinNotifier, PinState>((ref) => PinNotifier(ref));
+final pinProvider =
+    StateNotifierProvider<PinNotifier, PinState>((ref) => PinNotifier(ref));
 
 // Đánh dấu đã qua màn khoá PIN lúc cold-start trong phiên app hiện tại —
 // router đọc để không bắt nhập PIN lại mỗi lần redirect evaluate. Được

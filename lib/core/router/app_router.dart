@@ -23,7 +23,7 @@ import '../../features/version/providers/app_version_provider.dart';
 
 final appNavigatorKey = GlobalKey<NavigatorState>();
 
-// Đảm bảo splash hiện tối thiểu 2 giây
+// Splash chỉ chờ các tác vụ khởi tạo thật, không giữ màn hình theo timer.
 final splashReadyProvider = StateProvider<bool>((ref) => false);
 
 class _AuthListenable extends ChangeNotifier {

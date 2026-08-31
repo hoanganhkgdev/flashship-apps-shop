@@ -19,6 +19,8 @@ final apiClientProvider = Provider<ApiClient>(
 // luồng hết phiên ngay trong lúc đang xử lý logout.
 const _sessionExemptPaths = {
   '/shop/auth/login',
+  '/shop/auth/login/send-otp',
+  '/shop/auth/login/verify-otp',
   '/shop/auth/send-otp',
   '/shop/auth/verify-otp-register',
   '/shop/auth/forgot-password',

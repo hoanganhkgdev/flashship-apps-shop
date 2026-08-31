@@ -82,15 +82,28 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
           borderRadius:
               const BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
         ),
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
         child: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: c.divider, borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 20),
+            Align(
+              alignment: Alignment.centerRight,
+              child: InkWell(
+                onTap: () => Navigator.pop(context),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: c.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(color: c.divider),
+                  ),
+                  child: Icon(Icons.close_rounded,
+                      size: 22, color: c.textSecondary),
+                ),
+              ),
+            ),
+            const SizedBox(height: 2),
             Container(
               width: 56,
               height: 56,
@@ -100,12 +113,12 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
               ),
               child: Icon(Icons.star_rounded, color: c.warning, size: 30),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             const Text('Đánh giá tài xế',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800)),
             const SizedBox(height: 4),
             Text(widget.driverName,
-                style: TextStyle(fontSize: 14, color: c.textSecondary)),
+                style: TextStyle(fontSize: 15, color: c.textSecondary)),
             const SizedBox(height: 20),
 
             // Stars
@@ -125,7 +138,7 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
                                 ? Icons.star_rounded
                                 : Icons.star_border_rounded,
                             color: c.warning,
-                            size: 40,
+                            size: 42,
                           ),
                         ),
                       )),
@@ -138,8 +151,8 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
               child: Text(
                 _rating >= 4 ? 'Điều bạn thích' : 'Vấn đề gặp phải',
                 style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
                     color: c.textSecondary),
               ),
             ),
@@ -163,16 +176,14 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
                         const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
                       color: selected
-                          ? (_rating >= 4
-                              ? c.warning.withValues(alpha: 0.12)
-                              : c.danger.withValues(alpha: 0.10))
-                          : c.surfaceAlt,
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                          ? (_rating >= 4 ? c.primary : c.danger)
+                          : c.surface,
+                      borderRadius: BorderRadius.circular(AppRadius.full),
                       border: Border.all(
                         color: selected
-                            ? (_rating >= 4 ? c.warning : c.danger)
-                            : Colors.transparent,
-                        width: 1.5,
+                            ? (_rating >= 4 ? c.primary : c.danger)
+                            : c.divider,
+                        width: 1.2,
                       ),
                     ),
                     child: Text(tag,
@@ -180,9 +191,7 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
                             fontSize: 13,
                             fontWeight:
                                 selected ? FontWeight.w700 : FontWeight.w500,
-                            color: selected
-                                ? (_rating >= 4 ? c.warning : c.danger)
-                                : c.textSecondary)),
+                            color: selected ? Colors.white : c.textSecondary)),
                   ),
                 );
               }).toList(),
@@ -200,11 +209,15 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
                 hintText: 'Nhận xét thêm (tuỳ chọn)...',
                 hintStyle: TextStyle(fontSize: 13, color: c.textTertiary),
                 filled: true,
-                fillColor: c.surfaceAlt,
-                contentPadding: const EdgeInsets.all(14),
+                fillColor: c.background,
+                contentPadding: const EdgeInsets.all(16),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  borderSide: BorderSide(color: c.divider),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  borderSide: BorderSide(color: c.divider),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -220,11 +233,11 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
               child: ElevatedButton(
                 onPressed: _submitting ? null : _submit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: c.warning,
+                  backgroundColor: c.primary,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md)),
+                      borderRadius: BorderRadius.circular(AppRadius.full)),
                 ),
                 child: _submitting
                     ? const SizedBox(

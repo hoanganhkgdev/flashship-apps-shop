@@ -38,7 +38,11 @@ class _Body extends StatelessWidget {
 
           // ── Driver ───────────────────────────────────────────────────
           if (order.driver != null) ...[
-            _DriverCard(order: order),
+            _DriverCard(
+              order: order,
+              realtimeLat: realtimeLat,
+              realtimeLng: realtimeLng,
+            ),
             const SizedBox(height: 12),
           ],
 
