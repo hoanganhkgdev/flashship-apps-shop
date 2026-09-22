@@ -130,13 +130,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     children: [
                       Text('Đăng nhập',
                           style: TextStyle(
-                              fontSize: 24,
+                              fontSize: AppFontSize.display1,
                               fontWeight: FontWeight.w800,
                               color: c.textPrimary)),
                       const SizedBox(height: 4),
                       Text('Nhập số điện thoại và mật khẩu để tiếp tục',
-                          style:
-                              TextStyle(fontSize: 14, color: c.textSecondary)),
+                          style: TextStyle(
+                              fontSize: AppFontSize.md,
+                              color: c.textSecondary)),
                       const SizedBox(height: 20),
 
                       // Chuyển phương thức đăng nhập. Backend hiện xác thực
@@ -168,7 +169,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                                 child: Text('Mật khẩu',
                                     style: TextStyle(
-                                        fontSize: 13,
+                                        fontSize: AppFontSize.base,
                                         fontWeight: FontWeight.w700,
                                         color: _passwordMode
                                             ? c.textPrimary
@@ -194,7 +195,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                                 child: Text('Mã OTP',
                                     style: TextStyle(
-                                        fontSize: 13,
+                                        fontSize: AppFontSize.base,
                                         fontWeight: FontWeight.w700,
                                         color: !_passwordMode
                                             ? c.textPrimary
@@ -288,7 +289,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             onTap: () => context.push('/forgot-password'),
                             child: Text('Quên mật khẩu?',
                                 style: TextStyle(
-                                    fontSize: 13.5,
+                                    fontSize: AppFontSize.md,
                                     fontWeight: FontWeight.w600,
                                     color: c.primary)),
                           ),
@@ -343,7 +344,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text('hoặc',
                               style: TextStyle(
-                                  fontSize: 12.5, color: c.textTertiary)),
+                                  fontSize: AppFontSize.base,
+                                  color: c.textTertiary)),
                         ),
                         Expanded(child: Divider(color: c.divider)),
                       ]),
@@ -356,10 +358,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           child: Row(mainAxisSize: MainAxisSize.min, children: [
                             Text('Chưa có tài khoản? ',
                                 style: TextStyle(
-                                    fontSize: 14, color: c.textSecondary)),
+                                    fontSize: AppFontSize.md,
+                                    color: c.textSecondary)),
                             Text('Đăng ký cửa hàng mới',
                                 style: TextStyle(
-                                    fontSize: 14,
+                                    fontSize: AppFontSize.md,
                                     fontWeight: FontWeight.w700,
                                     color: c.primary)),
                           ]),
@@ -413,13 +416,14 @@ class _LoginHero extends StatelessWidget {
                 const SizedBox(height: 8),
                 const Text('FlashShip Shop',
                     style: TextStyle(
-                        fontSize: 22,
+                        fontSize: AppFontSize.xxxl,
                         fontWeight: FontWeight.w800,
                         color: AppColors.textPrimary)),
                 const SizedBox(height: 2),
                 Text('Quản lý đơn giao hàng cho cửa hàng của bạn',
                     style: TextStyle(
-                        fontSize: 13.5, color: context.colors.textSecondary)),
+                        fontSize: AppFontSize.md,
+                        color: context.colors.textSecondary)),
               ],
             ),
           ),

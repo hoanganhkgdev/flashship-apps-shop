@@ -38,13 +38,13 @@ class _OrderCard extends StatelessWidget {
             Expanded(
               child: Text(code,
                   style: TextStyle(
-                      fontSize: 16,
+                      fontSize: AppFontSize.xl,
                       fontWeight: FontWeight.w800,
                       color: c.textPrimary)),
             ),
             Text(Fmt.currency(order.shippingFee),
                 style: TextStyle(
-                    fontSize: 17,
+                    fontSize: AppFontSize.xl,
                     fontWeight: FontWeight.w800,
                     color: c.primary)),
           ]),
@@ -52,7 +52,8 @@ class _OrderCard extends StatelessWidget {
           Text(destination,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 13.5, color: c.textSecondary)),
+              style:
+                  TextStyle(fontSize: AppFontSize.md, color: c.textSecondary)),
           const SizedBox(height: 13),
           if (order.status == 'pending')
             Container(
@@ -72,7 +73,7 @@ class _OrderCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text('Đang tìm tài xế',
                     style: TextStyle(
-                        fontSize: 13,
+                        fontSize: AppFontSize.base,
                         fontWeight: FontWeight.w700,
                         color: c.warning)),
               ]),
@@ -117,7 +118,7 @@ class _OrderProgress extends StatelessWidget {
                         ? TextAlign.right
                         : TextAlign.center,
                 style: TextStyle(
-                    fontSize: 11.5,
+                    fontSize: AppFontSize.sm,
                     fontWeight:
                         i == currentStep ? FontWeight.w700 : FontWeight.w500,
                     color: i == currentStep ? c.primary : c.textTertiary)),

@@ -211,9 +211,11 @@ class _State extends ConsumerState<OrderDetailScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Huỷ đơn hàng?',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            style: TextStyle(
+                fontSize: AppFontSize.xl, fontWeight: FontWeight.w700)),
         content: Text('Bạn có chắc muốn huỷ đơn này không?',
-            style: TextStyle(fontSize: 14, color: ctx.colors.textSecondary)),
+            style: TextStyle(
+                fontSize: AppFontSize.md, color: ctx.colors.textSecondary)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -275,13 +277,16 @@ class _State extends ConsumerState<OrderDetailScreen>
               ),
               const SizedBox(height: 16),
               const Text('Đánh giá tài xế',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                  style: TextStyle(
+                      fontSize: AppFontSize.xl, fontWeight: FontWeight.w800)),
               const SizedBox(height: 8),
               Text(
                 'Đơn hàng đã hoàn thành!\nĐánh giá giúp ${_order!.driver?.name ?? 'tài xế'} cải thiện chất lượng dịch vụ.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontSize: 13, color: c.textSecondary, height: 1.5),
+                    fontSize: AppFontSize.base,
+                    color: c.textSecondary,
+                    height: 1.5),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
@@ -298,7 +303,7 @@ class _State extends ConsumerState<OrderDetailScreen>
                 },
                 child: const Text('Đánh giá ngay',
                     style: TextStyle(
-                        fontSize: 15,
+                        fontSize: AppFontSize.lg,
                         fontWeight: FontWeight.w700,
                         color: Colors.white)),
               ),
@@ -415,13 +420,14 @@ class _State extends ConsumerState<OrderDetailScreen>
                                 ? widget.orderCode
                                 : '#${widget.orderCode}',
                             style: TextStyle(
-                                fontSize: 19,
+                                fontSize: AppFontSize.xxl,
                                 fontWeight: FontWeight.w800,
                                 color: c.textPrimary)),
                         if (_order != null)
                           Text('Đặt lúc ${Fmt.dateTime(_order!.createdAt)}',
                               style: TextStyle(
-                                  fontSize: 11.5, color: c.textTertiary)),
+                                  fontSize: AppFontSize.sm,
+                                  color: c.textTertiary)),
                       ],
                     ),
                   ),
@@ -440,7 +446,7 @@ class _State extends ConsumerState<OrderDetailScreen>
                             ? 'Đã lấy hàng'
                             : Fmt.orderStatus(_order!.status),
                         style: TextStyle(
-                            fontSize: 11.5,
+                            fontSize: AppFontSize.sm,
                             fontWeight: FontWeight.w700,
                             color: Fmt.statusColor(_order!.status))),
                   ),

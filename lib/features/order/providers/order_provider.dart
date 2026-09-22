@@ -54,7 +54,7 @@ class OrderListNotifier extends StateNotifier<OrderListState> {
           clearError: true);
     } else {
       if (state.isLoading || !state.hasMore) return;
-      state = state.copyWith(isLoading: true);
+      state = state.copyWith(isLoading: true, clearError: true);
     }
 
     try {

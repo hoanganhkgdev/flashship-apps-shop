@@ -213,7 +213,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               Text(
                 _step2 ? 'Nhập mã OTP' : 'Quên mật khẩu',
                 style: const TextStyle(
-                    fontSize: 26,
+                    fontSize: AppFontSize.display1,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary,
                     letterSpacing: -0.5),
@@ -223,7 +223,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 Text.rich(
                   TextSpan(
                     style: TextStyle(
-                        fontSize: 14, color: c.textSecondary, height: 1.5),
+                        fontSize: AppFontSize.md,
+                        color: c.textSecondary,
+                        height: 1.5),
                     children: [
                       const TextSpan(text: 'Nhập mã 6 số vừa gửi tới '),
                       TextSpan(
@@ -238,7 +240,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               else
                 Text('Nhập số điện thoại để nhận mã xác nhận',
                     style: TextStyle(
-                        fontSize: 14, color: c.textSecondary, height: 1.5)),
+                        fontSize: AppFontSize.md,
+                        color: c.textSecondary,
+                        height: 1.5)),
               const SizedBox(height: 32),
 
               // ── Step 1: Phone ─────────────────────────────────────────
@@ -356,7 +360,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     Expanded(
                       child: Text(_error!,
                           style: const TextStyle(
-                              fontSize: 13, color: AppColors.danger)),
+                              fontSize: AppFontSize.base,
+                              color: AppColors.danger)),
                     ),
                   ]),
                 ),
@@ -384,7 +389,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                               strokeWidth: 2, color: Colors.white))
                       : Text(_step2 ? 'Đặt lại mật khẩu' : 'Gửi mã OTP',
                           style: const TextStyle(
-                              fontSize: 16,
+                              fontSize: AppFontSize.xl,
                               fontWeight: FontWeight.w700,
                               color: Colors.white)),
                 ),
@@ -396,12 +401,13 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                   child: _countdown > 0
                       ? Text('Gửi lại sau $_countdown giây',
                           style: const TextStyle(
-                              fontSize: 14, color: AppColors.textSecondary))
+                              fontSize: AppFontSize.md,
+                              color: AppColors.textSecondary))
                       : GestureDetector(
                           onTap: _loading ? null : _resendOtp,
                           child: Text('Gửi lại mã OTP',
                               style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: AppFontSize.md,
                                   fontWeight: FontWeight.w600,
                                   color: _loading
                                       ? AppColors.textSecondary

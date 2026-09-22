@@ -115,7 +115,7 @@ class _NotificationInboxScreenState
                   Row(children: [
                     Text('Thông báo',
                         style: TextStyle(
-                            fontSize: 26,
+                            fontSize: AppFontSize.display1,
                             fontWeight: FontWeight.w800,
                             color: c.textPrimary)),
                     if (unreadCount > 0) ...[
@@ -129,7 +129,7 @@ class _NotificationInboxScreenState
                         ),
                         child: Text('$unreadCount',
                             style: const TextStyle(
-                                fontSize: 12,
+                                fontSize: AppFontSize.sm,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white)),
                       ),
@@ -138,7 +138,8 @@ class _NotificationInboxScreenState
                   if (unreadCount > 0) ...[
                     const SizedBox(height: 2),
                     Text('$unreadCount thông báo chưa đọc',
-                        style: TextStyle(fontSize: 12, color: c.textSecondary)),
+                        style: TextStyle(
+                            fontSize: AppFontSize.sm, color: c.textSecondary)),
                   ],
                 ]),
                 const Spacer(),
@@ -155,7 +156,7 @@ class _NotificationInboxScreenState
                       ),
                       child: Text('Đọc tất cả',
                           style: TextStyle(
-                              fontSize: 12,
+                              fontSize: AppFontSize.sm,
                               fontWeight: FontWeight.w700,
                               color: c.primary)),
                     ),
@@ -196,7 +197,7 @@ class _NotificationInboxScreenState
                                   )
                                 : Text('Xem thêm',
                                     style: TextStyle(
-                                        fontSize: 14,
+                                        fontSize: AppFontSize.md,
                                         fontWeight: FontWeight.w600,
                                         color: c.primary)),
                           ),
@@ -337,7 +338,7 @@ class _GroupCardState extends State<_GroupCard> {
                               ),
                               child: Text('${g.items.length}',
                                   style: const TextStyle(
-                                      fontSize: 10,
+                                      fontSize: AppFontSize.xs,
                                       fontWeight: FontWeight.w800,
                                       color: Colors.white)),
                             ),
@@ -356,7 +357,7 @@ class _GroupCardState extends State<_GroupCard> {
                                   Expanded(
                                     child: Text(g.latest.title,
                                         style: TextStyle(
-                                            fontSize: 14,
+                                            fontSize: AppFontSize.md,
                                             fontWeight: unread
                                                 ? FontWeight.w700
                                                 : FontWeight.w600,
@@ -366,13 +367,13 @@ class _GroupCardState extends State<_GroupCard> {
                                   const SizedBox(width: 8),
                                   Text(Fmt.timeAgo(g.latest.createdAt),
                                       style: TextStyle(
-                                          fontSize: 11,
+                                          fontSize: AppFontSize.xs,
                                           color: c.textSecondary)),
                                 ]),
                             const SizedBox(height: 5),
                             Text(g.latest.body,
                                 style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: AppFontSize.base,
                                     color: c.textSecondary,
                                     height: 1.45),
                                 maxLines: 2,
@@ -398,7 +399,7 @@ class _GroupCardState extends State<_GroupCard> {
                                           const SizedBox(width: 5),
                                           Text('Đơn #${g.orderCode}',
                                               style: TextStyle(
-                                                  fontSize: 12,
+                                                  fontSize: AppFontSize.sm,
                                                   fontWeight: FontWeight.w700,
                                                   color: color)),
                                         ]),
@@ -485,20 +486,22 @@ class _SubRow extends StatelessWidget {
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(item.title,
                 style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppFontSize.base,
                     fontWeight: unread ? FontWeight.w700 : FontWeight.w500,
                     color: c.textPrimary)),
             const SizedBox(height: 2),
             Text(item.body,
                 style: TextStyle(
-                    fontSize: 12, color: c.textSecondary, height: 1.4),
+                    fontSize: AppFontSize.sm,
+                    color: c.textSecondary,
+                    height: 1.4),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis),
           ]),
         ),
         const SizedBox(width: 8),
         Text(Fmt.timeAgo(item.createdAt),
-            style: TextStyle(fontSize: 10, color: c.textTertiary)),
+            style: TextStyle(fontSize: AppFontSize.xs, color: c.textTertiary)),
       ]),
     );
   }
@@ -523,7 +526,7 @@ class _EmptyState extends StatelessWidget {
         boxColor: c.primary.withValues(alpha: 0.08),
         iconColor: c.primary,
         iconSize: 40,
-        titleFontSize: 16,
+        titleFontSize: AppFontSize.xl,
         titleWeight: FontWeight.w700,
       ),
     );

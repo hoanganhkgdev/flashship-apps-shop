@@ -44,13 +44,15 @@ class _OrderInfoCard extends StatelessWidget {
         Row(children: [
           Text('Phí giao hàng',
               style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppFontSize.md,
                   fontWeight: FontWeight.w700,
                   color: c.textPrimary)),
           const Spacer(),
           Text(Fmt.currency(order.shippingFee),
               style: TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.w800, color: c.primary)),
+                  fontSize: AppFontSize.xxl,
+                  fontWeight: FontWeight.w800,
+                  color: c.primary)),
         ]),
       ]),
     );
@@ -66,11 +68,14 @@ class _CompactInfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Row(children: [
-      Text(label, style: TextStyle(fontSize: 13, color: c.textSecondary)),
+      Text(label,
+          style: TextStyle(fontSize: AppFontSize.base, color: c.textSecondary)),
       const Spacer(),
       Text(value,
           style: TextStyle(
-              fontSize: 13, fontWeight: FontWeight.w700, color: c.textPrimary)),
+              fontSize: AppFontSize.base,
+              fontWeight: FontWeight.w700,
+              color: c.textPrimary)),
     ]);
   }
 }
@@ -88,11 +93,14 @@ class _InfoRow extends StatelessWidget {
     return Row(children: [
       Icon(icon, size: 15, color: c.textSecondary),
       const SizedBox(width: 8),
-      Text(label, style: TextStyle(fontSize: 13, color: c.textSecondary)),
+      Text(label,
+          style: TextStyle(fontSize: AppFontSize.base, color: c.textSecondary)),
       const Spacer(),
       Text(value,
           style: TextStyle(
-              fontSize: 13, fontWeight: FontWeight.w600, color: c.textPrimary)),
+              fontSize: AppFontSize.base,
+              fontWeight: FontWeight.w600,
+              color: c.textPrimary)),
     ]);
   }
 }
@@ -114,7 +122,8 @@ class _NoteCard extends StatelessWidget {
             iconColor: c.textSecondary),
         const SizedBox(height: 10),
         Text(note,
-            style: TextStyle(fontSize: 13, color: c.textPrimary, height: 1.5)),
+            style: TextStyle(
+                fontSize: AppFontSize.base, color: c.textPrimary, height: 1.5)),
       ]),
     );
   }

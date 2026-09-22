@@ -150,7 +150,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                                     'FLASH SHIP',
                                     style: TextStyle(
                                       color: Colors.white,
-                                      fontSize: 38,
+                                      fontSize: AppFontSize.hero,
                                       fontWeight: FontWeight.w900,
                                       letterSpacing: 2,
                                       height: 1,
@@ -162,7 +162,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                                     style: TextStyle(
                                       color:
                                           Colors.white.withValues(alpha: 0.80),
-                                      fontSize: 14,
+                                      fontSize: AppFontSize.md,
                                       fontWeight: FontWeight.w600,
                                       letterSpacing: 2.2,
                                     ),
@@ -201,7 +201,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                         Text('Đang khởi động...',
                             style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.55),
-                                fontSize: 14,
+                                fontSize: AppFontSize.md,
                                 fontWeight: FontWeight.w500)),
                       ],
                     ),
@@ -226,10 +226,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Text('Cập nhật bắt buộc',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+              style: TextStyle(
+                  fontSize: AppFontSize.xl, fontWeight: FontWeight.w800)),
           content: Text(v.message,
               style: const TextStyle(
-                  fontSize: 14, color: AppColors.textSecondary, height: 1.5)),
+                  fontSize: AppFontSize.md,
+                  color: AppColors.textSecondary,
+                  height: 1.5)),
           actions: [
             SizedBox(
               width: double.infinity,

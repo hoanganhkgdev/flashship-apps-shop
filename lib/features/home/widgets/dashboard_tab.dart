@@ -18,8 +18,11 @@ class _DashboardTab extends ConsumerWidget {
       child: RefreshIndicator(
         color: c.primary,
         onRefresh: () async {
-          ref.read(orderListProvider.notifier).fetch(refresh: true);
+          final ordersRefresh =
+              ref.read(orderListProvider.notifier).fetch(refresh: true);
           ref.invalidate(todayStatsProvider);
+          await Future.wait(
+              [ordersRefresh, ref.read(todayStatsProvider.future)]);
         },
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -62,7 +65,7 @@ class _DashboardTab extends ConsumerWidget {
                   Expanded(
                     child: Text('Đơn đang hoạt động',
                         style: TextStyle(
-                            fontSize: 18,
+                            fontSize: AppFontSize.xl,
                             fontWeight: FontWeight.w800,
                             color: c.textPrimary)),
                   ),
@@ -77,7 +80,7 @@ class _DashboardTab extends ConsumerWidget {
                     child: Text('${active.length}',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                            fontSize: 13,
+                            fontSize: AppFontSize.base,
                             fontWeight: FontWeight.w800,
                             color: c.info)),
                   ),
@@ -97,6 +100,30 @@ class _DashboardTab extends ConsumerWidget {
                     final order = active[i];
                     return _OrderCard(key: ValueKey(order.code), order: order);
                   },
+                ),
+              ),
+            ] else if (orders.isLoading) ...[
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child:
+                      Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                ),
+              ),
+            ] else if (orders.error != null) ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(children: [
+                    Text(orders.error!, textAlign: TextAlign.center),
+                    TextButton.icon(
+                      onPressed: () => ref
+                          .read(orderListProvider.notifier)
+                          .fetch(refresh: true),
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Thử lại'),
+                    ),
+                  ]),
                 ),
               ),
             ] else ...[
@@ -122,7 +149,8 @@ class _DashboardTab extends ConsumerWidget {
                     children: [
                       Text('Xem tất cả đơn hàng',
                           style: TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w800)),
+                              fontSize: AppFontSize.md,
+                              fontWeight: FontWeight.w800)),
                       SizedBox(width: 6),
                       Icon(Icons.chevron_right_rounded, size: 20),
                     ],

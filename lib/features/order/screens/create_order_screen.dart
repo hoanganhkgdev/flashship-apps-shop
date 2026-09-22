@@ -449,12 +449,12 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                     color: AppColors.primary, size: 22),
                 SizedBox(width: 8),
                 Text('Lưu địa chỉ?',
-                    style:
-                        TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                    style: TextStyle(
+                        fontSize: AppFontSize.xl, fontWeight: FontWeight.w700)),
               ]),
               content: Text(
                 'Lưu "$displayName" vào sổ địa chỉ để dùng lại lần sau.',
-                style: const TextStyle(fontSize: 14, height: 1.5),
+                style: const TextStyle(fontSize: AppFontSize.md, height: 1.5),
               ),
               actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               actions: [
@@ -565,9 +565,10 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.lg)),
         title: const Text('Huỷ đặt đơn?',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            style: TextStyle(
+                fontSize: AppFontSize.xl, fontWeight: FontWeight.w700)),
         content: const Text('Thông tin bạn đã nhập sẽ không được lưu.',
-            style: TextStyle(fontSize: 14, height: 1.5)),
+            style: TextStyle(fontSize: AppFontSize.md, height: 1.5)),
         actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
         actions: [
           OutlinedButton(
@@ -646,7 +647,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                   const SizedBox(width: 14),
                   Text('Đặt đơn',
                       style: TextStyle(
-                          fontSize: 19,
+                          fontSize: AppFontSize.xxl,
                           fontWeight: FontWeight.w800,
                           color: c.textPrimary)),
                 ]),
@@ -848,7 +849,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                           const SizedBox(width: 7),
                           Text('Loại hàng',
                               style: TextStyle(
-                                  fontSize: 13.5,
+                                  fontSize: AppFontSize.md,
                                   fontWeight: FontWeight.w700,
                                   color: c.textPrimary)),
                         ]),
@@ -896,7 +897,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
-                                              fontSize: 11.5,
+                                              fontSize: AppFontSize.sm,
                                               fontWeight:
                                                   _cargoType == cargo.key
                                                       ? FontWeight.w700
@@ -964,14 +965,15 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                               _note = value;
                               _userEdited = true;
                             },
-                            style:
-                                TextStyle(fontSize: 13.5, color: c.textPrimary),
+                            style: TextStyle(
+                                fontSize: AppFontSize.md, color: c.textPrimary),
                             decoration: InputDecoration(
                               prefixIcon: Icon(Icons.notes_rounded,
                                   size: 19, color: c.textSecondary),
                               hintText: 'Ghi chú cho tài xế (không bắt buộc)',
                               hintStyle: TextStyle(
-                                  fontSize: 13.5, color: c.textTertiary),
+                                  fontSize: AppFontSize.md,
+                                  color: c.textTertiary),
                               filled: false,
                               fillColor: Colors.transparent,
                               border: InputBorder.none,
@@ -1027,13 +1029,13 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                                         const SizedBox(width: 6),
                                         Text('Phụ phí đêm',
                                             style: TextStyle(
-                                                fontSize: 13,
+                                                fontSize: AppFontSize.base,
                                                 color: c.warning)),
                                         const Spacer(),
                                         Text(
                                             '+${Fmt.currency(_nightSurcharge)}',
                                             style: TextStyle(
-                                                fontSize: 13,
+                                                fontSize: AppFontSize.base,
                                                 fontWeight: FontWeight.w600,
                                                 color: c.warning)),
                                       ]),
@@ -1055,7 +1057,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                                                     overflow:
                                                         TextOverflow.ellipsis,
                                                     style: TextStyle(
-                                                        fontSize: 13,
+                                                        fontSize:
+                                                            AppFontSize.base,
                                                         fontWeight:
                                                             FontWeight.w600,
                                                         color: c.accent2)),
@@ -1063,7 +1066,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                                               Text(
                                                   '-${Fmt.currency(_voucherDiscount ?? 0)}',
                                                   style: TextStyle(
-                                                      fontSize: 13,
+                                                      fontSize:
+                                                          AppFontSize.base,
                                                       fontWeight:
                                                           FontWeight.w700,
                                                       color: c.accent2)),
@@ -1082,7 +1086,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                                               const SizedBox(width: 6),
                                               Text('Bạn có mã giảm giá?',
                                                   style: TextStyle(
-                                                      fontSize: 13,
+                                                      fontSize:
+                                                          AppFontSize.base,
                                                       fontWeight:
                                                           FontWeight.w600,
                                                       color: c.accent2)),
@@ -1096,7 +1101,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                                       children: [
                                         Text('Tổng cộng',
                                             style: TextStyle(
-                                                fontSize: 14.5,
+                                                fontSize: AppFontSize.lg,
                                                 fontWeight: FontWeight.w700,
                                                 color: c.textPrimary)),
                                         Text(
@@ -1104,7 +1109,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                                                 ? '—'
                                                 : Fmt.currency(_finalFee),
                                             style: TextStyle(
-                                                fontSize: 20,
+                                                fontSize: AppFontSize.xxl,
                                                 fontWeight: FontWeight.w800,
                                                 color: c.primary)),
                                       ],
@@ -1121,8 +1126,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(_error!,
-                                  style:
-                                      TextStyle(color: c.danger, fontSize: 12)),
+                                  style: TextStyle(
+                                      color: c.danger,
+                                      fontSize: AppFontSize.sm)),
                             ),
                           ]),
                         ],
@@ -1149,11 +1155,11 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Tổng cộng',
-                          style:
-                              TextStyle(fontSize: 11.5, color: c.textTertiary)),
+                          style: TextStyle(
+                              fontSize: AppFontSize.sm, color: c.textTertiary)),
                       Text(_fee == null ? '—' : Fmt.currency(_finalFee),
                           style: TextStyle(
-                              fontSize: 18,
+                              fontSize: AppFontSize.xl,
                               fontWeight: FontWeight.w800,
                               color: c.primary)),
                     ],
@@ -1208,7 +1214,7 @@ class _OrderTypeTab extends StatelessWidget {
         alignment: Alignment.center,
         child: Text(label,
             style: TextStyle(
-                fontSize: 13.5,
+                fontSize: AppFontSize.md,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                 color: selected ? Colors.white : c.textSecondary)),
       ),
@@ -1238,7 +1244,7 @@ class _AddressRow extends StatelessWidget {
       children: [
         Text(label,
             style: TextStyle(
-                fontSize: 11.5,
+                fontSize: AppFontSize.sm,
                 fontWeight: FontWeight.w600,
                 color: c.textTertiary)),
         const SizedBox(height: 3),
@@ -1247,7 +1253,7 @@ class _AddressRow extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                  fontSize: 14.5,
+                  fontSize: AppFontSize.lg,
                   fontWeight: FontWeight.w700,
                   color: c.textPrimary)),
           if (placeName != null) ...[
@@ -1255,12 +1261,13 @@ class _AddressRow extends StatelessWidget {
             Text(address!,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 12.5, color: c.textSecondary)),
+                style: TextStyle(
+                    fontSize: AppFontSize.base, color: c.textSecondary)),
           ],
         ] else
           Text(placeholder,
               style: TextStyle(
-                  fontSize: 14.5,
+                  fontSize: AppFontSize.lg,
                   fontWeight: FontWeight.w600,
                   color: c.textTertiary)),
       ],
@@ -1344,13 +1351,14 @@ class _PhoneInputSheetState extends State<_PhoneInputSheet> {
                 Text(
                   widget.title,
                   style: TextStyle(
-                      fontSize: 19,
+                      fontSize: AppFontSize.xxl,
                       fontWeight: FontWeight.w800,
                       color: c.textPrimary),
                 ),
                 const SizedBox(height: 6),
                 Text(widget.description,
-                    style: TextStyle(fontSize: 13.5, color: c.textSecondary)),
+                    style: TextStyle(
+                        fontSize: AppFontSize.md, color: c.textSecondary)),
                 const SizedBox(height: 18),
                 TextField(
                   controller: _controller,
@@ -1399,7 +1407,8 @@ class _PhoneInputSheetState extends State<_PhoneInputSheet> {
                     ),
                     child: const Text('Xác nhận',
                         style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700)),
+                            fontSize: AppFontSize.xl,
+                            fontWeight: FontWeight.w700)),
                   ),
                 ),
               ],
@@ -1471,12 +1480,13 @@ class _CodAmountSheetState extends State<_CodAmountSheet> {
                 const SizedBox(height: 18),
                 Text('Tiền thu hộ (COD)',
                     style: TextStyle(
-                        fontSize: 19,
+                        fontSize: AppFontSize.xxl,
                         fontWeight: FontWeight.w800,
                         color: c.textPrimary)),
                 const SizedBox(height: 6),
                 Text('Nhập số tiền tài xế cần thu từ người nhận.',
-                    style: TextStyle(fontSize: 13.5, color: c.textSecondary)),
+                    style: TextStyle(
+                        fontSize: AppFontSize.md, color: c.textSecondary)),
                 const SizedBox(height: 18),
                 TextField(
                   controller: _controller,
@@ -1489,7 +1499,7 @@ class _CodAmountSheetState extends State<_CodAmountSheet> {
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _confirm(),
                   style: TextStyle(
-                      fontSize: 17,
+                      fontSize: AppFontSize.xl,
                       fontWeight: FontWeight.w700,
                       color: c.textPrimary),
                   decoration: InputDecoration(
@@ -1522,7 +1532,8 @@ class _CodAmountSheetState extends State<_CodAmountSheet> {
                     ),
                     child: const Text('Xác nhận',
                         style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700)),
+                            fontSize: AppFontSize.xl,
+                            fontWeight: FontWeight.w700)),
                   ),
                 ),
               ],
@@ -1593,12 +1604,13 @@ class _OrderNoteSheetState extends State<_OrderNoteSheet> {
                 const SizedBox(height: 18),
                 Text('Ghi chú cho tài xế',
                     style: TextStyle(
-                        fontSize: 19,
+                        fontSize: AppFontSize.xxl,
                         fontWeight: FontWeight.w800,
                         color: c.textPrimary)),
                 const SizedBox(height: 6),
                 Text('Thêm hướng dẫn về hàng hóa hoặc điểm giao nhận.',
-                    style: TextStyle(fontSize: 13.5, color: c.textSecondary)),
+                    style: TextStyle(
+                        fontSize: AppFontSize.md, color: c.textSecondary)),
                 const SizedBox(height: 18),
                 TextField(
                   controller: _controller,
@@ -1635,7 +1647,8 @@ class _OrderNoteSheetState extends State<_OrderNoteSheet> {
                     ),
                     child: const Text('Xác nhận',
                         style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700)),
+                            fontSize: AppFontSize.xl,
+                            fontWeight: FontWeight.w700)),
                   ),
                 ),
               ],
@@ -1678,7 +1691,7 @@ class _PopupInfoRow extends StatelessWidget {
           Expanded(
             child: Text(label,
                 style: TextStyle(
-                    fontSize: 14.5,
+                    fontSize: AppFontSize.lg,
                     fontWeight: FontWeight.w600,
                     color: warn ? c.danger : c.textPrimary)),
           ),
@@ -1690,7 +1703,7 @@ class _PopupInfoRow extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.right,
               style: TextStyle(
-                  fontSize: 13.5,
+                  fontSize: AppFontSize.md,
                   fontWeight: value.isEmpty ? FontWeight.w500 : FontWeight.w700,
                   color: value.isEmpty
                       ? (warn ? c.danger : c.textTertiary)
@@ -1738,7 +1751,7 @@ class _InlineOrderField extends StatelessWidget {
           width: 142,
           child: Text(label,
               style: TextStyle(
-                  fontSize: 14.5,
+                  fontSize: AppFontSize.lg,
                   fontWeight: FontWeight.w600,
                   color: c.textPrimary)),
         ),
@@ -1750,7 +1763,7 @@ class _InlineOrderField extends StatelessWidget {
             textAlign: TextAlign.right,
             onChanged: onChanged,
             style: TextStyle(
-                fontSize: 13.5,
+                fontSize: AppFontSize.md,
                 fontWeight: FontWeight.w700,
                 color: c.textPrimary),
             decoration: InputDecoration(
@@ -1759,11 +1772,11 @@ class _InlineOrderField extends StatelessWidget {
               filled: false,
               fillColor: Colors.transparent,
               hintStyle: TextStyle(
-                  fontSize: 13.5,
+                  fontSize: AppFontSize.md,
                   fontWeight: FontWeight.w500,
                   color: c.textTertiary),
               suffixStyle: TextStyle(
-                  fontSize: 13.5,
+                  fontSize: AppFontSize.md,
                   fontWeight: FontWeight.w700,
                   color: c.textPrimary),
               border: InputBorder.none,
@@ -1792,10 +1805,12 @@ class _FeeRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(fontSize: 13, color: c.textSecondary)),
+        Text(label,
+            style:
+                TextStyle(fontSize: AppFontSize.base, color: c.textSecondary)),
         Text(value,
             style: TextStyle(
-                fontSize: 13,
+                fontSize: AppFontSize.base,
                 fontWeight: FontWeight.w600,
                 color: c.textPrimary)),
       ],
@@ -1932,7 +1947,7 @@ class _DetailSheetState extends State<_DetailSheet> {
             const SizedBox(width: 6),
             Text(title,
                 style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: AppFontSize.sm,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textSecondary)),
           ]),
@@ -1962,7 +1977,7 @@ class _DetailSheetState extends State<_DetailSheet> {
             child: Row(children: [
               const Text('Chi tiết đơn',
                   style: TextStyle(
-                      fontSize: 17,
+                      fontSize: AppFontSize.xl,
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary)),
               const Spacer(),
@@ -2067,7 +2082,7 @@ class _DetailSheetState extends State<_DetailSheet> {
                           suffix: const Text('kg',
                               style: TextStyle(
                                   color: AppColors.textSecondary,
-                                  fontSize: 13)),
+                                  fontSize: AppFontSize.base)),
                         ),
                       ],
                     ),
@@ -2100,7 +2115,7 @@ class _DetailSheetState extends State<_DetailSheet> {
                           const SizedBox(width: 10),
                           const Text('Thu hộ COD',
                               style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: AppFontSize.base,
                                   fontWeight: FontWeight.w500,
                                   color: AppColors.textSecondary)),
                           const Spacer(),
@@ -2115,18 +2130,18 @@ class _DetailSheetState extends State<_DetailSheet> {
                                 _ThousandsFormatter(),
                               ],
                               style: const TextStyle(
-                                  fontSize: 15,
+                                  fontSize: AppFontSize.lg,
                                   fontWeight: FontWeight.w700,
                                   color: AppColors.textPrimary),
                               decoration: const InputDecoration(
                                 hintText: '0',
                                 hintStyle: TextStyle(
                                     color: AppColors.textSecondary,
-                                    fontSize: 15),
+                                    fontSize: AppFontSize.lg),
                                 suffixText: ' đ',
                                 suffixStyle: TextStyle(
                                     color: AppColors.textSecondary,
-                                    fontSize: 13),
+                                    fontSize: AppFontSize.base),
                                 border: InputBorder.none,
                                 enabledBorder: InputBorder.none,
                                 focusedBorder: InputBorder.none,

@@ -44,7 +44,7 @@ class _CardHeader extends StatelessWidget {
         const SizedBox(width: 10),
         Text(label,
             style: TextStyle(
-                fontSize: 14,
+                fontSize: AppFontSize.md,
                 fontWeight: FontWeight.w700,
                 color: context.colors.textPrimary)),
       ]);
@@ -62,7 +62,7 @@ class _ErrorView extends StatelessWidget {
         Icon(Icons.wifi_off_rounded, size: 48, color: c.textSecondary),
         const SizedBox(height: 12),
         Text('Không thể tải đơn hàng',
-            style: TextStyle(fontSize: 14, color: c.textSecondary)),
+            style: TextStyle(fontSize: AppFontSize.md, color: c.textSecondary)),
         const SizedBox(height: 12),
         TextButton(onPressed: onRetry, child: const Text('Thử lại')),
       ]),

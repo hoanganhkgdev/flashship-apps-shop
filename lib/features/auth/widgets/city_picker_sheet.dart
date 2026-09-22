@@ -38,8 +38,8 @@ Future<CityItem?> showCityPicker(
           child: Align(
             alignment: Alignment.centerLeft,
             child: Text(title,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                style: const TextStyle(
+                    fontSize: AppFontSize.xl, fontWeight: FontWeight.w800)),
           ),
         ),
         const Divider(height: 1),

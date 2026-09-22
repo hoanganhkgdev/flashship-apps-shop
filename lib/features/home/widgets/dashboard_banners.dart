@@ -58,7 +58,7 @@ class _SoftUpdateBanner extends ConsumerWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppFontSize.base,
                     fontWeight: FontWeight.w700,
                     color: c.textPrimary)),
           ),
@@ -78,7 +78,8 @@ class _SoftUpdateBanner extends ConsumerWidget {
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             child: const Text('Để sau',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                style: TextStyle(
+                    fontSize: AppFontSize.sm, fontWeight: FontWeight.w600)),
           ),
           TextButton(
             onPressed: () => openStore(version.storeUrl),
@@ -89,7 +90,8 @@ class _SoftUpdateBanner extends ConsumerWidget {
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             child: const Text('Cập nhật',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                style: TextStyle(
+                    fontSize: AppFontSize.sm, fontWeight: FontWeight.w700)),
           ),
         ]),
       ),
@@ -156,7 +158,7 @@ class _BannerCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppFontSize.sm,
                     fontWeight: FontWeight.w600,
                     color: c.textPrimary)),
           ),

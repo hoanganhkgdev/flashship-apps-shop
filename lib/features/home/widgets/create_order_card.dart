@@ -86,11 +86,12 @@ class _QuickCreateBar extends StatelessWidget {
                   Text('Tạo đơn ngay',
                       style: TextStyle(
                           color: Colors.white,
-                          fontSize: 15,
+                          fontSize: AppFontSize.lg,
                           fontWeight: FontWeight.w700)),
                   SizedBox(height: 1),
                   Text('Chỉ mất 30 giây',
-                      style: TextStyle(color: Colors.white70, fontSize: 11.5)),
+                      style: TextStyle(
+                          color: Colors.white70, fontSize: AppFontSize.sm)),
                 ],
               ),
             ),
@@ -143,7 +144,7 @@ class _ShortcutCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                       color: colors.textPrimary,
-                      fontSize: 13.5,
+                      fontSize: AppFontSize.md,
                       fontWeight: FontWeight.w800)),
             ],
           ),

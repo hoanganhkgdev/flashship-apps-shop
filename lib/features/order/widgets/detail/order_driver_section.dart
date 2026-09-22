@@ -84,14 +84,15 @@ class _DriverCard extends StatelessWidget {
             Text(driver.name,
                 style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    fontSize: 16,
+                    fontSize: AppFontSize.xl,
                     color: c.textPrimary)),
             const SizedBox(height: 2),
             Row(children: [
               Icon(Icons.star_rounded, size: 14, color: c.warning),
               const SizedBox(width: 4),
               Text('4.9 · ${driver.phone}',
-                  style: TextStyle(fontSize: 12, color: c.textSecondary)),
+                  style: TextStyle(
+                      fontSize: AppFontSize.sm, color: c.textSecondary)),
             ]),
           ],
         )),
@@ -125,7 +126,7 @@ class _DriverInitialsAvatar extends StatelessWidget {
           child: Text(initials,
               style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 18,
+                  fontSize: AppFontSize.xl,
                   fontWeight: FontWeight.w800)),
         ),
       );
@@ -333,14 +334,15 @@ class _DriverMapCardState extends State<_DriverMapCard> {
           const SizedBox(width: 6),
           Text(widget.order.driver?.name ?? 'Tài xế',
               style: TextStyle(
-                  fontSize: 13,
+                  fontSize: AppFontSize.base,
                   fontWeight: FontWeight.w600,
                   color: c.textPrimary)),
           const Spacer(),
           Icon(Icons.sync_rounded, size: 14, color: c.textSecondary),
           const SizedBox(width: 4),
           Text('Tự động cập nhật',
-              style: TextStyle(fontSize: 11, color: c.textSecondary)),
+              style:
+                  TextStyle(fontSize: AppFontSize.xs, color: c.textSecondary)),
         ]),
       ]),
     );

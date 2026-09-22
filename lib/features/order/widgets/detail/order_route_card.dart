@@ -91,19 +91,20 @@ class _RouteStop extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(label,
           style: TextStyle(
-              fontSize: 11,
+              fontSize: AppFontSize.xs,
               fontWeight: FontWeight.w600,
               color: c.textSecondary)),
       const SizedBox(height: 3),
       if (title != null && title!.isNotEmpty) ...[
         Text(title!,
             style: TextStyle(
-                fontSize: 14,
+                fontSize: AppFontSize.md,
                 fontWeight: FontWeight.w700,
                 color: c.textPrimary)),
         const SizedBox(height: 1),
       ],
-      Text(address, style: TextStyle(fontSize: 12.5, color: c.textSecondary)),
+      Text(address,
+          style: TextStyle(fontSize: AppFontSize.base, color: c.textSecondary)),
     ]);
   }
 }

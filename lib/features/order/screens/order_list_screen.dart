@@ -37,11 +37,11 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
 
   final _scrollCtrl = ScrollController();
   final _searchCtrl = TextEditingController();
-  bool _searchExpanded = false;
 
   @override
   void initState() {
     super.initState();
+    _searchCtrl.text = ref.read(_searchQueryProvider);
     // Backend trả 20 đơn/trang — không có cuộn vô hạn thì shop có trên 20
     // đơn sẽ không bao giờ thấy được đơn cũ hơn (không có ô tìm kiếm nào
     // khác để tra lại). Tải thêm khi cuộn gần cuối danh sách.
@@ -100,7 +100,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                 Row(children: [
                   Text('Đơn hàng',
                       style: TextStyle(
-                          fontSize: 22,
+                          fontSize: AppFontSize.xxxl,
                           fontWeight: FontWeight.w800,
                           color: c.textPrimary)),
                   const Spacer(),
@@ -113,45 +113,26 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: c.primary)),
                     ),
-                  GestureDetector(
-                    onTap: () => setState(() {
-                      _searchExpanded = !_searchExpanded;
-                      if (!_searchExpanded) {
-                        _searchCtrl.clear();
-                        ref.read(_searchQueryProvider.notifier).state = '';
-                      }
-                    }),
-                    child: Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: c.surface,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                        border: Border.all(color: c.divider),
-                      ),
-                      child: Icon(
-                        _searchExpanded
-                            ? Icons.close_rounded
-                            : Icons.search_rounded,
-                        size: 21,
-                        color: c.textPrimary,
-                      ),
-                    ),
-                  ),
                 ]),
-                // Thanh tìm kiếm
-                if (_searchExpanded) ...[
-                  const SizedBox(height: 14),
-                  AppField(
-                    controller: _searchCtrl,
-                    hint: 'Tìm mã đơn, SĐT người nhận...',
-                    prefixIcon: Icon(Icons.search_rounded,
-                        size: 20, color: c.textTertiary),
-                    onChanged: (v) =>
-                        ref.read(_searchQueryProvider.notifier).state = v,
-                  ),
-                  const SizedBox(height: 2),
-                ],
+                const SizedBox(height: 14),
+                AppField(
+                  controller: _searchCtrl,
+                  hint: 'Tìm mã đơn, tên hoặc SĐT người nhận',
+                  prefixIcon: Icon(Icons.search_rounded,
+                      size: 20, color: c.textTertiary),
+                  suffixIcon: query.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Xóa tìm kiếm',
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () {
+                            _searchCtrl.clear();
+                            ref.read(_searchQueryProvider.notifier).state = '';
+                          },
+                        ),
+                  onChanged: (v) =>
+                      ref.read(_searchQueryProvider.notifier).state = v,
+                ),
               ],
             ),
           ),
@@ -182,7 +163,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                       alignment: Alignment.center,
                       child: Text(f.$2,
                           style: TextStyle(
-                              fontSize: 13,
+                              fontSize: AppFontSize.base,
                               fontWeight:
                                   selected ? FontWeight.w700 : FontWeight.w600,
                               color:
@@ -196,54 +177,103 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
 
           // ── Content ──────────────────────────────────────────────────
           Expanded(
-            child: state.isLoading && all.isEmpty
-                ? Center(
-                    child: CircularProgressIndicator(
-                        color: c.primary, strokeWidth: 2))
-                : displayed.isEmpty
-                    ? _EmptyState(filter: filter, searching: query.isNotEmpty)
-                    : RefreshIndicator(
-                        color: c.primary,
-                        onRefresh: () => ref
-                            .read(orderListProvider.notifier)
-                            .fetch(refresh: true),
-                        child: Builder(builder: (_) {
-                          // Chỉ hiện khi "Tất cả" — các tab khác lọc phía app
-                          // nên tổng số trang backend không khớp số dòng hiện ra.
-                          final showFooter = filter == 'all' &&
-                              state.hasMore &&
-                              state.isLoading &&
-                              all.isNotEmpty;
-                          return ListView.separated(
-                            controller: _scrollCtrl,
-                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-                            itemCount: displayed.length + (showFooter ? 1 : 0),
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 10),
-                            itemBuilder: (_, i) {
-                              final idx = i;
-                              if (idx >= displayed.length) {
-                                return Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 12),
-                                    child: SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2, color: c.primary),
-                                    ),
-                                  ),
-                                );
-                              }
-                              return _OrderCard(
-                                  key: ValueKey(displayed[idx].code),
-                                  order: displayed[idx]);
-                            },
-                          );
-                        }),
+            child: RefreshIndicator(
+              color: c.primary,
+              onRefresh: () =>
+                  ref.read(orderListProvider.notifier).fetch(refresh: true),
+              child: CustomScrollView(
+                controller: _scrollCtrl,
+                physics: const AlwaysScrollableScrollPhysics(),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                slivers: [
+                  if (displayed.isEmpty)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (state.isLoading)
+                            const Padding(
+                              padding: EdgeInsets.all(24),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          else if (state.error != null)
+                            Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Text(state.error!,
+                                  textAlign: TextAlign.center),
+                            )
+                          else
+                            _EmptyState(
+                                filter: filter, searching: query.isNotEmpty),
+                          if (!state.isLoading &&
+                              (query.isNotEmpty || filter != 'all'))
+                            TextButton(
+                              onPressed: () {
+                                _searchCtrl.clear();
+                                ref.read(_searchQueryProvider.notifier).state =
+                                    '';
+                                ref.read(_filterProvider.notifier).state =
+                                    'all';
+                              },
+                              child: const Text('Xóa tìm kiếm và bộ lọc'),
+                            ),
+                          if (!state.isLoading &&
+                              (state.hasMore || state.error != null))
+                            _buildLoadMore(state),
+                        ],
                       ),
+                    )
+                  else ...[
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      sliver: SliverList.separated(
+                        itemCount: displayed.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (_, i) => _OrderCard(
+                          key: ValueKey(displayed[i].code),
+                          order: displayed[i],
+                        ),
+                      ),
+                    ),
+                    SliverToBoxAdapter(child: _buildLoadMore(state)),
+                  ],
+                ],
+              ),
+            ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadMore(OrderListState state) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      child: Column(
+        children: [
+          if (state.isLoading)
+            const CircularProgressIndicator(strokeWidth: 2)
+          else ...[
+            if (state.error != null && state.orders.isNotEmpty)
+              Text(state.error!, textAlign: TextAlign.center),
+            if (state.hasMore || state.error != null) ...[
+              const Text(
+                'Tìm kiếm và bộ lọc áp dụng cho các đơn đã tải.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () => ref.read(orderListProvider.notifier).fetch(),
+                icon: Icon(state.error != null
+                    ? Icons.refresh_rounded
+                    : Icons.expand_more_rounded),
+                label:
+                    Text(state.error != null ? 'Thử lại' : 'Tải thêm đơn hàng'),
+              ),
+            ],
+          ],
         ],
       ),
     );
@@ -298,7 +328,7 @@ class _ActiveSummary extends StatelessWidget {
                 child: Center(
                   child: Text('$count',
                       style: TextStyle(
-                          fontSize: 20,
+                          fontSize: AppFontSize.xxl,
                           fontWeight: FontWeight.w800,
                           color: color)),
                 ),
@@ -306,7 +336,7 @@ class _ActiveSummary extends StatelessWidget {
               const SizedBox(height: 6),
               Text(label,
                   style: TextStyle(
-                      fontSize: 11,
+                      fontSize: AppFontSize.xs,
                       fontWeight: FontWeight.w600,
                       color: c.textSecondary)),
             ]),
@@ -388,14 +418,15 @@ class _OrderCard extends StatelessWidget {
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Text(code,
                         style: TextStyle(
-                            fontSize: 14.5,
+                            fontSize: AppFontSize.lg,
                             fontWeight: FontWeight.w700,
                             color: _fade(
                                 dimmed ? c.textTertiary : c.textPrimary))),
                     const SizedBox(width: 6),
                     Text('· $time',
                         style: TextStyle(
-                            fontSize: 12, color: _fade(c.textTertiary))),
+                            fontSize: AppFontSize.sm,
+                            color: _fade(c.textTertiary))),
                   ]),
                 ),
                 Container(
@@ -411,7 +442,7 @@ class _OrderCard extends StatelessWidget {
                           ? 'Đã lấy hàng'
                           : Fmt.orderStatus(order.status),
                       style: TextStyle(
-                          fontSize: 11.5,
+                          fontSize: AppFontSize.sm,
                           fontWeight: FontWeight.w700,
                           color: _fade(accent))),
                 ),
@@ -428,7 +459,8 @@ class _OrderCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          fontSize: 12.5, color: _fade(c.textSecondary))),
+                          fontSize: AppFontSize.base,
+                          color: _fade(c.textSecondary))),
                 ),
               ]),
               const SizedBox(height: 12),
@@ -446,14 +478,14 @@ class _OrderCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        fontSize: 11.5,
+                        fontSize: AppFontSize.sm,
                         fontWeight: FontWeight.w500,
                         color: _fade(c.textTertiary)),
                   ),
                 ),
                 Text(Fmt.currency(order.shippingFee),
                     style: TextStyle(
-                        fontSize: 16,
+                        fontSize: AppFontSize.xl,
                         fontWeight: FontWeight.w800,
                         color: _fade(dimmed ? c.textTertiary : c.primary),
                         decoration:

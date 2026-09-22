@@ -141,14 +141,16 @@ class _PinLockScreenState extends ConsumerState<PinLockScreen> {
               const SizedBox(height: 20),
               const Text('Nhập mã PIN',
                   style: TextStyle(
-                      fontSize: 20,
+                      fontSize: AppFontSize.xxxl,
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary)),
               const SizedBox(height: 28),
               PinDots(length: 4, filled: _input.length),
               if (_error != null) ...[
                 const SizedBox(height: 14),
-                Text(_error!, style: TextStyle(fontSize: 13, color: c.danger)),
+                Text(_error!,
+                    style:
+                        TextStyle(fontSize: AppFontSize.base, color: c.danger)),
               ],
               const Spacer(flex: 3),
               Padding(
@@ -165,7 +167,7 @@ class _PinLockScreenState extends ConsumerState<PinLockScreen> {
                 onTap: _logout,
                 child: Text('Đăng xuất',
                     style: TextStyle(
-                        fontSize: 14,
+                        fontSize: AppFontSize.md,
                         fontWeight: FontWeight.w700,
                         color: c.textSecondary)),
               ),

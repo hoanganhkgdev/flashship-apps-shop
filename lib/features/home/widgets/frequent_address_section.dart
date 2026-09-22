@@ -37,7 +37,7 @@ class _FrequentAddressSection extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Text('Địa chỉ thường dùng',
                     style: TextStyle(
-                        fontSize: 17,
+                        fontSize: AppFontSize.xl,
                         fontWeight: FontWeight.w800,
                         color: c.textPrimary)),
               ]),
@@ -84,7 +84,7 @@ class _AddressChip extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppFontSize.base,
                     fontWeight: FontWeight.w600,
                     color: c.textPrimary)),
           ),

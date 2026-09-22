@@ -82,7 +82,8 @@ class _Body extends StatelessWidget {
                             strokeWidth: 2, color: c.danger))
                     : const Text('Huỷ đơn hàng',
                         style: TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w700)),
+                            fontSize: AppFontSize.lg,
+                            fontWeight: FontWeight.w700)),
               ),
             ),
           ],
@@ -105,8 +106,9 @@ class _Body extends StatelessWidget {
                   ),
                   icon: const Icon(Icons.star_rounded, size: 18),
                   label: const Text('Đánh giá tài xế',
-                      style:
-                          TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                      style: TextStyle(
+                          fontSize: AppFontSize.lg,
+                          fontWeight: FontWeight.w700)),
                 ),
               ),
             ),
@@ -122,7 +124,8 @@ class _Body extends StatelessWidget {
               DateTime.now().difference(order.completedAt!).inHours > 24) ...[
             const SizedBox(height: 12),
             Text('Đã quá thời hạn đánh giá (24 giờ sau khi hoàn thành)',
-                style: TextStyle(fontSize: 12, color: c.textSecondary)),
+                style: TextStyle(
+                    fontSize: AppFontSize.sm, color: c.textSecondary)),
           ],
 
           if (order.driverRating != null) ...[
@@ -151,8 +154,9 @@ class _Body extends StatelessWidget {
                   ),
                   icon: const Icon(Icons.replay_rounded, size: 18),
                   label: const Text('Đặt lại đơn tương tự',
-                      style:
-                          TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                      style: TextStyle(
+                          fontSize: AppFontSize.md,
+                          fontWeight: FontWeight.w700)),
                 ),
               ),
             ),

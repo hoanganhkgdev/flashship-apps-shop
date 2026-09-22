@@ -13,7 +13,7 @@ class AppLabel extends StatelessWidget {
   Widget build(BuildContext context) => Text(
         text,
         style: TextStyle(
-          fontSize: 13,
+          fontSize: AppFontSize.base,
           fontWeight: FontWeight.w600,
           color: context.colors.textPrimary,
         ),
@@ -82,7 +82,7 @@ class AppField extends StatelessWidget {
       onTap: onTap,
       focusNode: focusNode,
       style: TextStyle(
-        fontSize: 15,
+        fontSize: AppFontSize.lg,
         fontWeight: FontWeight.w500,
         color: c.textPrimary,
       ),
@@ -90,7 +90,7 @@ class AppField extends StatelessWidget {
         hintText: hint,
         hintStyle: TextStyle(
           color: c.textTertiary,
-          fontSize: 15,
+          fontSize: AppFontSize.lg,
           fontWeight: FontWeight.w400,
         ),
         prefix: prefix,
@@ -205,7 +205,7 @@ class _PhoneFieldState extends State<PhoneField> {
       textInputAction: widget.textInputAction,
       onFieldSubmitted: widget.onFieldSubmitted,
       style: TextStyle(
-        fontSize: 15,
+        fontSize: AppFontSize.lg,
         fontWeight: FontWeight.w500,
         color: c.textPrimary,
       ),
@@ -216,7 +216,7 @@ class _PhoneFieldState extends State<PhoneField> {
         hintText: widget.hint,
         hintStyle: TextStyle(
           color: c.textTertiary,
-          fontSize: 15,
+          fontSize: AppFontSize.lg,
           fontWeight: FontWeight.w400,
         ),
         // Chỉ phục vụ thị trường Việt Nam — bỏ mã vùng "+84", dùng icon điện
@@ -278,7 +278,9 @@ class AppErrorBox extends StatelessWidget {
         Expanded(
           child: Text(message,
               style: TextStyle(
-                  fontSize: 13, color: c.danger, fontWeight: FontWeight.w500)),
+                  fontSize: AppFontSize.base,
+                  color: c.danger,
+                  fontWeight: FontWeight.w500)),
         ),
       ]),
     );
@@ -322,7 +324,7 @@ class AppButton extends StatelessWidget {
                     strokeWidth: 2.5, color: Colors.white))
             : Text(label,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: AppFontSize.xl,
                   fontWeight: FontWeight.w700,
                 )),
       ),
@@ -374,7 +376,7 @@ class AppSectionHeader extends StatelessWidget {
         children: [
           Text(title,
               style: TextStyle(
-                  fontSize: 15,
+                  fontSize: AppFontSize.lg,
                   fontWeight: FontWeight.w700,
                   color: c.textPrimary)),
           if (action != null)
@@ -382,7 +384,7 @@ class AppSectionHeader extends StatelessWidget {
               onTap: onAction,
               child: Text(action!,
                   style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppFontSize.base,
                       fontWeight: FontWeight.w600,
                       color: c.primary)),
             ),
@@ -431,7 +433,7 @@ class AppBottomNav extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(item.label,
                     style: TextStyle(
-                        fontSize: 10,
+                        fontSize: AppFontSize.xxs,
                         fontWeight:
                             selected ? FontWeight.w700 : FontWeight.w400,
                         color: color)),
@@ -540,7 +542,7 @@ class AppEmptyState extends StatelessWidget {
     this.boxColor,
     this.iconColor,
     this.iconSize = 34,
-    this.titleFontSize = 15,
+    this.titleFontSize = AppFontSize.lg,
     this.titleWeight = FontWeight.w600,
     this.titleColor,
   });
@@ -572,7 +574,8 @@ class AppEmptyState extends StatelessWidget {
         const SizedBox(height: 6),
         Text(subtitle!,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: c.textSecondary)),
+            style:
+                TextStyle(fontSize: AppFontSize.base, color: c.textSecondary)),
       ],
       if (action != null) ...[
         const SizedBox(height: 20),
@@ -615,8 +618,10 @@ class AppStatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(99),
       ),
       child: Text(label,
-          style:
-              TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: fg)),
+          style: TextStyle(
+              fontSize: AppFontSize.xs,
+              fontWeight: FontWeight.w700,
+              color: fg)),
     );
   }
 }

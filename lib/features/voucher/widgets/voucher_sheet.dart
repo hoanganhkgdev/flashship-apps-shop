@@ -80,7 +80,7 @@ class _VoucherSheetState extends ConsumerState<VoucherSheet> {
             child: Row(children: [
               const Text('Mã giảm giá',
                   style: TextStyle(
-                      fontSize: 17,
+                      fontSize: AppFontSize.xl,
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary)),
               const Spacer(),
@@ -139,8 +139,8 @@ class _VoucherSheetState extends ConsumerState<VoucherSheet> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(_error!,
-                    style:
-                        const TextStyle(color: AppColors.danger, fontSize: 12)),
+                    style: const TextStyle(
+                        color: AppColors.danger, fontSize: AppFontSize.sm)),
               ),
             ),
 
@@ -150,7 +150,7 @@ class _VoucherSheetState extends ConsumerState<VoucherSheet> {
               alignment: Alignment.centerLeft,
               child: Text('Mã có thể áp dụng',
                   style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppFontSize.sm,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textSecondary)),
             ),
@@ -173,7 +173,8 @@ class _VoucherSheetState extends ConsumerState<VoucherSheet> {
                 child: Center(
                   child: Text('Không có mã giảm giá khả dụng',
                       style: TextStyle(
-                          fontSize: 13, color: AppColors.textSecondary)),
+                          fontSize: AppFontSize.base,
+                          color: AppColors.textSecondary)),
                 ),
               ),
               data: (vouchers) => vouchers.isEmpty
@@ -182,7 +183,8 @@ class _VoucherSheetState extends ConsumerState<VoucherSheet> {
                       child: Center(
                         child: Text('Không có mã giảm giá khả dụng',
                             style: TextStyle(
-                                fontSize: 13, color: AppColors.textSecondary)),
+                                fontSize: AppFontSize.base,
+                                color: AppColors.textSecondary)),
                       ),
                     )
                   : ListView.separated(
@@ -223,7 +225,7 @@ class _VoucherSheetState extends ConsumerState<VoucherSheet> {
                               ),
                               child: const Text('Áp dụng',
                                   style: TextStyle(
-                                      fontSize: 12,
+                                      fontSize: AppFontSize.sm,
                                       fontWeight: FontWeight.w700)),
                             ),
                           ),

@@ -355,10 +355,11 @@ class _CreateBatchOrderScreenState
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.lg)),
         title: const Text('Huỷ đặt đơn gộp?',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            style: TextStyle(
+                fontSize: AppFontSize.xl, fontWeight: FontWeight.w700)),
         content: Text(
             'Toàn bộ ${_stops.length} điểm giao đã nhập sẽ không được lưu.',
-            style: const TextStyle(fontSize: 14, height: 1.5)),
+            style: const TextStyle(fontSize: AppFontSize.md, height: 1.5)),
         actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
         actions: [
           OutlinedButton(
@@ -498,7 +499,8 @@ class _CreateBatchOrderScreenState
           leadingWidth: 80,
           titleSpacing: 8,
           title: const Text('Đơn gộp nhiều điểm',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              style: TextStyle(
+                  fontSize: AppFontSize.xxl, fontWeight: FontWeight.w800)),
           leading: Padding(
             padding: const EdgeInsets.only(left: 20),
             child: Align(
@@ -599,7 +601,7 @@ class _CreateBatchOrderScreenState
                                   const SizedBox(height: 4),
                                   Text(label,
                                       style: TextStyle(
-                                          fontSize: 10,
+                                          fontSize: AppFontSize.xs,
                                           fontWeight: selected
                                               ? FontWeight.w700
                                               : FontWeight.w500,
@@ -630,7 +632,8 @@ class _CreateBatchOrderScreenState
                             size: 18, color: AppColors.textSecondary),
                         suffix: const Text('kg',
                             style: TextStyle(
-                                color: AppColors.textSecondary, fontSize: 13)),
+                                color: AppColors.textSecondary,
+                                fontSize: AppFontSize.base)),
                         textInputAction: TextInputAction.done,
                         onFieldSubmitted: (_) => _estimateAll(),
                       ),
@@ -734,7 +737,7 @@ class _CreateBatchOrderScreenState
                           child: Text(
                             '$_voucherCode${_voucherLabel != null ? ' • $_voucherLabel' : ''}',
                             style: const TextStyle(
-                                fontSize: 13,
+                                fontSize: AppFontSize.base,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.primary),
                             maxLines: 1,
@@ -761,7 +764,7 @@ class _CreateBatchOrderScreenState
                         SizedBox(width: 6),
                         Text('Bạn có mã giảm giá?',
                             style: TextStyle(
-                                fontSize: 13,
+                                fontSize: AppFontSize.base,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.primary)),
                       ]),
@@ -775,14 +778,15 @@ class _CreateBatchOrderScreenState
                       children: [
                         const Text('Tổng phí',
                             style: TextStyle(
-                                fontSize: 11, color: AppColors.textSecondary)),
+                                fontSize: AppFontSize.xs,
+                                color: AppColors.textSecondary)),
                         if (_voucherDiscount != null &&
                             _voucherDiscount! > 0 &&
                             _totalFee > 0)
                           Text(
                             Fmt.currency(_totalFee),
                             style: const TextStyle(
-                                fontSize: 12,
+                                fontSize: AppFontSize.sm,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.textSecondary,
                                 decoration: TextDecoration.lineThrough),
@@ -792,7 +796,7 @@ class _CreateBatchOrderScreenState
                               ? Fmt.currency(_finalFee)
                               : '—',
                           style: const TextStyle(
-                              fontSize: 20,
+                              fontSize: AppFontSize.xxl,
                               fontWeight: FontWeight.w800,
                               color: AppColors.primary),
                         ),
@@ -818,7 +822,7 @@ class _CreateBatchOrderScreenState
                                     strokeWidth: 2, color: Colors.white))
                             : Text('Đặt ${_stops.length} điểm giao',
                                 style: const TextStyle(
-                                    fontSize: 15,
+                                    fontSize: AppFontSize.lg,
                                     fontWeight: FontWeight.w700,
                                     color: Colors.white)),
                       ),
@@ -837,7 +841,7 @@ class _CreateBatchOrderScreenState
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
         child: Text(text.toUpperCase(),
             style: const TextStyle(
-                fontSize: 12,
+                fontSize: AppFontSize.sm,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textSecondary)),
       );
@@ -863,7 +867,7 @@ class _CreateBatchOrderScreenState
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 15,
+              fontSize: AppFontSize.lg,
               color: ctrl.text.isEmpty
                   ? AppColors.textSecondary
                   : AppColors.textPrimary,
@@ -920,7 +924,7 @@ class _StopCard extends StatelessWidget {
         child: Center(
           child: Text('${index + 1}',
               style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: AppFontSize.sm,
                   fontWeight: FontWeight.w800,
                   color: Colors.white)),
         ),
@@ -965,7 +969,7 @@ class _StopCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppFontSize.base,
                       fontWeight: FontWeight.w600,
                       fontStyle:
                           hasAddress ? FontStyle.normal : FontStyle.italic,
@@ -979,7 +983,8 @@ class _StopCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontSize: 11, color: AppColors.textSecondary)),
+                            fontSize: AppFontSize.xs,
+                            color: AppColors.textSecondary)),
                 ],
               ),
             ),
@@ -994,7 +999,7 @@ class _StopCard extends StatelessWidget {
               Text(
                 stop.fee != null ? Fmt.currency(stop.fee!) : '—',
                 style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppFontSize.sm,
                     fontWeight: FontWeight.w700,
                     color: stop.fee != null
                         ? AppColors.primary
@@ -1034,14 +1039,15 @@ class _StopCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text('Điểm ${index + 1}',
                     style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: AppFontSize.md,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary)),
                 if (stop.distanceKm != null) ...[
                   const SizedBox(width: 8),
                   Text('${stop.distanceKm!.toStringAsFixed(1)} km',
                       style: const TextStyle(
-                          fontSize: 12, color: AppColors.textSecondary)),
+                          fontSize: AppFontSize.sm,
+                          color: AppColors.textSecondary)),
                 ],
                 const Spacer(),
                 if (stop.fee != null)
@@ -1054,7 +1060,7 @@ class _StopCard extends StatelessWidget {
                     ),
                     child: Text(Fmt.currency(stop.fee!),
                         style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: AppFontSize.sm,
                             fontWeight: FontWeight.w800,
                             color: AppColors.primary)),
                   )
@@ -1107,7 +1113,7 @@ class _StopCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: AppFontSize.lg,
                           color: stop.addressCtrl.text.isEmpty
                               ? AppColors.textSecondary
                               : AppColors.textPrimary,
@@ -1143,7 +1149,8 @@ class _StopCard extends StatelessWidget {
                   keyboardType: TextInputType.number,
                   prefix: const Text('đ ',
                       style: TextStyle(
-                          color: AppColors.textSecondary, fontSize: 15)),
+                          color: AppColors.textSecondary,
+                          fontSize: AppFontSize.lg)),
                 )),
                 const SizedBox(width: 8),
                 Expanded(

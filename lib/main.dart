@@ -172,13 +172,15 @@ class _FlashShipShopAppState extends ConsumerState<FlashShipShopApp>
               const SizedBox(width: 10),
               Text('Cập nhật bắt buộc',
                   style: TextStyle(
-                      fontSize: 16,
+                      fontSize: AppFontSize.xl,
                       fontWeight: FontWeight.w800,
                       color: c.textPrimary)),
             ]),
             content: Text(v.message,
                 style: TextStyle(
-                    fontSize: 14, color: c.textSecondary, height: 1.5)),
+                    fontSize: AppFontSize.md,
+                    color: c.textSecondary,
+                    height: 1.5)),
             actions: [
               SizedBox(
                 width: double.infinity,
@@ -189,8 +191,9 @@ class _FlashShipShopAppState extends ConsumerState<FlashShipShopApp>
                         borderRadius: BorderRadius.circular(AppRadius.sm)),
                   ),
                   child: const Text('Cập nhật ngay',
-                      style:
-                          TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                      style: TextStyle(
+                          fontSize: AppFontSize.lg,
+                          fontWeight: FontWeight.w700)),
                 ),
               ),
             ],

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'app_typography.dart';
+
+export 'app_typography.dart';
 
 /// Hằng số thương hiệu — giống nhau ở cả light/dark.
 /// Màu phụ thuộc chế độ sáng/tối nằm trong [Palette] (lấy qua `context.colors`).
@@ -195,11 +197,9 @@ class AppTheme {
       error: p.danger,
     );
 
-    final textTheme = GoogleFonts.robotoCondensedTextTheme(
+    final textTheme = AppTypography.textTheme(
       ThemeData(colorScheme: colorScheme).textTheme,
-    ).apply(
-      bodyColor: p.textPrimary,
-      displayColor: p.textPrimary,
+      color: p.textPrimary,
     );
 
     return ThemeData(
@@ -220,8 +220,8 @@ class AppTheme {
         shadowColor: p.shadow,
         centerTitle: true,
         iconTheme: IconThemeData(color: p.textPrimary),
-        titleTextStyle: GoogleFonts.robotoCondensed(
-          fontSize: 17,
+        titleTextStyle: AppTypography.style(
+          fontSize: AppFontSize.xl,
           fontWeight: FontWeight.w600,
           color: p.textPrimary,
         ),
@@ -252,8 +252,8 @@ class AppTheme {
         backgroundColor: brightness == Brightness.light
             ? const Color(0xFF1F2937)
             : p.surfaceAlt,
-        contentTextStyle: GoogleFonts.robotoCondensed(
-          fontSize: 14,
+        contentTextStyle: AppTypography.style(
+          fontSize: AppFontSize.md,
           color: Colors.white,
         ),
         shape: RoundedRectangleBorder(
@@ -262,7 +262,7 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: p.surfaceAlt,
-        hintStyle: TextStyle(color: p.textTertiary, fontSize: 15),
+        hintStyle: TextStyle(color: p.textTertiary, fontSize: AppFontSize.lg),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
           borderSide: BorderSide.none,
@@ -295,8 +295,8 @@ class AppTheme {
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.full)),
           minimumSize: const Size(double.infinity, 50),
-          textStyle: GoogleFonts.robotoCondensed(
-            fontSize: 15,
+          textStyle: AppTypography.style(
+            fontSize: AppFontSize.lg,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -307,8 +307,8 @@ class AppTheme {
           side: BorderSide(color: p.primary, width: 1.5),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.full)),
-          textStyle: GoogleFonts.robotoCondensed(
-            fontSize: 15,
+          textStyle: AppTypography.style(
+            fontSize: AppFontSize.lg,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -316,8 +316,8 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: p.primary,
-          textStyle: GoogleFonts.robotoCondensed(
-            fontSize: 14,
+          textStyle: AppTypography.style(
+            fontSize: AppFontSize.md,
             fontWeight: FontWeight.w600,
           ),
         ),

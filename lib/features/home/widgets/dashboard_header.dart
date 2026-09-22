@@ -45,14 +45,15 @@ class _Header extends ConsumerWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        fontSize: 20,
+                        fontSize: AppFontSize.xxl,
                         fontWeight: FontWeight.w800,
                         color: c.textPrimary)),
                 const SizedBox(height: 2),
                 Text(shopAddress,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 13.5, color: c.textSecondary)),
+                    style: TextStyle(
+                        fontSize: AppFontSize.md, color: c.textSecondary)),
               ],
             ),
           ),
@@ -102,13 +103,13 @@ class _Header extends ConsumerWidget {
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('PHÍ SHIP HÔM NAY',
                 style: TextStyle(
-                    fontSize: 13.5,
+                    fontSize: AppFontSize.md,
                     fontWeight: FontWeight.w800,
                     color: c.textTertiary)),
             const SizedBox(height: 7),
             Text(Fmt.currency(stats.revenue),
                 style: TextStyle(
-                    fontSize: 31,
+                    fontSize: AppFontSize.display3,
                     fontWeight: FontWeight.w800,
                     color: c.textPrimary)),
             const SizedBox(height: 18),
@@ -150,14 +151,14 @@ class _HomeMetric extends StatelessWidget {
     return Column(children: [
       Text(value,
           style: TextStyle(
-              fontSize: 19,
+              fontSize: AppFontSize.xxl,
               fontWeight: FontWeight.w800,
               color: color ?? c.textPrimary)),
       const SizedBox(height: 2),
       Text(label,
           maxLines: 1,
           style: TextStyle(
-              fontSize: 10.5,
+              fontSize: AppFontSize.xs,
               fontWeight: FontWeight.w700,
               color: c.textTertiary)),
     ]);

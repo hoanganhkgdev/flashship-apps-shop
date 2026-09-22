@@ -61,7 +61,7 @@ class PinKeypad extends StatelessWidget {
             child: child ??
                 Text(label ?? '',
                     style: TextStyle(
-                        fontSize: 28,
+                        fontSize: AppFontSize.display4,
                         fontWeight: FontWeight.w600,
                         color: c.textPrimary)),
           ),

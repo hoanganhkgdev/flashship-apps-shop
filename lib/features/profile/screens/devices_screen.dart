@@ -35,7 +35,7 @@ class DevicesScreen extends ConsumerWidget {
         scrolledUnderElevation: 0,
         title: Text('Thiết bị đăng nhập',
             style: TextStyle(
-                fontSize: 17,
+                fontSize: AppFontSize.xl,
                 fontWeight: FontWeight.w800,
                 color: c.textPrimary)),
         bottom: PreferredSize(
@@ -188,7 +188,7 @@ class _DeviceCard extends StatelessWidget {
                       device.deviceName ?? 'Thiết bị không xác định',
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          fontSize: 14,
+                          fontSize: AppFontSize.md,
                           fontWeight: FontWeight.w700,
                           color: c.textPrimary),
                     ),
@@ -204,7 +204,7 @@ class _DeviceCard extends StatelessWidget {
                       ),
                       child: const Text('Thiết bị này',
                           style: TextStyle(
-                              fontSize: 10,
+                              fontSize: AppFontSize.xs,
                               fontWeight: FontWeight.w700,
                               color: AppColors.primary)),
                     ),
@@ -215,7 +215,8 @@ class _DeviceCard extends StatelessWidget {
                   device.lastActiveAt != null
                       ? 'Hoạt động ${Fmt.timeAgo(device.lastActiveAt!)}'
                       : 'Chưa rõ thời gian hoạt động',
-                  style: TextStyle(fontSize: 12, color: c.textSecondary),
+                  style: TextStyle(
+                      fontSize: AppFontSize.sm, color: c.textSecondary),
                 ),
               ],
             ),
@@ -225,7 +226,8 @@ class _DeviceCard extends StatelessWidget {
               onPressed: onRevoke,
               style: TextButton.styleFrom(foregroundColor: c.danger),
               child: const Text('Đăng xuất',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                  style: TextStyle(
+                      fontSize: AppFontSize.base, fontWeight: FontWeight.w700)),
             ),
         ],
       ),

@@ -238,7 +238,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
         ),
         title: Text(widget.title,
             style: const TextStyle(
-                fontSize: 17,
+                fontSize: AppFontSize.xl,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary)),
       ),
@@ -253,12 +253,12 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
               controller: _controller,
               focusNode: _focusNode,
               onChanged: _onChanged,
-              style:
-                  const TextStyle(fontSize: 15, color: AppColors.textPrimary),
+              style: const TextStyle(
+                  fontSize: AppFontSize.lg, color: AppColors.textPrimary),
               decoration: InputDecoration(
                 hintText: 'Nhập địa chỉ...',
                 hintStyle: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 14),
+                    color: AppColors.textSecondary, fontSize: AppFontSize.md),
                 prefixIcon: Container(
                   margin: const EdgeInsets.all(8),
                   width: 36,
@@ -343,7 +343,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
                     const SizedBox(width: 12),
                     const Text('Chọn vị trí trên bản đồ',
                         style: TextStyle(
-                            fontSize: 14,
+                            fontSize: AppFontSize.md,
                             fontWeight: FontWeight.w700,
                             color: AppColors.primary)),
                     const Spacer(),
@@ -377,9 +377,9 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
                   labelColor: AppColors.primary,
                   unselectedLabelColor: AppColors.textSecondary,
                   labelStyle: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w700),
+                      fontSize: AppFontSize.base, fontWeight: FontWeight.w700),
                   unselectedLabelStyle: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w500),
+                      fontSize: AppFontSize.base, fontWeight: FontWeight.w500),
                   tabs: [
                     Tab(
                       child: Row(
@@ -489,7 +489,7 @@ class _TabBadge extends StatelessWidget {
       ),
       child: Text('$count',
           style: const TextStyle(
-              fontSize: 10,
+              fontSize: AppFontSize.xs,
               fontWeight: FontWeight.w700,
               color: AppColors.primary)),
     );
@@ -510,8 +510,8 @@ class _EmptyTab extends StatelessWidget {
         Icon(icon, size: 40, color: AppColors.textSecondary),
         const SizedBox(height: 10),
         Text(label,
-            style:
-                const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+            style: const TextStyle(
+                fontSize: AppFontSize.md, color: AppColors.textSecondary)),
       ]),
     );
   }
@@ -568,7 +568,7 @@ class _SavedAddressTile extends StatelessWidget {
                   )
                 : Text(initial,
                     style: TextStyle(
-                        fontSize: 16,
+                        fontSize: AppFontSize.xl,
                         fontWeight: FontWeight.w800,
                         color: missingCoords ? c.textTertiary : c.primary)),
           ),
@@ -584,7 +584,7 @@ class _SavedAddressTile extends StatelessWidget {
                   Flexible(
                     child: Text(entry.displayName,
                         style: TextStyle(
-                            fontSize: 14,
+                            fontSize: AppFontSize.md,
                             fontWeight: FontWeight.w800,
                             color: c.textPrimary),
                         maxLines: 1,
@@ -601,7 +601,7 @@ class _SavedAddressTile extends StatelessWidget {
                       ),
                       child: Text(entry.label!,
                           style: TextStyle(
-                              fontSize: 8,
+                              fontSize: AppFontSize.tiny,
                               fontWeight: FontWeight.w700,
                               color: c.primary)),
                     ),
@@ -616,7 +616,7 @@ class _SavedAddressTile extends StatelessWidget {
                   Expanded(
                     child: Text(entry.phone,
                         style: TextStyle(
-                            fontSize: 12,
+                            fontSize: AppFontSize.sm,
                             fontWeight: FontWeight.w600,
                             color: c.textSecondary),
                         maxLines: 1,
@@ -637,7 +637,7 @@ class _SavedAddressTile extends StatelessWidget {
                                   ? 'Đang tìm toạ độ...'
                                   : 'Chưa có toạ độ · nhấn để định vị lại',
                               style: TextStyle(
-                                  fontSize: 10.5,
+                                  fontSize: AppFontSize.xs,
                                   fontWeight: FontWeight.w600,
                                   color: c.warning),
                               maxLines: 1,
@@ -645,7 +645,8 @@ class _SavedAddressTile extends StatelessWidget {
                         ),
                       ])
                     : Text(entry.address,
-                        style: TextStyle(fontSize: 10.5, color: c.textTertiary),
+                        style: TextStyle(
+                            fontSize: AppFontSize.xs, color: c.textTertiary),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),
               ],
@@ -693,7 +694,7 @@ class _SavedTab extends StatelessWidget {
             child: Text(
               'Xem thêm (${entries.length - limit} địa chỉ)',
               style: const TextStyle(
-                  fontSize: 13,
+                  fontSize: AppFontSize.base,
                   color: AppColors.primary,
                   fontWeight: FontWeight.w600),
             ),
@@ -736,7 +737,7 @@ class _HistoryTab extends StatelessWidget {
           child: Row(children: [
             const Text('Gần đây',
                 style: TextStyle(
-                    fontSize: 14,
+                    fontSize: AppFontSize.md,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textSecondary)),
             const Spacer(),
@@ -747,7 +748,7 @@ class _HistoryTab extends StatelessWidget {
                   minimumSize: const Size(0, 0)),
               child: const Text('Xóa tất cả',
                   style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppFontSize.base,
                       fontWeight: FontWeight.w700,
                       color: AppColors.danger)),
             ),
@@ -765,7 +766,7 @@ class _HistoryTab extends StatelessWidget {
                   child: Text(
                     'Xem thêm (${history.length - limit} địa chỉ)',
                     style: const TextStyle(
-                        fontSize: 13,
+                        fontSize: AppFontSize.base,
                         color: AppColors.primary,
                         fontWeight: FontWeight.w600),
                   ),
@@ -815,7 +816,7 @@ class _HistoryTab extends StatelessWidget {
                           children: [
                             Text(item.placeName ?? item.address,
                                 style: const TextStyle(
-                                    fontSize: 14,
+                                    fontSize: AppFontSize.md,
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textPrimary),
                                 maxLines: 1,
@@ -824,7 +825,7 @@ class _HistoryTab extends StatelessWidget {
                               const SizedBox(height: 2),
                               Text(item.address,
                                   style: const TextStyle(
-                                      fontSize: 12,
+                                      fontSize: AppFontSize.sm,
                                       color: AppColors.textSecondary),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis),
@@ -889,7 +890,7 @@ class _SearchResultList extends StatelessWidget {
                     Text(
                       s.mainText.isNotEmpty ? s.mainText : s.display,
                       style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: AppFontSize.md,
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary),
                       maxLines: 1,
@@ -899,7 +900,8 @@ class _SearchResultList extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(s.secondaryText,
                           style: const TextStyle(
-                              fontSize: 12, color: AppColors.textSecondary),
+                              fontSize: AppFontSize.sm,
+                              color: AppColors.textSecondary),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
                     ],

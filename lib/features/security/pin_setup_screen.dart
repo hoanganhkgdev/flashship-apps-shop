@@ -88,7 +88,7 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
             const SizedBox(height: 20),
             Text(_step == 1 ? 'Tạo mã PIN' : 'Nhập lại mã PIN',
                 style: const TextStyle(
-                    fontSize: 20,
+                    fontSize: AppFontSize.xxxl,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary)),
             const SizedBox(height: 8),
@@ -96,13 +96,16 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
               _step == 1
                   ? 'Tạo mã PIN 4 số để khoá ứng dụng'
                   : 'Nhập lại mã PIN để xác nhận',
-              style: TextStyle(fontSize: 14, color: c.textSecondary),
+              style:
+                  TextStyle(fontSize: AppFontSize.md, color: c.textSecondary),
             ),
             const SizedBox(height: 32),
             PinDots(length: 4, filled: _input.length),
             if (_error != null) ...[
               const SizedBox(height: 14),
-              Text(_error!, style: TextStyle(fontSize: 13, color: c.danger)),
+              Text(_error!,
+                  style:
+                      TextStyle(fontSize: AppFontSize.base, color: c.danger)),
             ],
             const Spacer(),
             Padding(

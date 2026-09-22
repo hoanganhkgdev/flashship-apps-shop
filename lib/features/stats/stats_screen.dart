@@ -44,12 +44,13 @@ class StatsScreen extends ConsumerWidget {
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Thống kê',
                     style: TextStyle(
-                        fontSize: 26,
+                        fontSize: AppFontSize.display1,
                         fontWeight: FontWeight.w800,
                         color: c.textPrimary)),
                 const SizedBox(height: 2),
                 Text('Tổng quan hoạt động cửa hàng',
-                    style: TextStyle(fontSize: 12, color: c.textSecondary)),
+                    style: TextStyle(
+                        fontSize: AppFontSize.sm, color: c.textSecondary)),
               ]),
             ]),
           ),
@@ -87,7 +88,7 @@ class StatsScreen extends ConsumerWidget {
                         child: Center(
                           child: Text(p.$2,
                               style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: AppFontSize.sm,
                                   fontWeight: selected
                                       ? FontWeight.w700
                                       : FontWeight.w500,
@@ -129,7 +130,7 @@ class StatsScreen extends ConsumerWidget {
                       child: Text('Không tải được dữ liệu',
                           style: TextStyle(
                               color: c.textSecondary,
-                              fontSize: 14,
+                              fontSize: AppFontSize.md,
                               fontWeight: FontWeight.w600))),
                 ]),
               ),
@@ -182,19 +183,20 @@ class _StatsContent extends StatelessWidget {
               const SizedBox(width: 6),
               Text('TỔNG PHÍ SHIP',
                   style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppFontSize.sm,
                       fontWeight: FontWeight.w800,
                       color: c.textSecondary)),
             ]),
             const SizedBox(height: 8),
             Text(Fmt.currency(revenue),
                 style: TextStyle(
-                    fontSize: 28,
+                    fontSize: AppFontSize.display2,
                     fontWeight: FontWeight.w800,
                     color: c.textPrimary)),
             const SizedBox(height: 4),
             Text('$completed đơn hoàn thành',
-                style: TextStyle(fontSize: 12, color: c.textSecondary)),
+                style: TextStyle(
+                    fontSize: AppFontSize.sm, color: c.textSecondary)),
           ]),
         ),
 
@@ -296,7 +298,7 @@ class _SectionTitle extends StatelessWidget {
       const SizedBox(width: 6),
       Text(label,
           style: TextStyle(
-              fontSize: 13,
+              fontSize: AppFontSize.base,
               fontWeight: FontWeight.w700,
               color: c.textSecondary)),
     ]);
@@ -340,11 +342,12 @@ class _StatCard extends StatelessWidget {
         const SizedBox(height: 12),
         Text(value,
             style: TextStyle(
-                fontSize: 24,
+                fontSize: AppFontSize.display1,
                 fontWeight: FontWeight.w800,
                 color: c.textPrimary)),
         const SizedBox(height: 2),
-        Text(label, style: TextStyle(fontSize: 12, color: c.textSecondary)),
+        Text(label,
+            style: TextStyle(fontSize: AppFontSize.sm, color: c.textSecondary)),
       ]),
     );
   }
@@ -391,13 +394,15 @@ class _CargoRow extends StatelessWidget {
             Row(children: [
               Text(label,
                   style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppFontSize.base,
                       fontWeight: FontWeight.w600,
                       color: c.textPrimary)),
               const Spacer(),
               Text('$count đơn',
                   style: TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w700, color: color)),
+                      fontSize: AppFontSize.base,
+                      fontWeight: FontWeight.w700,
+                      color: color)),
             ]),
             const SizedBox(height: 6),
             ClipRRect(
@@ -476,7 +481,7 @@ class _DailyChart extends StatelessWidget {
                     child: isMax
                         ? Text('$count',
                             style: TextStyle(
-                                fontSize: 11,
+                                fontSize: AppFontSize.xs,
                                 fontWeight: FontWeight.w700,
                                 color: c.primary))
                         : null,
@@ -499,7 +504,8 @@ class _DailyChart extends StatelessWidget {
 
                   // Nhãn ngày
                   Text(label,
-                      style: TextStyle(fontSize: 10, color: c.textSecondary)),
+                      style: TextStyle(
+                          fontSize: AppFontSize.xs, color: c.textSecondary)),
                 ],
               ),
             ),

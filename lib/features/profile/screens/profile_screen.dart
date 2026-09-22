@@ -139,7 +139,7 @@ class ProfileScreen extends ConsumerWidget {
                     const SizedBox(height: 12),
                     Text(user.name,
                         style: const TextStyle(
-                            fontSize: 19,
+                            fontSize: AppFontSize.xxl,
                             fontWeight: FontWeight.w800,
                             color: Colors.white,
                             letterSpacing: -0.3)),
@@ -151,7 +151,7 @@ class ProfileScreen extends ConsumerWidget {
                       const SizedBox(width: 4),
                       Text(user.phone,
                           style: TextStyle(
-                              fontSize: 13,
+                              fontSize: AppFontSize.base,
                               color: Colors.white.withValues(alpha: 0.82))),
                       if (user.cityName?.isNotEmpty == true) ...[
                         Text('  ·  ',
@@ -163,7 +163,7 @@ class ProfileScreen extends ConsumerWidget {
                         const SizedBox(width: 2),
                         Text(user.cityName!,
                             style: TextStyle(
-                                fontSize: 13,
+                                fontSize: AppFontSize.base,
                                 color: Colors.white.withValues(alpha: 0.75))),
                       ],
                     ]),
@@ -272,7 +272,8 @@ class ProfileScreen extends ConsumerWidget {
                 label: 'Chế độ hiển thị',
                 trailing: Text(
                   _themeModeLabel(themeMode),
-                  style: TextStyle(fontSize: 14, color: c.textSecondary),
+                  style: TextStyle(
+                      fontSize: AppFontSize.md, color: c.textSecondary),
                 ),
                 onTap: () => _showThemeModeSheet(context, ref),
               ),
@@ -342,7 +343,8 @@ class ProfileScreen extends ConsumerWidget {
             Center(
               child: Text('FlashShip Shop',
                   style: TextStyle(
-                      fontSize: 12, color: context.colors.textTertiary)),
+                      fontSize: AppFontSize.sm,
+                      color: context.colors.textTertiary)),
             ),
           ],
         ),
@@ -458,7 +460,8 @@ class ProfileScreen extends ConsumerWidget {
         Widget option(ThemeMode mode, IconData icon, String label) => ListTile(
               leading: Icon(icon, color: c.textSecondary),
               title: Text(label,
-                  style: TextStyle(fontSize: 15, color: c.textPrimary)),
+                  style: TextStyle(
+                      fontSize: AppFontSize.lg, color: c.textPrimary)),
               trailing: mode == current
                   ? Icon(Icons.check_rounded, color: c.primary, size: 20)
                   : null,
@@ -476,7 +479,7 @@ class ProfileScreen extends ConsumerWidget {
                 alignment: Alignment.centerLeft,
                 child: Text('Chế độ hiển thị',
                     style: TextStyle(
-                        fontSize: 16,
+                        fontSize: AppFontSize.xl,
                         fontWeight: FontWeight.w800,
                         color: c.textPrimary)),
               ),
@@ -537,8 +540,9 @@ class ProfileScreen extends ConsumerWidget {
                   )),
                   const SizedBox(height: 16),
                   const Text('Chỉnh sửa thông tin',
-                      style:
-                          TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                      style: TextStyle(
+                          fontSize: AppFontSize.xl,
+                          fontWeight: FontWeight.w700)),
                   const SizedBox(height: 20),
                   const AppLabel('Tên cửa hàng'),
                   const SizedBox(height: 8),
@@ -576,7 +580,7 @@ class ProfileScreen extends ConsumerWidget {
                                 ? addrCtrl.text
                                 : 'Chọn địa chỉ...',
                             style: TextStyle(
-                                fontSize: 15,
+                                fontSize: AppFontSize.lg,
                                 color: addrCtrl.text.isNotEmpty
                                     ? c.textPrimary
                                     : c.textSecondary),
@@ -625,7 +629,7 @@ class ProfileScreen extends ConsumerWidget {
                                 Expanded(
                                     child: Text(cityName ?? 'Chọn khu vực...',
                                         style: TextStyle(
-                                            fontSize: 15,
+                                            fontSize: AppFontSize.lg,
                                             color: cityName != null
                                                 ? c.textPrimary
                                                 : c.textSecondary))),
@@ -689,7 +693,8 @@ class ProfileScreen extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               const Text('Đổi mật khẩu',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                  style: TextStyle(
+                      fontSize: AppFontSize.xl, fontWeight: FontWeight.w700)),
               const SizedBox(height: 20),
               const AppLabel('Mật khẩu hiện tại'),
               const SizedBox(height: 8),
@@ -897,7 +902,7 @@ class _ProfileOverview extends ConsumerWidget {
                 Row(children: [
                   Text('Hồ sơ',
                       style: TextStyle(
-                          fontSize: 22,
+                          fontSize: AppFontSize.xxxl,
                           fontWeight: FontWeight.w800,
                           color: c.textPrimary)),
                   const Spacer(),
@@ -945,7 +950,7 @@ class _ProfileOverview extends ConsumerWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                fontSize: 17,
+                                fontSize: AppFontSize.xl,
                                 fontWeight: FontWeight.w800,
                                 color: c.textPrimary)),
                         const SizedBox(height: 3),
@@ -958,7 +963,8 @@ class _ProfileOverview extends ConsumerWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                fontSize: 12, color: c.textSecondary)),
+                                fontSize: AppFontSize.sm,
+                                color: c.textSecondary)),
                       ],
                     ),
                   ),
@@ -1026,8 +1032,8 @@ class _ProfileOverview extends ConsumerWidget {
                 onPressed: onLogout,
                 style: TextButton.styleFrom(foregroundColor: c.danger),
                 child: const Text('Đăng xuất',
-                    style:
-                        TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                    style: TextStyle(
+                        fontSize: AppFontSize.md, fontWeight: FontWeight.w700)),
               ),
             ),
             const SizedBox(height: 36),
@@ -1048,7 +1054,7 @@ class _ProfileInitials extends StatelessWidget {
         child: Center(
           child: Text(initials,
               style: TextStyle(
-                  fontSize: 22,
+                  fontSize: AppFontSize.xxxl,
                   fontWeight: FontWeight.w800,
                   color: context.colors.primary)),
         ),
@@ -1100,7 +1106,7 @@ class _ProfileStatCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    fontSize: 11.5,
+                    fontSize: AppFontSize.sm,
                     fontWeight: FontWeight.w600,
                     color: c.textSecondary)),
           ),
@@ -1110,7 +1116,7 @@ class _ProfileStatCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-                fontSize: 20,
+                fontSize: AppFontSize.xxl,
                 fontWeight: FontWeight.w800,
                 color: c.textPrimary)),
         const SizedBox(height: 2),
@@ -1118,7 +1124,7 @@ class _ProfileStatCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-                fontSize: 9.5,
+                fontSize: AppFontSize.xs,
                 fontWeight: FontWeight.w600,
                 color: captionColor)),
       ]),
@@ -1163,12 +1169,13 @@ class _WeeklyOrdersCard extends StatelessWidget {
         Row(children: [
           Text('Đơn hàng 7 ngày qua',
               style: TextStyle(
-                  fontSize: 13.5,
+                  fontSize: AppFontSize.md,
                   fontWeight: FontWeight.w700,
                   color: c.textPrimary)),
           const Spacer(),
           Text('Tuần này',
-              style: TextStyle(fontSize: 11.5, color: c.textTertiary)),
+              style:
+                  TextStyle(fontSize: AppFontSize.sm, color: c.textTertiary)),
         ]),
         const SizedBox(height: 16),
         SizedBox(
@@ -1197,7 +1204,7 @@ class _WeeklyOrdersCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(weekdayLabel,
                       style: TextStyle(
-                          fontSize: 10,
+                          fontSize: AppFontSize.xs,
                           fontWeight:
                               isToday ? FontWeight.w700 : FontWeight.w400,
                           color: isToday ? c.primary : c.textTertiary)),
@@ -1243,11 +1250,12 @@ class _HeroStat extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-                fontSize: 14,
+                fontSize: AppFontSize.md,
                 fontWeight: FontWeight.w700,
                 color: c.textPrimary)),
         const SizedBox(height: 2),
-        Text(label, style: TextStyle(fontSize: 11, color: c.textSecondary)),
+        Text(label,
+            style: TextStyle(fontSize: AppFontSize.xs, color: c.textSecondary)),
       ]),
     );
   }
@@ -1270,7 +1278,7 @@ class _AvatarInitials extends StatelessWidget {
         child: Text(initials,
             style: const TextStyle(
                 color: Colors.white,
-                fontSize: 26,
+                fontSize: AppFontSize.display1,
                 fontWeight: FontWeight.w800)),
       );
 }
@@ -1286,7 +1294,7 @@ class _SectionLabel extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
         child: Text(text,
             style: TextStyle(
-                fontSize: 11,
+                fontSize: AppFontSize.xs,
                 fontWeight: FontWeight.w700,
                 color: context.colors.textTertiary,
                 letterSpacing: 0.6)),
@@ -1423,7 +1431,7 @@ class _SettingsRow extends StatelessWidget {
             Expanded(
               child: Text(label,
                   style: TextStyle(
-                      fontSize: 15,
+                      fontSize: AppFontSize.lg,
                       fontWeight: FontWeight.w500,
                       color: labelColor ?? c.textPrimary)),
             ),
@@ -1544,7 +1552,8 @@ class _ChangePhoneSheetState extends ConsumerState<_ChangePhoneSheet> {
                         borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 16),
             const Text('Đổi số điện thoại',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                style: TextStyle(
+                    fontSize: AppFontSize.xl, fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
             StepProgressBar(currentStep: _step, totalSteps: 2),
             const SizedBox(height: 20),
@@ -1568,7 +1577,8 @@ class _ChangePhoneSheetState extends ConsumerState<_ChangePhoneSheet> {
               ),
             ] else ...[
               Text.rich(TextSpan(
-                style: TextStyle(fontSize: 14, color: c.textSecondary),
+                style:
+                    TextStyle(fontSize: AppFontSize.md, color: c.textSecondary),
                 children: [
                   const TextSpan(text: 'Nhập mã 6 số đã gửi tới '),
                   TextSpan(
@@ -1600,14 +1610,15 @@ class _ChangePhoneSheetState extends ConsumerState<_ChangePhoneSheet> {
                 child: _countdown > 0
                     ? Text(
                         'Gửi lại sau $_countdown giây',
-                        style: TextStyle(fontSize: 14, color: c.textSecondary),
+                        style: TextStyle(
+                            fontSize: AppFontSize.md, color: c.textSecondary),
                       )
                     : GestureDetector(
                         onTap: _resend,
                         child: const Text(
                           'Gửi lại mã OTP',
                           style: TextStyle(
-                              fontSize: 14,
+                              fontSize: AppFontSize.md,
                               fontWeight: FontWeight.w700,
                               color: AppColors.primary),
                         ),

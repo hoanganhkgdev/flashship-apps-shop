@@ -152,14 +152,14 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
                                   children: [
                                     Text(r.mainText,
                                         style: const TextStyle(
-                                            fontSize: 14,
+                                            fontSize: AppFontSize.md,
                                             fontWeight: FontWeight.w600),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis),
                                     if (r.secondaryText.isNotEmpty)
                                       Text(r.secondaryText,
                                           style: const TextStyle(
-                                              fontSize: 12,
+                                              fontSize: AppFontSize.sm,
                                               color: AppColors.textSecondary),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis),
@@ -190,7 +190,7 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
       children: [
         Text(widget.label,
             style: const TextStyle(
-                fontSize: 13,
+                fontSize: AppFontSize.base,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textSecondary)),
         const SizedBox(height: 8),
@@ -203,8 +203,8 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
             minLines: 1,
             decoration: InputDecoration(
               hintText: widget.hint,
-              hintStyle:
-                  const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+              hintStyle: const TextStyle(
+                  color: AppColors.textSecondary, fontSize: AppFontSize.md),
               filled: widget.fillColor != null ? true : null,
               fillColor: widget.fillColor,
               prefixIcon: _searching

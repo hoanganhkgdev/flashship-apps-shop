@@ -132,14 +132,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       children: [
                         const Text('Đăng ký cửa hàng',
                             style: TextStyle(
-                                fontSize: 26,
+                                fontSize: AppFontSize.display1,
                                 fontWeight: FontWeight.w800,
                                 color: AppColors.textPrimary,
                                 letterSpacing: -0.5)),
                         const SizedBox(height: AppSpace.xs),
                         const Text('Tạo tài khoản để bắt đầu gửi hàng',
                             style: TextStyle(
-                                fontSize: 14, color: AppColors.textSecondary)),
+                                fontSize: AppFontSize.md,
+                                color: AppColors.textSecondary)),
                         const SizedBox(height: AppSpace.xxl),
 
                         // ── Khối: Thông tin cửa hàng ─────────────────────
@@ -188,7 +189,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               const SizedBox(height: AppSpace.xs),
                               const Text('Vui lòng chọn khu vực',
                                   style: TextStyle(
-                                      fontSize: 12, color: AppColors.danger)),
+                                      fontSize: AppFontSize.sm,
+                                      color: AppColors.danger)),
                             ],
                             const SizedBox(height: AppSpace.lg),
                             const AppLabel('Địa chỉ cửa hàng'),
@@ -247,7 +249,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             children: [
                               const Text('Đã có tài khoản? ',
                                   style: TextStyle(
-                                      fontSize: 14,
+                                      fontSize: AppFontSize.md,
                                       color: AppColors.textSecondary)),
                               GestureDetector(
                                 onTap: () {
@@ -256,7 +258,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 },
                                 child: const Text('Đăng nhập',
                                     style: TextStyle(
-                                        fontSize: 14,
+                                        fontSize: AppFontSize.md,
                                         fontWeight: FontWeight.w700,
                                         color: AppColors.primary)),
                               ),
@@ -292,7 +294,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             child: Text(
               _selectedCityName ?? 'Chọn khu vực...',
               style: TextStyle(
-                fontSize: 15,
+                fontSize: AppFontSize.lg,
                 fontWeight: FontWeight.w500,
                 color: _selectedCityId != null
                     ? AppColors.textPrimary
@@ -356,7 +358,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 size: 18, color: AppColors.textSecondary),
             SizedBox(width: 10),
             Text('Không tải được. Nhấn để thử lại',
-                style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                style: TextStyle(
+                    fontSize: AppFontSize.md, color: AppColors.textSecondary)),
           ]),
         ),
       );
@@ -418,7 +421,7 @@ class _SectionCard extends StatelessWidget {
           Text(
             title.toUpperCase(),
             style: TextStyle(
-              fontSize: 11,
+              fontSize: AppFontSize.xs,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.8,
               color: c.textSecondary,

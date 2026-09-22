@@ -59,7 +59,7 @@ class _StatusCard extends StatelessWidget {
                         textAlign: TextAlign.center,
                         maxLines: 2,
                         style: TextStyle(
-                          fontSize: 10.5,
+                          fontSize: AppFontSize.xs,
                           fontWeight:
                               isDone ? FontWeight.w700 : FontWeight.w400,
                           color: isCurrent
@@ -100,7 +100,8 @@ class _StatusCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                   child: Text(order.cancelReason!,
-                      style: TextStyle(fontSize: 12, color: c.danger))),
+                      style: TextStyle(
+                          fontSize: AppFontSize.sm, color: c.danger))),
             ]),
           ),
         ],

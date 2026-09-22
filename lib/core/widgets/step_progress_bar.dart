@@ -45,7 +45,7 @@ class StepProgressBar extends StatelessWidget {
           const SizedBox(width: AppSpace.md),
           Text('Bước $currentStep/$totalSteps',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: AppFontSize.sm,
                 fontWeight: FontWeight.w600,
                 color: c.textSecondary,
               )),

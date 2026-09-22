@@ -44,7 +44,7 @@ class AddressBookScreen extends ConsumerWidget {
         ),
         title: const Text('Địa chỉ thường giao',
             style: TextStyle(
-                fontSize: 17,
+                fontSize: AppFontSize.xl,
                 fontWeight: FontWeight.w800,
                 color: AppColors.textPrimary)),
         bottom: const PreferredSize(
@@ -120,10 +120,11 @@ class AddressBookScreen extends ConsumerWidget {
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.lg)),
         title: const Text('Xoá địa chỉ?',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            style: TextStyle(
+                fontSize: AppFontSize.xl, fontWeight: FontWeight.w800)),
         content: Text('Xoá "${entry.displayName}" khỏi sổ địa chỉ?',
-            style:
-                const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+            style: const TextStyle(
+                fontSize: AppFontSize.md, color: AppColors.textSecondary)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -180,7 +181,7 @@ class _AddressCard extends StatelessWidget {
                   Flexible(
                     child: Text(entry.displayName,
                         style: const TextStyle(
-                            fontSize: 14,
+                            fontSize: AppFontSize.md,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary),
                         maxLines: 1,
@@ -199,7 +200,7 @@ class _AddressCard extends StatelessWidget {
                       ),
                       child: Text(entry.name,
                           style: const TextStyle(
-                              fontSize: 10,
+                              fontSize: AppFontSize.xs,
                               color: AppColors.primary,
                               fontWeight: FontWeight.w500)),
                     ),
@@ -208,13 +209,15 @@ class _AddressCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(entry.phone,
                     style: const TextStyle(
-                        fontSize: 12, color: AppColors.textSecondary)),
+                        fontSize: AppFontSize.sm,
+                        color: AppColors.textSecondary)),
                 const SizedBox(height: 2),
                 Text(entry.address,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontSize: 12, color: AppColors.textSecondary)),
+                        fontSize: AppFontSize.sm,
+                        color: AppColors.textSecondary)),
               ],
             )),
             const SizedBox(width: 4),
@@ -231,7 +234,8 @@ class _AddressCard extends StatelessWidget {
                       Icon(Icons.edit_outlined,
                           size: 18, color: AppColors.textPrimary),
                       SizedBox(width: 10),
-                      Text('Chỉnh sửa', style: TextStyle(fontSize: 14)),
+                      Text('Chỉnh sửa',
+                          style: TextStyle(fontSize: AppFontSize.md)),
                     ])),
                 PopupMenuItem(
                     value: 'delete',
@@ -240,8 +244,9 @@ class _AddressCard extends StatelessWidget {
                           size: 18, color: AppColors.danger),
                       SizedBox(width: 10),
                       Text('Xoá',
-                          style:
-                              TextStyle(fontSize: 14, color: AppColors.danger)),
+                          style: TextStyle(
+                              fontSize: AppFontSize.md,
+                              color: AppColors.danger)),
                     ])),
               ],
             ),
@@ -392,7 +397,8 @@ class _AddAddressDialogScreenState
   Widget build(BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(widget.initial == null ? 'Thêm địa chỉ' : 'Chỉnh sửa',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            style: const TextStyle(
+                fontSize: AppFontSize.xl, fontWeight: FontWeight.w800)),
         content: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             _field(_label, 'Tên gợi nhớ (vd: Khách A)', required: false),
@@ -405,8 +411,8 @@ class _AddAddressDialogScreenState
             if (_error != null) ...[
               const SizedBox(height: 10),
               Text(_error!,
-                  style:
-                      const TextStyle(fontSize: 12, color: AppColors.danger)),
+                  style: const TextStyle(
+                      fontSize: AppFontSize.sm, color: AppColors.danger)),
             ],
           ]),
         ),
@@ -451,7 +457,7 @@ class _AddAddressDialogScreenState
                     ? _pickedAddress
                     : 'Chọn địa chỉ giao *',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppFontSize.md,
                   color: _pickedAddress.isNotEmpty
                       ? AppColors.textPrimary
                       : AppColors.textSecondary,
@@ -478,11 +484,11 @@ class _AddAddressDialogScreenState
         controller: ctrl,
         keyboardType: keyboard,
         maxLines: maxLines,
-        style: const TextStyle(fontSize: 14),
+        style: const TextStyle(fontSize: AppFontSize.md),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle:
-              const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          hintStyle: const TextStyle(
+              fontSize: AppFontSize.base, color: AppColors.textSecondary),
           filled: true,
           fillColor: const Color(0xFFF5F5F5),
           contentPadding:

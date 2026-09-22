@@ -173,7 +173,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                     const SizedBox(width: 14),
                     Text('Chọn vị trí shop',
                         style: TextStyle(
-                            fontSize: 20,
+                            fontSize: AppFontSize.xxl,
                             fontWeight: FontWeight.w800,
                             color: c.textPrimary)),
                   ],
@@ -275,7 +275,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                                     _address ?? 'Đang xác định địa chỉ...',
                                     key: ValueKey(_address),
                                     style: TextStyle(
-                                        fontSize: 16,
+                                        fontSize: AppFontSize.xl,
                                         height: 1.35,
                                         fontWeight: FontWeight.w700,
                                         color: c.textPrimary),
@@ -302,7 +302,8 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                         ),
                         child: const Text('Chọn địa điểm này',
                             style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w700)),
+                                fontSize: AppFontSize.xl,
+                                fontWeight: FontWeight.w700)),
                       ),
                     ),
                   ],

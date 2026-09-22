@@ -139,14 +139,15 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                       const SizedBox(height: AppSpace.xl),
                       const Text('Xác nhận OTP',
                           style: TextStyle(
-                              fontSize: 26,
+                              fontSize: AppFontSize.display1,
                               fontWeight: FontWeight.w800,
                               color: AppColors.textPrimary,
                               letterSpacing: -0.5)),
                       const SizedBox(height: 6),
                       Text.rich(TextSpan(
                         style: const TextStyle(
-                            fontSize: 14, color: AppColors.textSecondary),
+                            fontSize: AppFontSize.md,
+                            color: AppColors.textSecondary),
                         children: [
                           const TextSpan(text: 'Nhập mã 6 số đã gửi tới '),
                           TextSpan(
@@ -183,7 +184,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                             ? Text(
                                 'Gửi lại sau $_countdown giây',
                                 style: const TextStyle(
-                                    fontSize: 14,
+                                    fontSize: AppFontSize.md,
                                     color: AppColors.textSecondary),
                               )
                             : GestureDetector(
@@ -191,7 +192,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                                 child: const Text(
                                   'Gửi lại mã OTP',
                                   style: TextStyle(
-                                      fontSize: 14,
+                                      fontSize: AppFontSize.md,
                                       fontWeight: FontWeight.w700,
                                       color: AppColors.primary),
                                 ),

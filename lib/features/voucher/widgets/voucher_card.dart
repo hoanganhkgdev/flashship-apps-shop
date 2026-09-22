@@ -56,7 +56,7 @@ class VoucherCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppFontSize.base,
                     fontWeight: FontWeight.w800,
                     color: accent,
                     letterSpacing: 0.5),
@@ -76,7 +76,7 @@ class VoucherCard extends StatelessWidget {
                     : voucher.minOrderValue != null
                         ? 'Đơn từ ${voucher.minOrderValue}đ'
                         : 'Không giới hạn đơn tối thiểu'),
-            style: TextStyle(fontSize: 10, color: c.textSecondary),
+            style: TextStyle(fontSize: AppFontSize.xs, color: c.textSecondary),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -91,7 +91,7 @@ class VoucherCard extends StatelessWidget {
               Text(
                 voucher.isExpired ? 'Hết hạn' : expiryText(voucher),
                 style: TextStyle(
-                    fontSize: 10,
+                    fontSize: AppFontSize.xs,
                     color: voucher.isExpired ? c.danger : c.textTertiary),
               ),
             ],
@@ -99,7 +99,8 @@ class VoucherCard extends StatelessWidget {
               const Spacer(),
               Text(
                 '${voucher.usageCount ?? 0}/${voucher.usageLimit}',
-                style: TextStyle(fontSize: 10, color: c.textTertiary),
+                style:
+                    TextStyle(fontSize: AppFontSize.xs, color: c.textTertiary),
               ),
             ],
           ]),
@@ -138,14 +139,14 @@ class VoucherCard extends StatelessWidget {
               children: [
                 Text(discountText(voucher),
                     style: TextStyle(
-                        fontSize: 15,
+                        fontSize: AppFontSize.lg,
                         fontWeight: FontWeight.w900,
                         color: dimmed ? c.textTertiary : Colors.white,
                         height: 1)),
                 const SizedBox(height: 2),
                 Text('OFF',
                     style: TextStyle(
-                        fontSize: 8,
+                        fontSize: AppFontSize.tiny,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1.5,
                         color: dimmed

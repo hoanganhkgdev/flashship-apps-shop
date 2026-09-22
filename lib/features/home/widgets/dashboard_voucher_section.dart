@@ -92,14 +92,15 @@ class _VoucherBanner extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        fontSize: 13.5,
+                        fontSize: AppFontSize.md,
                         fontWeight: FontWeight.w700,
                         color: c.accent2)),
                 const SizedBox(height: 2),
                 Text(_subtitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11.5, color: c.textSecondary)),
+                    style: TextStyle(
+                        fontSize: AppFontSize.sm, color: c.textSecondary)),
               ],
             ),
           ),
@@ -130,12 +131,13 @@ class _EmptyOrders extends StatelessWidget {
           const SizedBox(height: 7),
           Text('Chưa có đơn hàng nào',
               style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppFontSize.md,
                   fontWeight: FontWeight.w600,
                   color: c.textSecondary)),
           const SizedBox(height: 4),
           Text('Chọn dịch vụ bên trên để tạo đơn mới',
-              style: TextStyle(fontSize: 12, color: c.textSecondary),
+              style:
+                  TextStyle(fontSize: AppFontSize.sm, color: c.textSecondary),
               textAlign: TextAlign.center),
         ]),
       ),

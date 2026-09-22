@@ -21,9 +21,11 @@ class _StopsCardState extends ConsumerState<_StopsCard> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Xác nhận giao hàng',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            style: TextStyle(
+                fontSize: AppFontSize.xl, fontWeight: FontWeight.w700)),
         content: Text('Xác nhận đã giao điểm $seq?',
-            style: TextStyle(fontSize: 14, color: ctx.colors.textSecondary)),
+            style: TextStyle(
+                fontSize: AppFontSize.md, color: ctx.colors.textSecondary)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -105,7 +107,7 @@ class _StopsCardState extends ConsumerState<_StopsCard> {
                           size: 14, color: Colors.white)
                       : Text('${stop['seq']}',
                           style: TextStyle(
-                              fontSize: 11,
+                              fontSize: AppFontSize.xs,
                               fontWeight: FontWeight.w800,
                               color: isDone ? Colors.white : c.primary)),
                 ),
@@ -121,7 +123,7 @@ class _StopsCardState extends ConsumerState<_StopsCard> {
                         child: Text(
                       name.isNotEmpty ? name : 'Điểm ${stop['seq']}',
                       style: TextStyle(
-                          fontSize: 13,
+                          fontSize: AppFontSize.base,
                           fontWeight: FontWeight.w700,
                           color: isDone ? c.textSecondary : c.textPrimary,
                           decoration:
@@ -130,7 +132,7 @@ class _StopsCardState extends ConsumerState<_StopsCard> {
                     if (fee != null)
                       Text(Fmt.currency(fee),
                           style: TextStyle(
-                              fontSize: 12,
+                              fontSize: AppFontSize.sm,
                               fontWeight: FontWeight.w700,
                               color: isDone ? c.textSecondary : c.primary)),
                   ]),
@@ -138,7 +140,8 @@ class _StopsCardState extends ConsumerState<_StopsCard> {
                   Text(addr,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12, color: c.textSecondary)),
+                      style: TextStyle(
+                          fontSize: AppFontSize.sm, color: c.textSecondary)),
                   if (phone.isNotEmpty) ...[
                     const SizedBox(height: 3),
                     GestureDetector(
@@ -148,7 +151,7 @@ class _StopsCardState extends ConsumerState<_StopsCard> {
                         const SizedBox(width: 4),
                         Text(phone,
                             style: TextStyle(
-                                fontSize: 12,
+                                fontSize: AppFontSize.sm,
                                 color: c.primary,
                                 fontWeight: FontWeight.w500)),
                       ]),
@@ -158,7 +161,8 @@ class _StopsCardState extends ConsumerState<_StopsCard> {
                     const SizedBox(height: 3),
                     Text(
                       'Đã giao lúc ${_fmtTime(stop['delivered_at'] as String)}',
-                      style: TextStyle(fontSize: 11, color: c.success),
+                      style:
+                          TextStyle(fontSize: AppFontSize.xs, color: c.success),
                     ),
                   ] else if (canMarkDelivered) ...[
                     const SizedBox(height: 8),
@@ -186,7 +190,7 @@ class _StopsCardState extends ConsumerState<_StopsCard> {
         ),
         const SizedBox(height: 6),
         Text('$delivered/${stops.length} điểm đã giao',
-            style: TextStyle(fontSize: 11, color: c.textSecondary)),
+            style: TextStyle(fontSize: AppFontSize.xs, color: c.textSecondary)),
       ]),
     );
   }
@@ -233,7 +237,9 @@ class _MarkDeliveredButton extends StatelessWidget {
           const SizedBox(width: 6),
           Text('Đánh dấu đã giao',
               style: TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w700, color: c.primary)),
+                  fontSize: AppFontSize.sm,
+                  fontWeight: FontWeight.w700,
+                  color: c.primary)),
         ]),
       ),
     );

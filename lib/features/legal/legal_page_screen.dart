@@ -109,7 +109,7 @@ class _LegalPageScreenState extends ConsumerState<LegalPageScreen> {
         ),
         title: Text(widget.title,
             style: const TextStyle(
-                fontSize: 17,
+                fontSize: AppFontSize.xl,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary)),
         bottom: const PreferredSize(

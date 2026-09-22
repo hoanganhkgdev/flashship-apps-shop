@@ -87,7 +87,7 @@ class _OtpBox extends StatelessWidget {
         textAlign: TextAlign.center,
         keyboardType: TextInputType.number,
         style: const TextStyle(
-            fontSize: 24,
+            fontSize: AppFontSize.display2,
             fontWeight: FontWeight.w800,
             color: AppColors.textPrimary),
         decoration: InputDecoration(

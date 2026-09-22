@@ -115,10 +115,12 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
             ),
             const SizedBox(height: 12),
             const Text('Đánh giá tài xế',
-                style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800)),
+                style: TextStyle(
+                    fontSize: AppFontSize.xxl, fontWeight: FontWeight.w800)),
             const SizedBox(height: 4),
             Text(widget.driverName,
-                style: TextStyle(fontSize: 15, color: c.textSecondary)),
+                style: TextStyle(
+                    fontSize: AppFontSize.lg, color: c.textSecondary)),
             const SizedBox(height: 20),
 
             // Stars
@@ -151,7 +153,7 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
               child: Text(
                 _rating >= 4 ? 'Điều bạn thích' : 'Vấn đề gặp phải',
                 style: TextStyle(
-                    fontSize: 14,
+                    fontSize: AppFontSize.md,
                     fontWeight: FontWeight.w700,
                     color: c.textSecondary),
               ),
@@ -188,7 +190,7 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
                     ),
                     child: Text(tag,
                         style: TextStyle(
-                            fontSize: 13,
+                            fontSize: AppFontSize.base,
                             fontWeight:
                                 selected ? FontWeight.w700 : FontWeight.w500,
                             color: selected ? Colors.white : c.textSecondary)),
@@ -204,10 +206,11 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
               maxLines: 3,
               minLines: 2,
               textInputAction: TextInputAction.newline,
-              style: TextStyle(fontSize: 14, color: c.textPrimary),
+              style: TextStyle(fontSize: AppFontSize.md, color: c.textPrimary),
               decoration: InputDecoration(
                 hintText: 'Nhận xét thêm (tuỳ chọn)...',
-                hintStyle: TextStyle(fontSize: 13, color: c.textTertiary),
+                hintStyle: TextStyle(
+                    fontSize: AppFontSize.base, color: c.textTertiary),
                 filled: true,
                 fillColor: c.background,
                 contentPadding: const EdgeInsets.all(16),
@@ -247,7 +250,8 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
                             strokeWidth: 2, color: Colors.white))
                     : const Text('Gửi đánh giá',
                         style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700)),
+                            fontSize: AppFontSize.xl,
+                            fontWeight: FontWeight.w700)),
               ),
             ),
           ]),
