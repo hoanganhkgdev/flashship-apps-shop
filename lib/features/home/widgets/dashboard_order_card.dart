@@ -18,9 +18,13 @@ class _OrderCard extends StatelessWidget {
     final c = context.colors;
     final code = order.code.startsWith('#') ? order.code : '#${order.code}';
     final receiver = order.receiverName?.trim();
-    final destination = receiver == null || receiver.isEmpty
-        ? order.deliveryAddress
-        : '${order.deliveryAddress} · $receiver';
+    final destination = order.isBatch && order.stops.isNotEmpty
+        ? '${order.stops.length} điểm giao'
+        : receiver == null || receiver.isEmpty
+            ? order.deliveryAddress
+            : '${order.deliveryAddress} · $receiver';
+    final showDriver = order.driver != null &&
+        (order.status == 'assigned' || order.status == 'processing');
 
     // Thẻ trắng shadow riêng cho từng đơn — icon loại hàng + chấm trạng
     // thái, đồng bộ ActiveOrderCard của app driver.
@@ -31,6 +35,7 @@ class _OrderCard extends StatelessWidget {
           color: c.surface,
           borderRadius: BorderRadius.circular(AppRadius.card),
           border: Border.all(color: c.divider),
+          boxShadow: c.cardShadow,
         ),
         padding: const EdgeInsets.fromLTRB(16, 15, 16, 14),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -48,12 +53,12 @@ class _OrderCard extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                     color: c.primary)),
           ]),
-          const SizedBox(height: 5),
-          Text(destination,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style:
-                  TextStyle(fontSize: AppFontSize.md, color: c.textSecondary)),
+          const SizedBox(height: 12),
+          OrderRouteLines(pickup: order.pickupAddress, delivery: destination),
+          if (showDriver) ...[
+            const SizedBox(height: 10),
+            OrderDriverRow(driver: order.driver!),
+          ],
           const SizedBox(height: 13),
           if (order.status == 'pending')
             Container(

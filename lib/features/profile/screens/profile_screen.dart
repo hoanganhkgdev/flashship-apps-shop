@@ -76,7 +76,11 @@ class ProfileScreen extends ConsumerWidget {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [c.primary, const Color(0xFFFF9A5C)],
+                    colors: const [
+                      AppColors.primaryGradientStart,
+                      AppColors.primaryGradientMiddle,
+                      AppColors.primaryGradientEnd,
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),

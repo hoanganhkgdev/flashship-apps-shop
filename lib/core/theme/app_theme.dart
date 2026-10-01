@@ -8,18 +8,22 @@ export 'app_typography.dart';
 /// Bảng màu "tươi trẻ, thân thiện" (retail/e-commerce) — cam san hô làm chủ
 /// đạo, xanh ngọc làm điểm nhấn phụ. Thay cho tông "công cụ vận hành" cũ.
 class AppColors {
-  static const primary = Color(0xFFF56333);
-  static const primaryDark = Color(0xFFC74007);
-  static const accent2 = Color(0xFF00B3B5);
-  static const background = Color(0xFFFBF5F1);
-  static const surface = Color(0xFFFFFDFB);
-  static const textPrimary = Color(0xFF1C1410);
-  static const textSecondary = Color(0xFF5F5651);
-  static const divider = Color(0xFFE5DCD7);
-  static const success = Color(0xFF218A45);
-  static const danger = Color(0xFFCC3336);
-  static const warning = Color(0xFFAC6900);
-  static const info = Color(0xFF1F6DD8);
+  // Bảng màu đồng bộ với app tài xế.
+  static const primary = Color(0xFFFF6035);
+  static const primaryDark = Color(0xFFD83A05);
+  static const primaryGradientStart = Color(0xFFCC5A08);
+  static const primaryGradientMiddle = Color(0xFFE8720C);
+  static const primaryGradientEnd = Color(0xFFF59E30);
+  static const accent2 = Color(0xFF008F92);
+  static const background = Color(0xFFF2F3F5);
+  static const surface = Color(0xFFFFFEFD);
+  static const textPrimary = Color(0xFF1B1411);
+  static const textSecondary = Color(0xFF6A605C);
+  static const divider = Color(0xFFE5DDD9);
+  static const success = Color(0xFF229650);
+  static const danger = Color(0xFFD52E36);
+  static const warning = Color(0xFFBE7900);
+  static const info = Color(0xFF3B82F6);
 }
 
 /// Spacing scale — dùng thay số lẻ rải rác.
@@ -93,25 +97,25 @@ class Palette extends ThemeExtension<Palette> {
   static const light = Palette(
     primary: AppColors.primary,
     onPrimary: Colors.white,
-    primarySoft: Color(0xFFFFE5D9),
+    primarySoft: Color(0xFFFFEAE3),
     accent2: AppColors.accent2,
-    accent2Soft: Color(0xFFD1F3F2),
+    accent2Soft: Color(0xFFE3F5F4),
     background: AppColors.background,
     surface: AppColors.surface,
-    surfaceAlt: Color(0xFFF5EDE8),
+    surfaceAlt: Color(0xFFF5F5F5),
     textPrimary: AppColors.textPrimary,
     textSecondary: AppColors.textSecondary,
     textTertiary: Color(0xFF938A86),
     divider: AppColors.divider,
     success: AppColors.success,
-    successSoft: Color(0xFFD9F3DD),
+    successSoft: Color(0xFFE7F8F1),
     danger: AppColors.danger,
-    dangerSoft: Color(0xFFFFE5E1),
+    dangerSoft: Color(0xFFFFE5E2),
     warning: AppColors.warning,
-    warningSoft: Color(0xFFFFECC9),
+    warningSoft: Color(0xFFFFF1CC),
     info: AppColors.info,
-    infoSoft: Color(0xFFDDECFF),
-    shadow: Color(0x1A1C1410),
+    infoSoft: Color(0xFFEFF5FF),
+    shadow: Color(0x1A1B1411),
   );
 
   static const dark = Palette(
@@ -138,13 +142,13 @@ class Palette extends ThemeExtension<Palette> {
     shadow: Color(0x66000000),
   );
 
-  /// Shadow mềm dùng chung cho mọi card — đồng bộ app driver
-  /// (color 0x14111827, blur 12, offset (0,3) ở light mode).
+  /// Bóng mềm dùng chung cho mọi thẻ — đồng bộ AppShadows.soft của app tài xế
+  /// (blur 16, lệch xuống 4).
   List<BoxShadow> get cardShadow => [
         BoxShadow(
-            color: shadow.withValues(alpha: 0.10),
-            blurRadius: 20,
-            offset: const Offset(0, 6)),
+            color: shadow.withValues(alpha: 0.6),
+            blurRadius: 16,
+            offset: const Offset(0, 4)),
       ];
 
   @override
@@ -212,13 +216,14 @@ class AppTheme {
       dividerColor: p.divider,
       dividerTheme: DividerThemeData(color: p.divider, thickness: 1, space: 1),
       appBarTheme: AppBarTheme(
+        toolbarHeight: 60,
         backgroundColor: p.surface,
         foregroundColor: p.textPrimary,
-        elevation: 0,
-        scrolledUnderElevation: 0.5,
+        elevation: 2,
+        scrolledUnderElevation: 2,
         surfaceTintColor: Colors.transparent,
         shadowColor: p.shadow,
-        centerTitle: true,
+        centerTitle: false,
         iconTheme: IconThemeData(color: p.textPrimary),
         titleTextStyle: AppTypography.style(
           fontSize: AppFontSize.xl,

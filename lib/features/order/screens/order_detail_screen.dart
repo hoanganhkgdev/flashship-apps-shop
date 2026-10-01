@@ -20,6 +20,7 @@ import '../../../core/widgets/app_form_widgets.dart';
 import '../data/order_repository.dart';
 import '../models/order_model.dart';
 import '../providers/order_provider.dart';
+import '../utils/order_reorder.dart';
 
 part '../widgets/detail/order_detail_body.dart';
 part '../widgets/detail/order_status_card.dart';

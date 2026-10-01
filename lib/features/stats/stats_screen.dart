@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/widgets/app_decor_widgets.dart';
 import '../order/models/cargo_type.dart';
 import 'stats_repository.dart';
 
@@ -35,73 +36,69 @@ class StatsScreen extends ConsumerWidget {
       backgroundColor: c.background,
       body: Column(
         children: [
-          // ── Header ──────────────────────────────────────────────────
-          Container(
-            color: c.surface,
-            padding: EdgeInsets.fromLTRB(
-                20, MediaQuery.of(context).padding.top + 16, 20, 14),
-            child: Row(children: [
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Thống kê',
-                    style: TextStyle(
-                        fontSize: AppFontSize.display1,
-                        fontWeight: FontWeight.w800,
-                        color: c.textPrimary)),
-                const SizedBox(height: 2),
-                Text('Tổng quan hoạt động cửa hàng',
-                    style: TextStyle(
-                        fontSize: AppFontSize.sm, color: c.textSecondary)),
-              ]),
-            ]),
-          ),
-
-          // ── Bộ lọc khoảng thời gian ─────────────────────────────────
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
-            decoration: BoxDecoration(
-              color: c.surface,
-              border: Border(bottom: BorderSide(color: c.divider)),
-            ),
-            child: Container(
-              height: 40,
-              decoration: BoxDecoration(
-                color: c.background,
-                borderRadius: BorderRadius.circular(11),
-                border: Border.all(color: c.divider),
-              ),
-              padding: const EdgeInsets.all(3),
-              child: Row(
-                children: _periods.map((p) {
-                  final selected = period == p.$1;
-                  return Expanded(
-                    child: GestureDetector(
-                      onTap: () =>
-                          ref.read(_statsPeriodProvider.notifier).state = p.$1,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        decoration: BoxDecoration(
-                          color: selected ? c.surface : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
-                          border:
-                              selected ? Border.all(color: c.divider) : null,
-                        ),
-                        child: Center(
-                          child: Text(p.$2,
-                              style: TextStyle(
-                                  fontSize: AppFontSize.sm,
-                                  fontWeight: selected
-                                      ? FontWeight.w700
-                                      : FontWeight.w500,
-                                  color:
-                                      selected ? c.primary : c.textSecondary)),
-                        ),
-                      ),
+          // ── Header gradient cam (đồng bộ app tài xế) + bộ lọc thời gian ──
+          GradientHeaderShell(children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                  20, MediaQuery.of(context).padding.top + 16, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Thống kê',
+                      style: TextStyle(
+                          fontSize: AppFontSize.display1,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white)),
+                  const SizedBox(height: 2),
+                  Text('Tổng quan hoạt động cửa hàng',
+                      style: TextStyle(
+                          fontSize: AppFontSize.base,
+                          color: Colors.white.withValues(alpha: 0.85))),
+                  const SizedBox(height: 16),
+                  Container(
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(AppRadius.full),
                     ),
-                  );
-                }).toList(),
+                    padding: const EdgeInsets.all(3),
+                    child: Row(
+                      children: _periods.map((p) {
+                        final selected = period == p.$1;
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: () => ref
+                                .read(_statsPeriodProvider.notifier)
+                                .state = p.$1,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              decoration: BoxDecoration(
+                                color:
+                                    selected ? c.surface : Colors.transparent,
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.full),
+                              ),
+                              child: Center(
+                                child: Text(p.$2,
+                                    style: TextStyle(
+                                        fontSize: AppFontSize.base,
+                                        fontWeight: selected
+                                            ? FontWeight.w800
+                                            : FontWeight.w600,
+                                        color: selected
+                                            ? c.primary
+                                            : Colors.white)),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
+          ]),
 
           // ── Content ─────────────────────────────────────────────────
           Expanded(

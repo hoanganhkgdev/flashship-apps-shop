@@ -408,39 +408,56 @@ class AppBottomNav extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Đồng bộ BottomNav của app tài xế: thanh trắng bo góc trên, đổ bóng, tab
+  /// đang chọn là viên thuốc cam đặc với icon trắng.
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final bottom = MediaQuery.of(context).padding.bottom;
-    return Container(
-      padding: EdgeInsets.fromLTRB(4, 10, 4, bottom + 8),
-      decoration: BoxDecoration(
-        color: c.surface,
-        border: Border(top: BorderSide(color: c.divider)),
-      ),
-      child: Row(
-        children: List.generate(items.length, (i) {
-          final item = items[i];
-          final selected = i == selectedIndex;
-          final color = selected ? c.primary : c.textTertiary;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => onTap(i),
-              behavior: HitTestBehavior.opaque,
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(selected ? item.activeIcon : item.icon,
-                    size: 22, color: color),
-                const SizedBox(height: 3),
-                Text(item.label,
-                    style: TextStyle(
-                        fontSize: AppFontSize.xxs,
-                        fontWeight:
-                            selected ? FontWeight.w700 : FontWeight.w400,
-                        color: color)),
-              ]),
-            ),
-          );
-        }),
+    return Material(
+      color: c.surface,
+      elevation: 16,
+      shadowColor: c.shadow.withValues(alpha: 0.16),
+      borderRadius:
+          const BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+      clipBehavior: Clip.antiAlias,
+      child: NavigationBarTheme(
+        data: NavigationBarThemeData(
+          height: 68,
+          elevation: 0,
+          backgroundColor: c.surface,
+          surfaceTintColor: Colors.transparent,
+          indicatorColor: c.primary,
+          indicatorShape: const StadiumBorder(),
+          iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
+                size: 24,
+                color: states.contains(WidgetState.selected)
+                    ? Colors.white
+                    : c.textSecondary,
+              )),
+          labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
+                fontSize: AppFontSize.sm,
+                fontWeight: states.contains(WidgetState.selected)
+                    ? FontWeight.w800
+                    : FontWeight.w600,
+                color: states.contains(WidgetState.selected)
+                    ? c.primary
+                    : c.textSecondary,
+              )),
+        ),
+        child: NavigationBar(
+          selectedIndex: selectedIndex,
+          onDestinationSelected: onTap,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          destinations: [
+            for (final item in items)
+              NavigationDestination(
+                icon: Icon(item.icon),
+                selectedIcon: Icon(item.activeIcon),
+                label: item.label,
+                tooltip: item.label,
+              ),
+          ],
+        ),
       ),
     );
   }

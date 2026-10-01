@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/app_decor_widgets.dart';
 
 class CreateOrderCard extends StatelessWidget {
   final VoidCallback onDeliveryTap;
@@ -30,7 +31,7 @@ class CreateOrderCard extends StatelessWidget {
         child: _ShortcutCard(
           icon: Icons.location_on_outlined,
           title: 'Lấy hàng',
-          color: colors.primary,
+          color: colors.accent2,
           onTap: onPickupTap,
         ),
       ),
@@ -39,7 +40,7 @@ class CreateOrderCard extends StatelessWidget {
         child: _ShortcutCard(
           icon: Icons.route_outlined,
           title: 'Đơn gộp',
-          color: colors.primary,
+          color: colors.info,
           onTap: onBatchTap,
         ),
       ),
@@ -120,33 +121,38 @@ class _ShortcutCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(AppRadius.md),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(color: colors.divider),
-          ),
-          constraints: const BoxConstraints(minHeight: 70),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 13),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: color, size: 24),
-              const SizedBox(height: 10),
-              Text(title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: colors.textPrimary,
-                      fontSize: AppFontSize.md,
-                      fontWeight: FontWeight.w800)),
-            ],
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        boxShadow: colors.cardShadow,
+      ),
+      child: Material(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              border: Border.all(color: colors.divider),
+            ),
+            constraints: const BoxConstraints(minHeight: 70),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AppIconBadge(icon: icon, color: color),
+                const SizedBox(height: 10),
+                Text(title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: colors.textPrimary,
+                        fontSize: AppFontSize.base,
+                        fontWeight: FontWeight.w800)),
+              ],
+            ),
           ),
         ),
       ),

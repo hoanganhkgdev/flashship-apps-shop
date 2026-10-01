@@ -3,10 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/app_decor_widgets.dart';
 import '../../../core/widgets/app_form_widgets.dart';
 import '../models/cargo_type.dart';
 import '../models/order_model.dart';
 import '../providers/order_provider.dart';
+import '../utils/order_reorder.dart';
+import '../widgets/order_driver_row.dart';
+import '../widgets/order_route_lines.dart';
 
 final _filterProvider = StateProvider<String>((ref) => 'all');
 final _searchQueryProvider = StateProvider<String>((ref) => '');
@@ -86,60 +90,60 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
       color: c.background,
       child: Column(
         children: [
-          // ── Header ────────────────────────────────────────────────────
-          Container(
-            padding: EdgeInsets.fromLTRB(
-                20, MediaQuery.of(context).padding.top + 18, 20, 16),
-            decoration: BoxDecoration(
-              color: c.surface,
-              border: Border(bottom: BorderSide(color: c.divider)),
+          // ── Header gradient cam (đồng bộ app tài xế) ──────────────────
+          GradientHeaderShell(children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                  20, MediaQuery.of(context).padding.top + 16, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    const Text('Đơn hàng',
+                        style: TextStyle(
+                            fontSize: AppFontSize.display1,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white)),
+                    const Spacer(),
+                    if (state.isLoading)
+                      const Padding(
+                        padding: EdgeInsets.only(right: 12),
+                        child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white)),
+                      ),
+                  ]),
+                  const SizedBox(height: 14),
+                  AppField(
+                    controller: _searchCtrl,
+                    hint: 'Tìm mã đơn, tên hoặc SĐT người nhận',
+                    fillColor: c.surface,
+                    prefixIcon: Icon(Icons.search_rounded,
+                        size: 20, color: c.textTertiary),
+                    suffixIcon: query.isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: 'Xóa tìm kiếm',
+                            icon: const Icon(Icons.close_rounded),
+                            onPressed: () {
+                              _searchCtrl.clear();
+                              ref.read(_searchQueryProvider.notifier).state =
+                                  '';
+                            },
+                          ),
+                    onChanged: (v) =>
+                        ref.read(_searchQueryProvider.notifier).state = v,
+                  ),
+                ],
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  Text('Đơn hàng',
-                      style: TextStyle(
-                          fontSize: AppFontSize.xxxl,
-                          fontWeight: FontWeight.w800,
-                          color: c.textPrimary)),
-                  const Spacer(),
-                  if (state.isLoading)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: c.primary)),
-                    ),
-                ]),
-                const SizedBox(height: 14),
-                AppField(
-                  controller: _searchCtrl,
-                  hint: 'Tìm mã đơn, tên hoặc SĐT người nhận',
-                  prefixIcon: Icon(Icons.search_rounded,
-                      size: 20, color: c.textTertiary),
-                  suffixIcon: query.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: 'Xóa tìm kiếm',
-                          icon: const Icon(Icons.close_rounded),
-                          onPressed: () {
-                            _searchCtrl.clear();
-                            ref.read(_searchQueryProvider.notifier).state = '';
-                          },
-                        ),
-                  onChanged: (v) =>
-                      ref.read(_searchQueryProvider.notifier).state = v,
-                ),
-              ],
-            ),
-          ),
+          ]),
 
           // Filter chips — pill rời, cuộn ngang.
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
             child: SizedBox(
               height: 38,
               child: ListView.separated(
@@ -371,33 +375,32 @@ class _OrderCard extends StatelessWidget {
   Color _fade(Color color) =>
       order.isCancelled ? color.withValues(alpha: color.a * 0.5) : color;
 
+  String _timeLabel() {
+    final local = order.createdAt.toLocal();
+    final now = DateTime.now();
+    bool sameDay(DateTime a, DateTime b) =>
+        a.year == b.year && a.month == b.month && a.day == b.day;
+    if (sameDay(local, now)) {
+      return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+    }
+    if (sameDay(local, now.subtract(const Duration(days: 1)))) return 'hôm qua';
+    return Fmt.timeAgo(local);
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final accent = _accentColor(c);
-    final address = order.isBatch && order.stops.isNotEmpty
-        ? '${order.stops.length} điểm · ${order.stops.first['address'] ?? ''}'
+    final delivery = order.isBatch && order.stops.isNotEmpty
+        ? '${order.stops.length} điểm giao · ${order.stops.first['address'] ?? ''}'
         : order.deliveryAddress;
     final cargoMeta = cargoTypeOf(order.cargoType);
     final dimmed = order.isCancelled;
     final code = order.code.startsWith('#') ? order.code : '#${order.code}';
-    final local = order.createdAt.toLocal();
-    final now = DateTime.now();
-    final isToday = local.year == now.year &&
-        local.month == now.month &&
-        local.day == now.day;
-    final yesterday = now.subtract(const Duration(days: 1));
-    final isYesterday = local.year == yesterday.year &&
-        local.month == yesterday.month &&
-        local.day == yesterday.day;
-    final time = isToday
-        ? '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}'
-        : isYesterday
-            ? 'hôm qua'
-            : Fmt.timeAgo(local);
+    final canReorder = order.isCompleted || order.isCancelled;
+    final showDriver = order.driver != null &&
+        (order.status == 'assigned' || order.status == 'processing');
 
-    // Badge trạng thái dạng pill (nền nhạt + chữ đậm màu) thay cho chấm tròn
-    // + chữ — đồng bộ mockup thiết kế mới.
     return GestureDetector(
       onTap: () => context.push('/order/${order.code}'),
       child: Container(
@@ -405,94 +408,118 @@ class _OrderCard extends StatelessWidget {
           color: c.surface,
           borderRadius: BorderRadius.circular(AppRadius.card),
           border: Border.all(color: c.divider),
+          boxShadow: c.cardShadow,
         ),
         clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Row 1: mã đơn + giờ ............. badge trạng thái
-              Row(children: [
-                Expanded(
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Text(code,
-                        style: TextStyle(
-                            fontSize: AppFontSize.lg,
-                            fontWeight: FontWeight.w700,
-                            color: _fade(
-                                dimmed ? c.textTertiary : c.textPrimary))),
-                    const SizedBox(width: 6),
-                    Text('· $time',
-                        style: TextStyle(
-                            fontSize: AppFontSize.sm,
-                            color: _fade(c.textTertiary))),
-                  ]),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 11, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _fade(accent)
-                        .withValues(alpha: context.isDark ? 0.2 : 0.12),
-                    borderRadius: BorderRadius.circular(AppRadius.full),
-                  ),
-                  child: Text(
-                      order.status == 'processing'
-                          ? 'Đã lấy hàng'
-                          : Fmt.orderStatus(order.status),
-                      style: TextStyle(
-                          fontSize: AppFontSize.sm,
-                          fontWeight: FontWeight.w700,
-                          color: _fade(accent))),
-                ),
-              ]),
-              const SizedBox(height: 10),
+        child: IntrinsicHeight(
+          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            // Vạch màu theo trạng thái — nhìn lướt là biết đơn nào cần chú ý.
+            Container(width: 4, color: _fade(accent)),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Mã đơn + giờ ............. trạng thái
+                    Row(children: [
+                      Expanded(
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Text(code,
+                              style: TextStyle(
+                                  fontSize: AppFontSize.lg,
+                                  fontWeight: FontWeight.w700,
+                                  color: _fade(dimmed
+                                      ? c.textTertiary
+                                      : c.textPrimary))),
+                          const SizedBox(width: 6),
+                          Text('· ${_timeLabel()}',
+                              style: TextStyle(
+                                  fontSize: AppFontSize.sm,
+                                  color: _fade(c.textTertiary))),
+                        ]),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _fade(accent)
+                              .withValues(alpha: context.isDark ? 0.2 : 0.12),
+                          borderRadius: BorderRadius.circular(AppRadius.full),
+                        ),
+                        child: Text(
+                            order.status == 'processing'
+                                ? 'Đã lấy hàng'
+                                : Fmt.orderStatus(order.status),
+                            style: TextStyle(
+                                fontSize: AppFontSize.sm,
+                                fontWeight: FontWeight.w700,
+                                color: _fade(accent))),
+                      ),
+                    ]),
+                    const SizedBox(height: 12),
 
-              // Row 2: địa chỉ giao
-              Row(children: [
-                Icon(Icons.location_on_outlined,
-                    size: 14, color: _fade(c.textTertiary)),
-                const SizedBox(width: 5),
-                Expanded(
-                  child: Text(address,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: AppFontSize.base,
-                          color: _fade(c.textSecondary))),
-                ),
-              ]),
-              const SizedBox(height: 12),
+                    OrderRouteLines(
+                      pickup: order.pickupAddress,
+                      delivery: delivery,
+                      dimmed: dimmed,
+                    ),
 
-              Divider(height: 1, color: _fade(c.divider)),
-              const SizedBox(height: 10),
+                    if (showDriver) ...[
+                      const SizedBox(height: 10),
+                      OrderDriverRow(driver: order.driver!),
+                    ],
 
-              // Row 3: COD · loại hàng ............................... phí
-              Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-                Expanded(
-                  child: Text(
-                    dimmed
-                        ? 'Khách huỷ đơn'
-                        : 'COD ${Fmt.currency(order.codAmount ?? 0)} · ${cargoMeta.label}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: AppFontSize.sm,
-                        fontWeight: FontWeight.w500,
-                        color: _fade(c.textTertiary)),
-                  ),
+                    const SizedBox(height: 10),
+                    Divider(height: 1, color: _fade(c.divider)),
+                    const SizedBox(height: 8),
+
+                    // COD · loại hàng ........ [Đặt lại] phí
+                    Row(children: [
+                      Expanded(
+                        child: Text(
+                          dimmed
+                              ? 'Đơn đã huỷ'
+                              : 'COD ${Fmt.currency(order.codAmount ?? 0)} · ${cargoMeta.label}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: AppFontSize.sm,
+                              fontWeight: FontWeight.w500,
+                              color: _fade(c.textTertiary)),
+                        ),
+                      ),
+                      if (canReorder)
+                        TextButton.icon(
+                          onPressed: () => reorderOrder(context, order),
+                          style: TextButton.styleFrom(
+                            foregroundColor: c.primary,
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            minimumSize: const Size(0, 32),
+                          ),
+                          icon: const Icon(Icons.replay_rounded, size: 16),
+                          label: const Text('Đặt lại',
+                              style: TextStyle(
+                                  fontSize: AppFontSize.base,
+                                  fontWeight: FontWeight.w700)),
+                        ),
+                      const SizedBox(width: 4),
+                      Text(Fmt.currency(order.shippingFee),
+                          style: TextStyle(
+                              fontSize: AppFontSize.xl,
+                              fontWeight: FontWeight.w800,
+                              color:
+                                  _fade(dimmed ? c.textTertiary : c.primary),
+                              decoration: dimmed
+                                  ? TextDecoration.lineThrough
+                                  : null)),
+                    ]),
+                  ],
                 ),
-                Text(Fmt.currency(order.shippingFee),
-                    style: TextStyle(
-                        fontSize: AppFontSize.xl,
-                        fontWeight: FontWeight.w800,
-                        color: _fade(dimmed ? c.textTertiary : c.primary),
-                        decoration:
-                            dimmed ? TextDecoration.lineThrough : null)),
-              ]),
-            ],
-          ),
+              ),
+            ),
+          ]),
         ),
       ),
     );
