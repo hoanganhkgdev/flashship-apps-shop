@@ -64,6 +64,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
           password: data['password'] as String,
           address: data['address'] as String?,
           cityId: data['city_id'] as int?,
+          referralCode: data['referral_code'] as String?,
         );
     if (!ok && mounted) {
       setState(() {});

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
@@ -23,6 +24,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _phoneCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+  final _referralCtrl = TextEditingController();
 
   int? _selectedCityId;
   String? _selectedCityName;
@@ -44,6 +46,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _phoneCtrl.dispose();
     _addressCtrl.dispose();
     _passCtrl.dispose();
+    _referralCtrl.dispose();
     super.dispose();
   }
 
@@ -64,6 +67,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         'password': _passCtrl.text,
         'mode': 'register',
         'city_id': _selectedCityId,
+        'referral_code': _referralCtrl.text.trim(),
       });
     } else {
       setState(() {});
@@ -227,6 +231,29 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 ),
                               ),
                               validator: Validators.password,
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: AppSpace.lg),
+
+                        // ── Khối: Mã giới thiệu (không bắt buộc) ──────────
+                        _SectionCard(
+                          title: 'Mã giới thiệu (không bắt buộc)',
+                          children: [
+                            const AppLabel('Mã của tài xế giới thiệu bạn'),
+                            const SizedBox(height: AppSpace.sm),
+                            AppField(
+                              controller: _referralCtrl,
+                              hint: 'VD: AB3K9X',
+                              textInputAction: TextInputAction.next,
+                              fillColor: c.background,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                    RegExp(r'[A-Za-z0-9]')),
+                                LengthLimitingTextInputFormatter(8),
+                                _UpperCaseFormatter(),
+                              ],
                             ),
                           ],
                         ),
@@ -433,4 +460,12 @@ class _SectionCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Mã giới thiệu luôn viết hoa — khớp với mã backend sinh ra.
+class _UpperCaseFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+          TextEditingValue oldValue, TextEditingValue newValue) =>
+      newValue.copyWith(text: newValue.text.toUpperCase());
 }

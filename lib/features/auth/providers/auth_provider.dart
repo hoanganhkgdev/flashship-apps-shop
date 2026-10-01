@@ -95,6 +95,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String password,
     String? address,
     int? cityId,
+    String? referralCode,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
@@ -106,6 +107,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         'password': password,
         if (address != null && address.isNotEmpty) 'address': address,
         if (cityId != null) 'city_id': cityId,
+        if (referralCode != null && referralCode.isNotEmpty)
+          'referral_code': referralCode,
         if (deviceName != null) 'device_name': deviceName,
       });
       await _saveSession(session);
