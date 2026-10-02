@@ -1,3 +1,4 @@
+import '../../../core/widgets/app_decor_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
@@ -15,43 +16,8 @@ class AddressBookScreen extends ConsumerWidget {
     final async = ref.watch(addressProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: false,
-        toolbarHeight: 72,
-        leadingWidth: 80,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 20),
-          child: Center(
-            child: GestureDetector(
-              onTap: () => Navigator.maybePop(context),
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  border: Border.all(color: context.colors.divider),
-                ),
-                child: const Icon(Icons.arrow_back_ios_new_rounded,
-                    size: 17, color: AppColors.textPrimary),
-              ),
-            ),
-          ),
-        ),
-        title: const Text('Địa chỉ thường giao',
-            style: TextStyle(
-                fontSize: AppFontSize.xl,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary)),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: Color(0xFFF0F0F0)),
-        ),
-      ),
+      backgroundColor: Colors.transparent,
+      appBar: const AppPageHeader(title: 'Địa chỉ thường giao'),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => Center(
@@ -72,10 +38,10 @@ class AddressBookScreen extends ConsumerWidget {
                 color: AppColors.primary,
                 onRefresh: () => ref.read(addressProvider.notifier).fetch(),
                 child: ListView.separated(
-                  padding: const EdgeInsets.only(top: 12, bottom: 32),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                   itemCount: items.length,
                   separatorBuilder: (_, __) =>
-                      Divider(height: 1, color: context.colors.divider),
+                      const SizedBox(height: AppSpacing.md),
                   itemBuilder: (ctx, i) => _AddressCard(
                     entry: items[i],
                     onEdit: () => _showEditDialog(context, ref, items[i]),
@@ -158,7 +124,12 @@ class _AddressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        color: Colors.white,
+        decoration: BoxDecoration(
+          color: context.colors.glass,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(color: context.colors.glassBorder, width: 1.2),
+          boxShadow: context.isDark ? null : AppShadows.soft,
+        ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           child: Row(children: [
@@ -225,7 +196,7 @@ class _AddressCard extends StatelessWidget {
               icon: const Icon(Icons.more_vert_rounded,
                   size: 20, color: AppColors.textSecondary),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(8)),
               onSelected: (v) => v == 'edit' ? onEdit() : onDelete(),
               itemBuilder: (_) => const [
                 PopupMenuItem(
@@ -282,7 +253,7 @@ class _EmptyState extends StatelessWidget {
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(8)),
             ),
           ),
         ),
@@ -395,7 +366,7 @@ class _AddAddressDialogScreenState
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         title: Text(widget.initial == null ? 'Thêm địa chỉ' : 'Chỉnh sửa',
             style: const TextStyle(
                 fontSize: AppFontSize.xl, fontWeight: FontWeight.w800)),
@@ -442,13 +413,13 @@ class _AddAddressDialogScreenState
 
   Widget _addressPickerRow() => InkWell(
         onTap: _pickAddress,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             color: const Color(0xFFF5F5F5),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(8),
           ),
           child: Row(children: [
             Expanded(
@@ -494,7 +465,7 @@ class _AddAddressDialogScreenState
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide.none),
         ),
       );

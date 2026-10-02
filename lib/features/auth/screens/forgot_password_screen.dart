@@ -7,8 +7,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_form_widgets.dart';
 import '../../../core/widgets/otp_input.dart';
-import '../../../core/widgets/step_progress_bar.dart';
 import '../data/auth_repository.dart';
+import '../widgets/auth_layout.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -150,275 +150,125 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final safeT = MediaQuery.of(context).padding.top;
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
-    final safeB = MediaQuery.of(context).padding.bottom;
     final c = context.colors;
     final digits = _phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
     final displayPhone = digits.length == 10
         ? '${digits.substring(0, 4)} ${digits.substring(4, 7)} ${digits.substring(7)}'
         : _phoneCtrl.text.trim();
 
-    return Scaffold(
-      backgroundColor: c.background,
-      resizeToAvoidBottomInset: false,
-      body: Container(
-        color: c.surface,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(24, safeT + 20, 24, bottom + safeB + 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Back ──────────────────────────────────────────────────
-              GestureDetector(
-                onTap: () => _step2
-                    ? setState(() {
-                        _step2 = false;
-                        _error = null;
-                      })
-                    : context.pop(),
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: c.surface,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                    border: Border.all(color: c.divider),
-                  ),
-                  child: Icon(Icons.arrow_back_ios_new_rounded,
-                      size: 17, color: c.textPrimary),
-                ),
-              ),
-              const SizedBox(height: 20),
+    Widget eye(bool obscure, VoidCallback onTap) => IconButton(
+          onPressed: onTap,
+          icon: Icon(
+            obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+            size: AppSize.iconMd,
+            color: c.textSecondary,
+          ),
+        );
 
-              // ── Chỉ báo 2 bước ────────────────────────────────────────
-              StepProgressBar(
-                  currentStep: _step2 ? 2 : 1, totalSteps: 2, showLabel: false),
-              const SizedBox(height: 24),
-
-              // ── Icon ─────────────────────────────────────────────────
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
-                child: const Icon(Icons.lock_reset_rounded,
-                    size: 20, color: AppColors.primary),
-              ),
-              const SizedBox(height: 20),
-
-              // ── Heading ──────────────────────────────────────────────
-              Text(
-                _step2 ? 'Nhập mã OTP' : 'Quên mật khẩu',
-                style: const TextStyle(
-                    fontSize: AppFontSize.display1,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                    letterSpacing: -0.5),
-              ),
-              const SizedBox(height: 6),
-              if (_step2)
-                Text.rich(
-                  TextSpan(
-                    style: TextStyle(
-                        fontSize: AppFontSize.md,
-                        color: c.textSecondary,
-                        height: 1.5),
-                    children: [
-                      const TextSpan(text: 'Nhập mã 6 số vừa gửi tới '),
-                      TextSpan(
-                        text: displayPhone,
-                        style: TextStyle(
-                            fontWeight: FontWeight.w700, color: c.textPrimary),
-                      ),
-                      const TextSpan(text: ' và đặt mật khẩu mới'),
-                    ],
-                  ),
-                )
-              else
-                Text('Nhập số điện thoại để nhận mã xác nhận',
-                    style: TextStyle(
-                        fontSize: AppFontSize.md,
-                        color: c.textSecondary,
-                        height: 1.5)),
-              const SizedBox(height: 32),
-
-              // ── Step 1: Phone ─────────────────────────────────────────
-              if (!_step2) ...[
-                Form(
-                  key: _phoneKey,
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const AppLabel('Số điện thoại'),
-                        const SizedBox(height: 8),
-                        PhoneField(
-                          controller: _phoneCtrl,
-                          fillColor: c.background,
-                          outlined: true,
-                          textInputAction: TextInputAction.done,
-                          onFieldSubmitted: (_) => _sendOtp(),
-                          validator: Validators.phone,
-                        ),
-                      ]),
-                ),
-              ],
-
-              // ── Step 2: OTP + new password ────────────────────────────
-              if (_step2) ...[
-                Form(
-                  key: _resetKey,
-                  child: Column(children: [
+    return AuthPage(
+      onBack: () => _step2
+          ? setState(() {
+              _step2 = false;
+              _error = null;
+            })
+          : context.pop(),
+      step: _step2 ? 2 : 1,
+      icon: Icons.lock_reset_rounded,
+      title: _step2 ? 'Nhập mã OTP' : 'Quên mật khẩu',
+      subtitle: _step2
+          ? 'Nhập mã 6 số vừa gửi tới '
+          : 'Nhập số điện thoại để nhận mã xác nhận',
+      highlight: _step2 ? displayPhone : null,
+      subtitleSuffix: _step2 ? ' và đặt mật khẩu mới' : null,
+      children: [
+        AuthCard(children: [
+          if (!_step2)
+            Form(
+              key: _phoneKey,
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const AppLabel('Số điện thoại'),
+                    const SizedBox(height: AppSpacing.sm),
+                    PhoneField(
+                      controller: _phoneCtrl,
+                      fillColor: c.surfaceAlt,
+                      outlined: true,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _sendOtp(),
+                      validator: Validators.phone,
+                    ),
+                  ]),
+            )
+          else
+            Form(
+              key: _resetKey,
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     const AppLabel('Mã OTP'),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     OtpInput(
                       controller: _otpInputCtl,
                       onChanged: (_) {
-                        if (_error != null) {
-                          setState(() {
-                            _error = null;
-                          });
-                        }
+                        if (_error != null) setState(() => _error = null);
                       },
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: AppSpacing.lg),
                     const AppLabel('Mật khẩu mới'),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     AppField(
                       controller: _passCtrl,
                       hint: 'Tối thiểu 6 ký tự',
-                      fillColor: c.background,
+                      fillColor: c.surfaceAlt,
                       outlined: true,
                       prefixIcon: Icon(Icons.lock_outline_rounded,
-                          size: 20, color: context.colors.textSecondary),
+                          size: AppSize.iconMd, color: c.textSecondary),
                       obscureText: _obscure1,
                       textInputAction: TextInputAction.next,
-                      suffixIcon: GestureDetector(
-                        onTap: () => setState(() => _obscure1 = !_obscure1),
-                        child: Icon(
-                          _obscure1
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                          size: 20,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
+                      suffixIcon: eye(_obscure1,
+                          () => setState(() => _obscure1 = !_obscure1)),
                       validator: Validators.password,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.lg),
                     const AppLabel('Xác nhận mật khẩu'),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     AppField(
                       controller: _confCtrl,
                       hint: 'Nhập lại mật khẩu mới',
-                      fillColor: c.background,
+                      fillColor: c.surfaceAlt,
                       outlined: true,
                       prefixIcon: Icon(Icons.lock_outline_rounded,
-                          size: 20, color: context.colors.textSecondary),
+                          size: AppSize.iconMd, color: c.textSecondary),
                       obscureText: _obscure2,
                       textInputAction: TextInputAction.done,
                       onFieldSubmitted: (_) => _resetPassword(),
-                      suffixIcon: GestureDetector(
-                        onTap: () => setState(() => _obscure2 = !_obscure2),
-                        child: Icon(
-                          _obscure2
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                          size: 20,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      validator: (v) {
-                        if (v != _passCtrl.text) {
-                          return 'Mật khẩu không khớp';
-                        }
-                        return null;
-                      },
+                      suffixIcon: eye(_obscure2,
+                          () => setState(() => _obscure2 = !_obscure2)),
+                      validator: (v) =>
+                          v != _passCtrl.text ? 'Mật khẩu không khớp' : null,
                     ),
                   ]),
-                ),
-              ],
-
-              // ── Error ─────────────────────────────────────────────────
-              if (_error != null) ...[
-                const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.danger.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                        color: AppColors.danger.withValues(alpha: 0.2)),
-                  ),
-                  child: Row(children: [
-                    const Icon(Icons.error_outline_rounded,
-                        size: 16, color: AppColors.danger),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(_error!,
-                          style: const TextStyle(
-                              fontSize: AppFontSize.base,
-                              color: AppColors.danger)),
-                    ),
-                  ]),
-                ),
-              ],
-
-              const SizedBox(height: 32),
-
-              // ── Button ────────────────────────────────────────────────
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: FilledButton(
-                  onPressed:
-                      _loading ? null : (_step2 ? _resetPassword : _sendOtp),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.full)),
-                  ),
-                  child: _loading
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : Text(_step2 ? 'Đặt lại mật khẩu' : 'Gửi mã OTP',
-                          style: const TextStyle(
-                              fontSize: AppFontSize.xl,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white)),
-                ),
-              ),
-
-              if (_step2) ...[
-                const SizedBox(height: 16),
-                Center(
-                  child: _countdown > 0
-                      ? Text('Gửi lại sau $_countdown giây',
-                          style: const TextStyle(
-                              fontSize: AppFontSize.md,
-                              color: AppColors.textSecondary))
-                      : GestureDetector(
-                          onTap: _loading ? null : _resendOtp,
-                          child: Text('Gửi lại mã OTP',
-                              style: TextStyle(
-                                  fontSize: AppFontSize.md,
-                                  fontWeight: FontWeight.w600,
-                                  color: _loading
-                                      ? AppColors.textSecondary
-                                      : AppColors.primary)),
-                        ),
-                ),
-              ],
-            ],
+            ),
+          if (_error != null) ...[
+            const SizedBox(height: AppSpacing.lg),
+            AppErrorBox(_error!),
+          ],
+          const SizedBox(height: AppSpacing.xl),
+          AppButton(
+            label: _step2 ? 'Đặt lại mật khẩu' : 'Gửi mã OTP',
+            onPressed: _step2 ? _resetPassword : _sendOtp,
+            isLoading: _loading,
           ),
-        ),
-      ),
+          if (_step2) ...[
+            const SizedBox(height: AppSpacing.md),
+            Center(
+              child: ResendOtpRow(
+                  countdown: _countdown, busy: _loading, onResend: _resendOtp),
+            ),
+          ],
+        ]),
+      ],
     );
   }
 }

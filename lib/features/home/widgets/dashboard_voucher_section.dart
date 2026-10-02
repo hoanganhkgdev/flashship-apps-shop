@@ -78,7 +78,7 @@ class _VoucherBanner extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               color: c.accent2,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(Icons.card_giftcard_rounded,
                 color: Colors.white, size: 20),
@@ -113,31 +113,33 @@ class _VoucherBanner extends StatelessWidget {
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 class _EmptyOrders extends StatelessWidget {
+  const _EmptyOrders();
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         decoration: BoxDecoration(
-            color: c.surface,
-            borderRadius: BorderRadius.circular(AppRadius.card),
-            boxShadow: c.cardShadow),
+          color: c.glass,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(color: c.glassBorder, width: 1.2),
+          boxShadow: context.isDark ? null : AppShadows.soft,
+        ),
         child: Column(children: [
-          Icon(Icons.inventory_2_outlined,
-              size: 30, color: c.textTertiary.withValues(alpha: 0.5)),
-          const SizedBox(height: 7),
+          AppIconBadge(
+              icon: Icons.inventory_2_outlined,
+              color: c.textSecondary,
+              size: 56),
+          const SizedBox(height: AppSpacing.md),
           Text('Chưa có đơn hàng nào',
-              style: TextStyle(
-                  fontSize: AppFontSize.md,
-                  fontWeight: FontWeight.w600,
-                  color: c.textSecondary)),
-          const SizedBox(height: 4),
-          Text('Chọn dịch vụ bên trên để tạo đơn mới',
-              style:
-                  TextStyle(fontSize: AppFontSize.sm, color: c.textSecondary),
+              style: AppTextStyles.bodyStrong.copyWith(color: c.textPrimary)),
+          const SizedBox(height: AppSpacing.xs),
+          Text('Chọn loại đơn ở trên để tạo đơn đầu tiên',
+              style: AppTextStyles.label.copyWith(color: c.textSecondary),
               textAlign: TextAlign.center),
         ]),
       ),

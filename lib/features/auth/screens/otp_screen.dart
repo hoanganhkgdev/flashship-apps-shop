@@ -5,8 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_form_widgets.dart';
 import '../../../core/widgets/otp_input.dart';
-import '../../../core/widgets/step_progress_bar.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/auth_layout.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> regData;
@@ -94,119 +94,46 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     final displayPhone = digits.length == 10
         ? '${digits.substring(0, 4)} ${digits.substring(4, 7)} ${digits.substring(7)}'
         : phone;
-    final c = context.colors;
 
-    return Scaffold(
-      backgroundColor: c.background,
-      body: Container(
-        color: c.surface,
-        child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
-                child: Row(children: [
-                  GestureDetector(
-                    onTap: () {
-                      // Xoá lỗi trước khi quay lại — màn Đăng ký vẫn đang
-                      // mounted phía dưới (push không dispose), tự đọc lại
-                      // authProvider.error ngay khi lộ ra nếu không xoá ở đây.
-                      ref.read(authProvider.notifier).clearError();
-                      context.pop();
-                    },
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: c.surface,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                        border: Border.all(color: c.divider),
-                      ),
-                      child: Icon(Icons.arrow_back_ios_new_rounded,
-                          size: 17, color: c.textPrimary),
-                    ),
-                  ),
-                ]),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 8),
-                      const StepProgressBar(
-                          currentStep: 2, totalSteps: 2, showLabel: false),
-                      const SizedBox(height: AppSpace.xl),
-                      const Text('Xác nhận OTP',
-                          style: TextStyle(
-                              fontSize: AppFontSize.display1,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
-                              letterSpacing: -0.5)),
-                      const SizedBox(height: 6),
-                      Text.rich(TextSpan(
-                        style: const TextStyle(
-                            fontSize: AppFontSize.md,
-                            color: AppColors.textSecondary),
-                        children: [
-                          const TextSpan(text: 'Nhập mã 6 số đã gửi tới '),
-                          TextSpan(
-                            text: displayPhone,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary),
-                          ),
-                        ],
-                      )),
-                      const SizedBox(height: 24),
-
-                      // OTP boxes
-                      OtpInput(
-                        controller: _otpCtl,
-                        onChanged: (_) => setState(() {}),
-                      ),
-
-                      if (auth.error != null) ...[
-                        const SizedBox(height: 16),
-                        AppErrorBox(auth.error!),
-                      ],
-
-                      const SizedBox(height: 28),
-                      AppButton(
-                        label: 'Xác nhận',
-                        onPressed: _verify,
-                        isLoading: auth.isLoading,
-                      ),
-                      const SizedBox(height: 20),
-
-                      Center(
-                        child: _countdown > 0
-                            ? Text(
-                                'Gửi lại sau $_countdown giây',
-                                style: const TextStyle(
-                                    fontSize: AppFontSize.md,
-                                    color: AppColors.textSecondary),
-                              )
-                            : GestureDetector(
-                                onTap: _resend,
-                                child: const Text(
-                                  'Gửi lại mã OTP',
-                                  style: TextStyle(
-                                      fontSize: AppFontSize.md,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.primary),
-                                ),
-                              ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+    return AuthPage(
+      onBack: () {
+        // Xoá lỗi trước khi quay lại — màn Đăng ký vẫn đang mounted phía dưới
+        // (push không dispose), tự đọc lại authProvider.error ngay khi lộ ra
+        // nếu không xoá ở đây.
+        ref.read(authProvider.notifier).clearError();
+        context.pop();
+      },
+      step: 2,
+      icon: Icons.sms_rounded,
+      title: 'Xác nhận OTP',
+      subtitle: 'Nhập mã 6 số đã gửi tới ',
+      highlight: displayPhone,
+      children: [
+        AuthCard(children: [
+          OtpInput(
+            controller: _otpCtl,
+            onChanged: (_) => setState(() {}),
           ),
-        ),
-      ),
+          if (auth.error != null) ...[
+            const SizedBox(height: AppSpacing.lg),
+            AppErrorBox(auth.error!),
+          ],
+          const SizedBox(height: AppSpacing.xl),
+          AppButton(
+            label: 'Xác nhận',
+            onPressed: _verify,
+            isLoading: auth.isLoading,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Center(
+            child: ResendOtpRow(
+              countdown: _countdown,
+              busy: auth.isLoading,
+              onResend: _resend,
+            ),
+          ),
+        ]),
+      ],
     );
   }
 }

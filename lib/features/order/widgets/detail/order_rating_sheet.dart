@@ -73,190 +73,86 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        decoration: BoxDecoration(
-          color: c.surface,
-          borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-        ),
-        padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
-        child: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Align(
-              alignment: Alignment.centerRight,
-              child: InkWell(
-                onTap: () => Navigator.pop(context),
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                child: Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: c.surface,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                    border: Border.all(color: c.divider),
-                  ),
-                  child: Icon(Icons.close_rounded,
-                      size: 22, color: c.textSecondary),
-                ),
-              ),
-            ),
-            const SizedBox(height: 2),
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: c.warningSoft,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(Icons.star_rounded, color: c.warning, size: 30),
-            ),
-            const SizedBox(height: 12),
-            const Text('Đánh giá tài xế',
-                style: TextStyle(
-                    fontSize: AppFontSize.xxl, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
-            Text(widget.driverName,
-                style: TextStyle(
-                    fontSize: AppFontSize.lg, color: c.textSecondary)),
-            const SizedBox(height: 20),
-
-            // Stars
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                  5,
-                  (i) => GestureDetector(
-                        onTap: () => setState(() {
-                          _rating = i + 1;
-                          _selectedTags.clear();
-                        }),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          child: Icon(
-                            i < _rating
-                                ? Icons.star_rounded
-                                : Icons.star_border_rounded,
-                            color: c.warning,
-                            size: 42,
-                          ),
-                        ),
-                      )),
-            ),
-            const SizedBox(height: 20),
-
-            // Preset tags
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                _rating >= 4 ? 'Điều bạn thích' : 'Vấn đề gặp phải',
-                style: TextStyle(
-                    fontSize: AppFontSize.md,
-                    fontWeight: FontWeight.w700,
-                    color: c.textSecondary),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _tags.map((tag) {
-                final selected = _selectedTags.contains(tag);
-                return GestureDetector(
-                  onTap: () => setState(() {
-                    if (selected) {
-                      _selectedTags.remove(tag);
-                    } else {
-                      _selectedTags.add(tag);
-                    }
-                  }),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? (_rating >= 4 ? c.primary : c.danger)
-                          : c.surface,
-                      borderRadius: BorderRadius.circular(AppRadius.full),
-                      border: Border.all(
-                        color: selected
-                            ? (_rating >= 4 ? c.primary : c.danger)
-                            : c.divider,
-                        width: 1.2,
+    final positive = _rating >= 4;
+    final tone = positive ? c.primary : c.danger;
+    return AppSheet(
+      icon: Icons.star_rounded,
+      color: c.warning,
+      title: 'Đánh giá tài xế',
+      subtitle: widget.driverName.isEmpty ? null : widget.driverName,
+      footer: AppButton(
+        label: 'Gửi đánh giá',
+        onPressed: _submitting ? null : _submit,
+        isLoading: _submitting,
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+              5,
+              (i) => GestureDetector(
+                    onTap: () => setState(() {
+                      _rating = i + 1;
+                      _selectedTags.clear();
+                    }),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      child: Icon(
+                        i < _rating
+                            ? Icons.star_rounded
+                            : Icons.star_border_rounded,
+                        color: c.warning,
+                        size: 42,
                       ),
                     ),
-                    child: Text(tag,
-                        style: TextStyle(
-                            fontSize: AppFontSize.base,
-                            fontWeight:
-                                selected ? FontWeight.w700 : FontWeight.w500,
-                            color: selected ? Colors.white : c.textSecondary)),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-
-            // Custom note
-            TextField(
-              controller: _noteCtrl,
-              maxLines: 3,
-              minLines: 2,
-              textInputAction: TextInputAction.newline,
-              style: TextStyle(fontSize: AppFontSize.md, color: c.textPrimary),
-              decoration: InputDecoration(
-                hintText: 'Nhận xét thêm (tuỳ chọn)...',
-                hintStyle: TextStyle(
-                    fontSize: AppFontSize.base, color: c.textTertiary),
-                filled: true,
-                fillColor: c.background,
-                contentPadding: const EdgeInsets.all(16),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  borderSide: BorderSide(color: c.divider),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  borderSide: BorderSide(color: c.divider),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: c.primary, width: 1.5),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _submitting ? null : _submit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: c.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.full)),
-                ),
-                child: _submitting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                    : const Text('Gửi đánh giá',
-                        style: TextStyle(
-                            fontSize: AppFontSize.xl,
-                            fontWeight: FontWeight.w700)),
-              ),
-            ),
-          ]),
+                  )),
         ),
-      ),
+        const SizedBox(height: AppSpacing.xl),
+        Text(positive ? 'Điều bạn thích' : 'Vấn đề gặp phải',
+            style: AppTextStyles.label.copyWith(color: c.textSecondary)),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _tags.map((tag) {
+            final selected = _selectedTags.contains(tag);
+            return GestureDetector(
+              onTap: () => setState(() {
+                if (selected) {
+                  _selectedTags.remove(tag);
+                } else {
+                  _selectedTags.add(tag);
+                }
+              }),
+              child: AnimatedContainer(
+                duration: AppDuration.fast,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: selected ? tone.withValues(alpha: .12) : c.surfaceAlt,
+                  borderRadius: BorderRadius.circular(AppRadius.full),
+                  border: Border.all(color: selected ? tone : c.divider),
+                ),
+                child: Text(tag,
+                    style: AppTextStyles.label.copyWith(
+                        fontWeight:
+                            selected ? FontWeight.w700 : FontWeight.w500,
+                        color: selected ? tone : c.textSecondary)),
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        TextField(
+          controller: _noteCtrl,
+          maxLines: 3,
+          minLines: 2,
+          textInputAction: TextInputAction.newline,
+          style: TextStyle(fontSize: AppFontSize.md, color: c.textPrimary),
+          decoration:
+              const InputDecoration(hintText: 'Nhận xét thêm (tuỳ chọn)...'),
+        ),
+      ]),
     );
   }
 }

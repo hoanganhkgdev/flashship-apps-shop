@@ -48,7 +48,7 @@ class _SoftUpdateBanner extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: c.primarySoft,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Row(children: [
           Icon(Icons.system_update_rounded, color: c.primary, size: 20),
@@ -57,10 +57,7 @@ class _SoftUpdateBanner extends ConsumerWidget {
             child: Text('Đã có bản cập nhật mới',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    fontSize: AppFontSize.base,
-                    fontWeight: FontWeight.w700,
-                    color: c.textPrimary)),
+                style: AppTextStyles.bodyStrong.copyWith(color: c.textPrimary)),
           ),
           TextButton(
             onPressed: () {
@@ -77,9 +74,7 @@ class _SoftUpdateBanner extends ConsumerWidget {
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            child: const Text('Để sau',
-                style: TextStyle(
-                    fontSize: AppFontSize.sm, fontWeight: FontWeight.w600)),
+            child: const Text('Để sau', style: AppTextStyles.label),
           ),
           TextButton(
             onPressed: () => openStore(version.storeUrl),
@@ -146,8 +141,9 @@ class _BannerCard extends StatelessWidget {
         height: 40,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: c.surface,
+          color: c.glass,
           borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: c.glassBorder, width: 1.2),
           boxShadow: c.cardShadow,
         ),
         child: Row(children: [
@@ -157,10 +153,7 @@ class _BannerCard extends StatelessWidget {
             child: Text(item.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    fontSize: AppFontSize.sm,
-                    fontWeight: FontWeight.w600,
-                    color: c.textPrimary)),
+                style: AppTextStyles.label.copyWith(color: c.textPrimary)),
           ),
           Icon(Icons.chevron_right_rounded, color: c.textTertiary, size: 16),
         ]),

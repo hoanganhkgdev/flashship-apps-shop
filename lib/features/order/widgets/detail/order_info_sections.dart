@@ -19,63 +19,78 @@ class _OrderInfoCard extends StatelessWidget {
         (Icons.inventory_2_rounded, 'Kiện hàng', const Color(0xFF6B7280));
 
     return _FlatCard(
-      child: Column(children: [
-        _CompactInfoRow(label: 'Loại hàng', value: cargo.$2),
-        const SizedBox(height: 10),
+      glow: c.primary,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _CardHeader(
+            icon: Icons.receipt_long_rounded,
+            label: 'Chi tiết đơn',
+            iconColor: c.primary),
+        const SizedBox(height: AppSpacing.lg),
         _CompactInfoRow(
-            label: 'Tiền thu hộ (COD)',
-            value: Fmt.currency(order.codAmount ?? 0)),
+            icon: cargo.$1,
+            iconColor: cargo.$3,
+            label: 'Loại hàng',
+            value: cargo.$2),
         if (order.distanceKm != null) ...[
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.md),
           _CompactInfoRow(
+              icon: Icons.straighten_rounded,
               label: 'Khoảng cách',
               value: '${order.distanceKm!.toStringAsFixed(1)} km'),
         ],
         if (order.nightSurcharge > 0) ...[
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.md),
           _CompactInfoRow(
+              icon: Icons.nights_stay_outlined,
               label: 'Phụ thu đêm',
               value: '+${Fmt.currency(order.nightSurcharge)}'),
         ],
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          child: Divider(height: 1, color: c.divider),
+        const SizedBox(height: AppSpacing.lg),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+          decoration: BoxDecoration(
+            color: c.primarySoft,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
+          child: Row(children: [
+            Text('Phí giao hàng',
+                style: AppTextStyles.bodyStrong.copyWith(color: c.textPrimary)),
+            const Spacer(),
+            Text(Fmt.currency(order.shippingFee),
+                style: AppTextStyles.metric.copyWith(color: c.primary)),
+          ]),
         ),
-        Row(children: [
-          Text('Phí giao hàng',
-              style: TextStyle(
-                  fontSize: AppFontSize.md,
-                  fontWeight: FontWeight.w700,
-                  color: c.textPrimary)),
-          const Spacer(),
-          Text(Fmt.currency(order.shippingFee),
-              style: TextStyle(
-                  fontSize: AppFontSize.xxl,
-                  fontWeight: FontWeight.w800,
-                  color: c.primary)),
-        ]),
       ]),
     );
   }
 }
 
 class _CompactInfoRow extends StatelessWidget {
+  final IconData icon;
+  final Color? iconColor;
   final String label;
   final String value;
-  const _CompactInfoRow({required this.label, required this.value});
+  const _CompactInfoRow({
+    required this.icon,
+    this.iconColor,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     return Row(children: [
-      Text(label,
-          style: TextStyle(fontSize: AppFontSize.base, color: c.textSecondary)),
-      const Spacer(),
+      Icon(icon, size: AppSize.iconMd, color: iconColor ?? c.textTertiary),
+      const SizedBox(width: AppSpacing.md),
+      Expanded(
+        child: Text(label,
+            style: AppTextStyles.body.copyWith(color: c.textSecondary)),
+      ),
       Text(value,
-          style: TextStyle(
-              fontSize: AppFontSize.base,
-              fontWeight: FontWeight.w700,
-              color: c.textPrimary)),
+          style: AppTextStyles.bodyStrong.copyWith(color: c.textPrimary)),
     ]);
   }
 }
@@ -117,13 +132,11 @@ class _NoteCard extends StatelessWidget {
     return _FlatCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         _CardHeader(
-            icon: Icons.notes_outlined,
-            label: 'Ghi chú',
-            iconColor: c.textSecondary),
-        const SizedBox(height: 10),
+            icon: Icons.notes_outlined, label: 'Ghi chú', iconColor: c.accent2),
+        const SizedBox(height: AppSpacing.md),
         Text(note,
-            style: TextStyle(
-                fontSize: AppFontSize.base, color: c.textPrimary, height: 1.5)),
+            style:
+                AppTextStyles.body.copyWith(color: c.textPrimary, height: 1.5)),
       ]),
     );
   }
@@ -144,7 +157,7 @@ class _RatingDisplay extends StatelessWidget {
             icon: Icons.star_rounded,
             label: 'Đánh giá của bạn',
             iconColor: c.warning),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.md),
         Row(
             children: List.generate(
                 5,

@@ -6,9 +6,9 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_form_widgets.dart';
 import '../../../core/widgets/address_autocomplete_field.dart';
-import '../../../core/widgets/step_progress_bar.dart';
 import '../providers/auth_provider.dart';
 import '../providers/cities_provider.dart';
+import '../widgets/auth_layout.dart';
 import '../widgets/city_picker_sheet.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -78,259 +78,183 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
     final citiesAsync = ref.watch(citiesProvider);
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
-    final safeBottom = MediaQuery.of(context).padding.bottom;
     final c = context.colors;
 
-    return Scaffold(
-      backgroundColor: c.background,
-      resizeToAvoidBottomInset: false,
-      body: Container(
-        color: c.surface,
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
-                child: Row(children: [
-                  GestureDetector(
-                    onTap: () {
-                      // Xoá lỗi trước khi quay lại — màn Đăng nhập vẫn đang
-                      // mounted phía dưới (push không dispose), tự đọc lại
-                      // authProvider.error ngay khi lộ ra nếu không xoá ở đây.
-                      ref.read(authProvider.notifier).clearError();
-                      context.pop();
-                    },
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: c.surface,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                        border: Border.all(color: c.divider),
-                      ),
-                      child: Icon(Icons.arrow_back_ios_new_rounded,
-                          size: 17, color: c.textPrimary),
-                    ),
-                  ),
-                ]),
-              ),
-
-              // Thanh tiến trình 2 bước — đang ở bước 1/2
-              const Padding(
-                padding: EdgeInsets.fromLTRB(
-                    AppSpace.xl, 0, AppSpace.xl, AppSpace.sm),
-                child: StepProgressBar(
-                    currentStep: 1, totalSteps: 2, showLabel: false),
-              ),
-
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(AppSpace.xl, AppSpace.sm,
-                      AppSpace.xl, bottom + safeBottom + AppSpace.xl),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Đăng ký cửa hàng',
-                            style: TextStyle(
-                                fontSize: AppFontSize.display1,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.textPrimary,
-                                letterSpacing: -0.5)),
-                        const SizedBox(height: AppSpace.xs),
-                        const Text('Tạo tài khoản để bắt đầu gửi hàng',
-                            style: TextStyle(
-                                fontSize: AppFontSize.md,
-                                color: AppColors.textSecondary)),
-                        const SizedBox(height: AppSpace.xxl),
-
-                        // ── Khối: Thông tin cửa hàng ─────────────────────
-                        _SectionCard(
-                          title: 'Thông tin cửa hàng',
-                          children: [
-                            const AppLabel('Tên cửa hàng'),
-                            const SizedBox(height: AppSpace.sm),
-                            AppField(
-                              controller: _nameCtrl,
-                              hint: 'VD: Shop Thời Trang ABC',
-                              textInputAction: TextInputAction.next,
-                              fillColor: c.background,
-                              validator: (v) => (v == null || v.trim().isEmpty)
-                                  ? 'Vui lòng nhập tên cửa hàng'
-                                  : null,
-                            ),
-                            const SizedBox(height: AppSpace.lg),
-                            const AppLabel('Số điện thoại'),
-                            const SizedBox(height: AppSpace.sm),
-                            PhoneField(
-                              controller: _phoneCtrl,
-                              textInputAction: TextInputAction.next,
-                              validator: Validators.phone,
-                              fillColor: c.background,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpace.lg),
-
-                        // ── Khối: Khu vực & địa chỉ ───────────────────────
-                        _SectionCard(
-                          title: 'Khu vực & địa chỉ',
-                          children: [
-                            const AppLabel('Khu vực hoạt động'),
-                            const SizedBox(height: AppSpace.sm),
-                            citiesAsync.when(
-                              loading: () => _cityLoadingBox(c),
-                              error: (_, __) => _cityErrorBox(c),
-                              data: (cities) {
-                                _selectDefaultCity(cities);
-                                return _citySelector(c, cities);
-                              },
-                            ),
-                            if (_cityError && _selectedCityId == null) ...[
-                              const SizedBox(height: AppSpace.xs),
-                              const Text('Vui lòng chọn khu vực',
-                                  style: TextStyle(
-                                      fontSize: AppFontSize.sm,
-                                      color: AppColors.danger)),
-                            ],
-                            const SizedBox(height: AppSpace.lg),
-                            const AppLabel('Địa chỉ cửa hàng'),
-                            const SizedBox(height: AppSpace.sm),
-                            _AddressField(
-                                controller: _addressCtrl,
-                                fillColor: c.background),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpace.lg),
-
-                        // ── Khối: Bảo mật ─────────────────────────────────
-                        _SectionCard(
-                          title: 'Bảo mật',
-                          children: [
-                            const AppLabel('Mật khẩu'),
-                            const SizedBox(height: AppSpace.sm),
-                            AppField(
-                              controller: _passCtrl,
-                              hint: '••••••••',
-                              obscureText: _obscure,
-                              textInputAction: TextInputAction.done,
-                              onFieldSubmitted: (_) => _sendOtp(),
-                              fillColor: c.background,
-                              suffixIcon: GestureDetector(
-                                onTap: () =>
-                                    setState(() => _obscure = !_obscure),
-                                child: Icon(
-                                  _obscure
-                                      ? Icons.visibility_outlined
-                                      : Icons.visibility_off_outlined,
-                                  size: 20,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                              validator: Validators.password,
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: AppSpace.lg),
-
-                        // ── Khối: Mã giới thiệu (không bắt buộc) ──────────
-                        _SectionCard(
-                          title: 'Mã giới thiệu (không bắt buộc)',
-                          children: [
-                            const AppLabel('Mã của tài xế giới thiệu bạn'),
-                            const SizedBox(height: AppSpace.sm),
-                            AppField(
-                              controller: _referralCtrl,
-                              hint: 'VD: AB3K9X',
-                              textInputAction: TextInputAction.next,
-                              fillColor: c.background,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                    RegExp(r'[A-Za-z0-9]')),
-                                LengthLimitingTextInputFormatter(8),
-                                _UpperCaseFormatter(),
-                              ],
-                            ),
-                          ],
-                        ),
-
-                        if (auth.error != null) ...[
-                          const SizedBox(height: AppSpace.lg),
-                          AppErrorBox(auth.error!),
-                        ],
-
-                        const SizedBox(height: AppSpace.xl + AppSpace.xs),
-                        AppButton(
-                          label: 'Gửi mã xác nhận',
-                          onPressed: _sendOtp,
-                          isLoading: auth.isLoading,
-                        ),
-                        const SizedBox(height: AppSpace.lg),
-
-                        Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text('Đã có tài khoản? ',
-                                  style: TextStyle(
-                                      fontSize: AppFontSize.md,
-                                      color: AppColors.textSecondary)),
-                              GestureDetector(
-                                onTap: () {
-                                  ref.read(authProvider.notifier).clearError();
-                                  context.pop();
-                                },
-                                child: const Text('Đăng nhập',
-                                    style: TextStyle(
-                                        fontSize: AppFontSize.md,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.primary)),
-                              ),
-                            ]),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
+    return AuthPage(
+      onBack: () {
+        // Xoá lỗi trước khi quay lại — màn Đăng nhập vẫn đang mounted phía
+        // dưới (push không dispose), tự đọc lại authProvider.error ngay khi lộ
+        // ra nếu không xoá ở đây.
+        ref.read(authProvider.notifier).clearError();
+        context.pop();
+      },
+      step: 1,
+      icon: Icons.storefront_rounded,
+      title: 'Đăng ký cửa hàng',
+      subtitle: 'Tạo tài khoản để bắt đầu gửi hàng',
+      footer: Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text('Đã có tài khoản? ',
+              style: AppTextStyles.body.copyWith(color: c.textSecondary)),
+          TextButton(
+            onPressed: () {
+              ref.read(authProvider.notifier).clearError();
+              context.pop();
+            },
+            child: const Text('Đăng nhập'),
           ),
-        ),
+        ],
       ),
+      children: [
+        Form(
+          key: _formKey,
+          child: Column(children: [
+            // ── Cửa hàng ──────────────────────────────────────────────
+            AuthCard(
+              title: 'Thông tin cửa hàng',
+              children: [
+                AppField(
+                  controller: _nameCtrl,
+                  hint: 'Tên cửa hàng, VD: Shop Thời Trang ABC',
+                  textInputAction: TextInputAction.next,
+                  fillColor: c.surfaceAlt,
+                  outlined: true,
+                  prefixIcon: Icon(Icons.storefront_rounded,
+                      size: AppSize.iconMd, color: c.textSecondary),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Vui lòng nhập tên cửa hàng'
+                      : null,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                PhoneField(
+                  controller: _phoneCtrl,
+                  hint: '0912 345 678',
+                  textInputAction: TextInputAction.next,
+                  validator: Validators.phone,
+                  fillColor: c.surfaceAlt,
+                  outlined: true,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                citiesAsync.when(
+                  loading: () => _cityLoadingBox(c),
+                  error: (_, __) => _cityErrorBox(c),
+                  data: (cities) {
+                    _selectDefaultCity(cities);
+                    return _citySelector(c, cities);
+                  },
+                ),
+                if (_cityError && _selectedCityId == null) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Text('Vui lòng chọn khu vực',
+                      style: AppTextStyles.label.copyWith(color: c.danger)),
+                ],
+                const SizedBox(height: AppSpacing.md),
+                _AddressField(
+                    controller: _addressCtrl,
+                    fillColor: c.surfaceAlt,
+                    center: cityCenter(
+                      citiesAsync.valueOrNull ?? const [],
+                      cityId: _selectedCityId,
+                      cityName: _selectedCityName,
+                    )),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+
+            // ── Bảo mật + giới thiệu ───────────────────────────────────
+            AuthCard(
+              title: 'Tài khoản',
+              children: [
+                AppField(
+                  controller: _passCtrl,
+                  hint: 'Mật khẩu (tối thiểu 6 ký tự)',
+                  obscureText: _obscure,
+                  textInputAction: TextInputAction.next,
+                  fillColor: c.surfaceAlt,
+                  outlined: true,
+                  prefixIcon: Icon(Icons.lock_outline_rounded,
+                      size: AppSize.iconMd, color: c.textSecondary),
+                  suffixIcon: IconButton(
+                    onPressed: () => setState(() => _obscure = !_obscure),
+                    icon: Icon(
+                      _obscure
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                      size: AppSize.iconMd,
+                      color: c.textSecondary,
+                    ),
+                  ),
+                  validator: Validators.password,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                AppField(
+                  controller: _referralCtrl,
+                  hint: 'Mã giới thiệu của tài xế hoặc shop (không bắt buộc)',
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _sendOtp(),
+                  fillColor: c.surfaceAlt,
+                  outlined: true,
+                  prefixIcon: Icon(Icons.card_giftcard_rounded,
+                      size: AppSize.iconMd, color: c.textSecondary),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+                    LengthLimitingTextInputFormatter(8),
+                    _UpperCaseFormatter(),
+                  ],
+                ),
+              ],
+            ),
+            if (auth.error != null) ...[
+              const SizedBox(height: AppSpacing.lg),
+              AppErrorBox(auth.error!),
+            ],
+            const SizedBox(height: AppSpacing.xl),
+            AppButton(
+              label: 'Gửi mã xác nhận',
+              onPressed: _sendOtp,
+              isLoading: auth.isLoading,
+            ),
+          ]),
+        ),
+      ],
     );
   }
 
   Widget _citySelector(Palette c, List<CityItem> cities) {
-    return GestureDetector(
+    final invalid = _cityError && _selectedCityId == null;
+    return InkWell(
       onTap: () => _showCityPicker(cities),
+      borderRadius: BorderRadius.circular(AppRadius.md),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
         decoration: BoxDecoration(
-          color: c.background,
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-          border: _cityError && _selectedCityId == null
-              ? Border.all(color: AppColors.danger)
-              : _selectedCityId != null
-                  ? Border.all(color: AppColors.primary, width: 1.5)
-                  : null,
+          color: c.surfaceAlt,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(
+              color: invalid
+                  ? c.danger
+                  : _selectedCityId != null
+                      ? c.primary
+                      : c.divider,
+              width: _selectedCityId != null ? 1.5 : 1),
         ),
         child: Row(children: [
+          Icon(Icons.location_city_rounded,
+              size: AppSize.iconMd,
+              color: _selectedCityId != null ? c.primary : c.textSecondary),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
               _selectedCityName ?? 'Chọn khu vực...',
-              style: TextStyle(
-                fontSize: AppFontSize.lg,
-                fontWeight: FontWeight.w500,
-                color: _selectedCityId != null
-                    ? AppColors.textPrimary
-                    : AppColors.textSecondary,
-              ),
+              style: _selectedCityId != null
+                  ? AppTextStyles.bodyStrong.copyWith(color: c.textPrimary)
+                  : AppTextStyles.body.copyWith(color: c.textTertiary),
             ),
           ),
-          const Icon(Icons.keyboard_arrow_down_rounded,
-              size: 20, color: AppColors.textSecondary),
+          Icon(Icons.keyboard_arrow_down_rounded,
+              size: AppSize.iconMd, color: c.textSecondary),
         ]),
       ),
     );
@@ -357,36 +281,35 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Widget _cityLoadingBox(Palette c) => Container(
-        height: 50,
+        height: 52,
         decoration: BoxDecoration(
           color: c.surfaceAlt,
-          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderRadius: BorderRadius.circular(AppRadius.md),
         ),
-        child: const Center(
+        child: Center(
           child: SizedBox(
             width: 18,
             height: 18,
-            child: CircularProgressIndicator(
-                strokeWidth: 2, color: AppColors.primary),
+            child: CircularProgressIndicator(strokeWidth: 2, color: c.primary),
           ),
         ),
       );
 
-  Widget _cityErrorBox(Palette c) => GestureDetector(
+  Widget _cityErrorBox(Palette c) => InkWell(
         onTap: () => ref.invalidate(citiesProvider),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
           decoration: BoxDecoration(
             color: c.surfaceAlt,
-            borderRadius: BorderRadius.circular(AppRadius.sm),
+            borderRadius: BorderRadius.circular(AppRadius.md),
           ),
-          child: const Row(children: [
+          child: Row(children: [
             Icon(Icons.refresh_rounded,
-                size: 18, color: AppColors.textSecondary),
-            SizedBox(width: 10),
+                size: AppSize.iconMd, color: c.textSecondary),
+            const SizedBox(width: AppSpacing.md),
             Text('Không tải được. Nhấn để thử lại',
-                style: TextStyle(
-                    fontSize: AppFontSize.md, color: AppColors.textSecondary)),
+                style: AppTextStyles.body.copyWith(color: c.textSecondary)),
           ]),
         ),
       );
@@ -397,8 +320,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       cities: cities,
       selectedId: _selectedCityId,
       title: 'Chọn khu vực hoạt động',
-      showHandle: true,
-      highlightSelected: true,
     );
     if (result != null) {
       setState(() {
@@ -414,52 +335,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 class _AddressField extends StatelessWidget {
   final TextEditingController controller;
   final Color? fillColor;
-  const _AddressField({required this.controller, this.fillColor});
+  final ({double lat, double lng})? center;
+  const _AddressField({required this.controller, this.fillColor, this.center});
 
   @override
   Widget build(BuildContext context) => AddressAutocompleteField(
         controller: controller,
         label: '',
-        hint: 'Nhập hoặc chọn trên bản đồ...',
+        hint: 'Địa chỉ cửa hàng (nhập hoặc chọn trên bản đồ)',
         fillColor: fillColor,
+        center: center,
       );
-}
-
-// ── Khối nhóm field ──────────────────────────────────────────────────────
-class _SectionCard extends StatelessWidget {
-  final String title;
-  final List<Widget> children;
-  const _SectionCard({required this.title, required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpace.lg),
-      decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: c.divider),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title.toUpperCase(),
-            style: TextStyle(
-              fontSize: AppFontSize.xs,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
-              color: c.textSecondary,
-            ),
-          ),
-          const SizedBox(height: AppSpace.md),
-          ...children,
-        ],
-      ),
-    );
-  }
 }
 
 /// Mã giới thiệu luôn viết hoa — khớp với mã backend sinh ra.

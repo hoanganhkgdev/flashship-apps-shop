@@ -2,12 +2,14 @@ import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/api/api_client.dart';
 import 'core/api/session_expired_notifier.dart';
 import 'core/router/app_router.dart';
 import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/app_decor_widgets.dart';
 import 'core/theme/theme_mode_provider.dart';
 import 'core/utils/store_launcher.dart';
 import 'core/widgets/app_form_widgets.dart';
@@ -163,7 +165,7 @@ class _FlashShipShopAppState extends ConsumerState<FlashShipShopApp>
                 height: 36,
                 decoration: BoxDecoration(
                   color: c.primary,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 padding: const EdgeInsets.all(7),
                 child: Image.asset('assets/images/logo.png',
@@ -192,7 +194,7 @@ class _FlashShipShopAppState extends ConsumerState<FlashShipShopApp>
                   ),
                   child: const Text('Cập nhật ngay',
                       style: TextStyle(
-                          fontSize: AppFontSize.lg,
+                          fontSize: AppFontSize.md,
                           fontWeight: FontWeight.w700)),
                 ),
               ),
@@ -229,7 +231,16 @@ class _FlashShipShopAppState extends ConsumerState<FlashShipShopApp>
           child: GestureDetector(
             onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
             behavior: HitTestBehavior.translucent,
-            child: child!,
+            // Icon status bar (giờ, pin, sóng) phải tương phản với nền: icon tối
+            // trên nền sáng, icon sáng trên nền tối. Màn nào cần kiểu riêng (vd
+            // splash nền cam) tự đặt AnnotatedRegion bên trong.
+            child: AnnotatedRegion<SystemUiOverlayStyle>(
+              value: (Theme.of(context).brightness == Brightness.dark
+                      ? SystemUiOverlayStyle.light
+                      : SystemUiOverlayStyle.dark)
+                  .copyWith(statusBarColor: Colors.transparent),
+              child: AppBackdrop(child: child!),
+            ),
           ),
         );
       },

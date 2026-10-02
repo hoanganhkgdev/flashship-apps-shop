@@ -1,3 +1,4 @@
+import '../../core/widgets/app_decor_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -17,6 +18,10 @@ class _LegalPageScreenState extends ConsumerState<LegalPageScreen> {
   late final WebViewController _controller;
   bool _loading = true;
   String? _error;
+
+  String? _content;
+  String? _pageTitle;
+  Brightness? _renderedBrightness;
 
   @override
   void initState() {
@@ -39,6 +44,59 @@ class _LegalPageScreenState extends ConsumerState<LegalPageScreen> {
     _fetchContent();
   }
 
+  // Đổi chế độ sáng/tối khi đang mở trang → dựng lại HTML với bảng màu mới.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final b = Theme.of(context).brightness;
+    if (_content != null &&
+        _renderedBrightness != null &&
+        b != _renderedBrightness) {
+      _render();
+    }
+  }
+
+  static String _hex(Color c) =>
+      '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
+
+  void _render() {
+    final c = context.colors;
+    _renderedBrightness = Theme.of(context).brightness;
+    _controller.setBackgroundColor(c.background);
+    final html = '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${_pageTitle ?? widget.title}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Helvetica Neue", sans-serif;
+      font-size: 14px;
+      line-height: 1.7;
+      color: ${_hex(c.textSecondary)};
+      background: ${_hex(c.background)};
+      padding: 20px 16px 48px;
+    }
+    h1 { font-size: 20px; font-weight: 800; margin: 0 0 16px; color: ${_hex(c.textPrimary)}; }
+    h2 { font-size: 16px; font-weight: 800; margin: 24px 0 8px; color: ${_hex(c.textPrimary)}; }
+    h3 { font-size: 14px; font-weight: 700; margin: 16px 0 6px; color: ${_hex(c.textPrimary)}; }
+    p  { margin-bottom: 12px; }
+    ul, ol { padding-left: 20px; margin-bottom: 12px; }
+    li { margin-bottom: 4px; }
+    a  { color: ${_hex(c.primary)}; text-decoration: none; font-weight: 600; }
+    strong { color: ${_hex(c.textPrimary)}; }
+    hr { border: none; border-top: 1px solid ${_hex(c.divider)}; margin: 20px 0; }
+  </style>
+</head>
+<body>${_content ?? ''}</body>
+</html>
+''';
+    _controller.loadHtmlString(html);
+  }
+
   Future<void> _fetchContent() async {
     setState(() {
       _loading = true;
@@ -49,41 +107,10 @@ class _LegalPageScreenState extends ConsumerState<LegalPageScreen> {
       final page = await ref
           .read(legalRepositoryProvider)
           .fetch(widget.slug, fallbackTitle: widget.title);
-      final content = page.html;
-      final title = page.title;
-
-      final html = '''
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>$title</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
-      font-size: 15px;
-      line-height: 1.7;
-      color: #111827;
-      background: #ffffff;
-      padding: 20px 16px 48px;
-    }
-    h1 { font-size: 20px; font-weight: 700; margin: 0 0 16px; }
-    h2 { font-size: 17px; font-weight: 700; margin: 20px 0 8px; }
-    h3 { font-size: 15px; font-weight: 600; margin: 16px 0 6px; }
-    p  { margin-bottom: 12px; color: #374151; }
-    ul, ol { padding-left: 20px; margin-bottom: 12px; }
-    li { margin-bottom: 4px; color: #374151; }
-    a  { color: #E8720C; text-decoration: none; }
-    strong { color: #111827; }
-    hr { border: none; border-top: 1px solid #E5E7EB; margin: 20px 0; }
-  </style>
-</head>
-<body>$content</body>
-</html>
-''';
-      _controller.loadHtmlString(html);
+      if (!mounted) return;
+      _content = page.html;
+      _pageTitle = page.title;
+      _render();
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -96,47 +123,40 @@ class _LegalPageScreenState extends ConsumerState<LegalPageScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppColors.textPrimary, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(widget.title,
-            style: const TextStyle(
-                fontSize: AppFontSize.xl,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary)),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: Color(0xFFF0F0F0)),
-        ),
-      ),
+      backgroundColor: Colors.transparent,
+      appBar: AppPageHeader(title: widget.title),
       body: _error != null
           ? Center(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.error_outline_rounded,
-                  size: 40, color: AppColors.textSecondary),
-              const SizedBox(height: 12),
+              AppIconBadge(
+                  icon: Icons.wifi_off_rounded,
+                  color: c.textSecondary,
+                  size: 64),
+              const SizedBox(height: AppSpacing.lg),
               Text(_error!,
-                  style: const TextStyle(color: AppColors.textSecondary)),
-              const SizedBox(height: 12),
-              TextButton(
+                  style:
+                      AppTextStyles.bodyStrong.copyWith(color: c.textPrimary)),
+              const SizedBox(height: AppSpacing.lg),
+              FilledButton.tonal(
                 onPressed: _fetchContent,
+                style: FilledButton.styleFrom(
+                    minimumSize: const Size(140, AppSize.buttonHeight),
+                    backgroundColor: c.primarySoft,
+                    foregroundColor: c.primary),
                 child: const Text('Thử lại'),
               ),
             ]))
           : Stack(children: [
               WebViewWidget(controller: _controller),
               if (_loading)
-                const Center(
-                    child: CircularProgressIndicator(
-                        color: AppColors.primary, strokeWidth: 2)),
+                ColoredBox(
+                  color: Colors.transparent,
+                  child: Center(
+                      child: CircularProgressIndicator(
+                          color: c.primary, strokeWidth: 2)),
+                ),
             ]),
     );
   }

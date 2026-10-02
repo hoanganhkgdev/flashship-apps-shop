@@ -95,11 +95,11 @@ class _StopsCardState extends ConsumerState<_StopsCard> {
             Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               // Sequence badge
               Container(
-                width: 24,
-                height: 24,
+                width: 28,
+                height: 28,
                 decoration: BoxDecoration(
                   color: isDone ? c.success : c.primarySoft,
-                  borderRadius: BorderRadius.circular(6),
+                  shape: BoxShape.circle,
                 ),
                 child: Center(
                   child: isDone
@@ -180,12 +180,12 @@ class _StopsCardState extends ConsumerState<_StopsCard> {
         // Progress bar tổng
         const SizedBox(height: 14),
         ClipRRect(
-          borderRadius: BorderRadius.circular(3),
+          borderRadius: BorderRadius.circular(AppRadius.full),
           child: LinearProgressIndicator(
             value: stops.isEmpty ? 0 : delivered / stops.length,
             backgroundColor: c.surfaceAlt,
             color: c.success,
-            minHeight: 4,
+            minHeight: 6,
           ),
         ),
         const SizedBox(height: 6),
@@ -217,12 +217,11 @@ class _MarkDeliveredButton extends StatelessWidget {
     return GestureDetector(
       onTap: loading ? null : onTap,
       child: Container(
-        height: 30,
+        height: 34,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: c.surface,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: c.primary, width: 1.4),
+          color: c.primarySoft,
+          borderRadius: BorderRadius.circular(AppRadius.full),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           if (loading)

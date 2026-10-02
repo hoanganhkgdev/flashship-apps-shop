@@ -9,6 +9,9 @@ class AddressAutocompleteField extends StatefulWidget {
   final String label;
   final String hint;
   final Color? fillColor;
+
+  /// Trung tâm khu vực — nếu có, chỉ gợi ý địa chỉ trong bán kính quanh đó.
+  final ({double lat, double lng})? center;
   final void Function(String address, double? lat, double? lng)? onSelected;
 
   const AddressAutocompleteField({
@@ -17,6 +20,7 @@ class AddressAutocompleteField extends StatefulWidget {
     required this.label,
     this.hint = 'Nhập địa chỉ...',
     this.fillColor,
+    this.center,
     this.onSelected,
   });
 
@@ -65,7 +69,12 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
   Future<void> _search(String query) async {
     if (!mounted) return;
     setState(() => _searching = true);
-    final results = await AddressSearchService.search(query);
+    final results = await AddressSearchService.search(
+      query,
+      lat: widget.center?.lat,
+      lng: widget.center?.lng,
+      restrictToBounds: widget.center != null,
+    );
     if (!mounted) return;
     setState(() {
       _suggestions = results;
@@ -130,9 +139,9 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
         offset: const Offset(0, 56),
         child: Material(
           elevation: 4,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: _suggestions
@@ -188,23 +197,29 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(widget.label,
-            style: const TextStyle(
-                fontSize: AppFontSize.base,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary)),
-        const SizedBox(height: 8),
+        if (widget.label.isNotEmpty) ...[
+          Text(widget.label,
+              style: const TextStyle(
+                  fontSize: AppFontSize.base,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary)),
+          const SizedBox(height: 8),
+        ],
         CompositedTransformTarget(
           link: _layerLink,
           child: TextField(
             controller: widget.controller,
             focusNode: _focusNode,
-            maxLines: 2,
-            minLines: 1,
+            style: TextStyle(
+                fontSize: AppFontSize.base,
+                fontWeight: FontWeight.w600,
+                color: context.colors.textPrimary),
+            maxLines: 1,
             decoration: InputDecoration(
               hintText: widget.hint,
-              hintStyle: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: AppFontSize.md),
+              hintStyle: TextStyle(
+                  color: context.colors.textTertiary,
+                  fontSize: AppFontSize.base),
               filled: widget.fillColor != null ? true : null,
               fillColor: widget.fillColor,
               prefixIcon: _searching

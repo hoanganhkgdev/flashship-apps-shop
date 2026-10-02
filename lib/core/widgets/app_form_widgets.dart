@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
@@ -82,15 +84,15 @@ class AppField extends StatelessWidget {
       onTap: onTap,
       focusNode: focusNode,
       style: TextStyle(
-        fontSize: AppFontSize.lg,
-        fontWeight: FontWeight.w500,
+        fontSize: AppFontSize.base,
+        fontWeight: FontWeight.w600,
         color: c.textPrimary,
       ),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(
           color: c.textTertiary,
-          fontSize: AppFontSize.lg,
+          fontSize: AppFontSize.base,
           fontWeight: FontWeight.w400,
         ),
         prefix: prefix,
@@ -205,8 +207,8 @@ class _PhoneFieldState extends State<PhoneField> {
       textInputAction: widget.textInputAction,
       onFieldSubmitted: widget.onFieldSubmitted,
       style: TextStyle(
-        fontSize: AppFontSize.lg,
-        fontWeight: FontWeight.w500,
+        fontSize: AppFontSize.base,
+        fontWeight: FontWeight.w600,
         color: c.textPrimary,
       ),
       // Validate trên giá trị đầy đủ đã đồng bộ (widget.controller), không
@@ -216,7 +218,7 @@ class _PhoneFieldState extends State<PhoneField> {
         hintText: widget.hint,
         hintStyle: TextStyle(
           color: c.textTertiary,
-          fontSize: AppFontSize.lg,
+          fontSize: AppFontSize.base,
           fontWeight: FontWeight.w400,
         ),
         // Chỉ phục vụ thị trường Việt Nam — bỏ mã vùng "+84", dùng icon điện
@@ -277,10 +279,7 @@ class AppErrorBox extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: Text(message,
-              style: TextStyle(
-                  fontSize: AppFontSize.base,
-                  color: c.danger,
-                  fontWeight: FontWeight.w500)),
+              style: AppTextStyles.body.copyWith(color: c.danger)),
         ),
       ]),
     );
@@ -313,8 +312,10 @@ class AppButton extends StatelessWidget {
           backgroundColor: c.primary,
           disabledBackgroundColor: c.primary.withValues(alpha: 0.5),
           foregroundColor: c.onPrimary,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md)),
+          shape: const StadiumBorder(),
+          // Nút chính kiểu kính: ánh sáng cam toả nhẹ bên dưới (chế độ sáng).
+          elevation: context.isDark ? 0 : 4,
+          shadowColor: c.primary.withValues(alpha: .28),
         ),
         child: isLoading
             ? const SizedBox(
@@ -324,7 +325,7 @@ class AppButton extends StatelessWidget {
                     strokeWidth: 2.5, color: Colors.white))
             : Text(label,
                 style: const TextStyle(
-                  fontSize: AppFontSize.xl,
+                  fontSize: AppFontSize.md,
                   fontWeight: FontWeight.w700,
                 )),
       ),
@@ -339,11 +340,19 @@ class AppLogoBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: 48,
-        height: 48,
+        width: 56,
+        height: 56,
         decoration: BoxDecoration(
-          color: context.colors.primary,
-          borderRadius: BorderRadius.circular(14),
+          gradient: LinearGradient(
+            colors: [
+              context.colors.primary,
+              AppColors.primaryGradientEnd,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          boxShadow: context.isDark ? null : AppShadows.soft,
         ),
         padding: const EdgeInsets.all(10),
         child: Image.asset('assets/images/logo.png',
@@ -408,55 +417,119 @@ class AppBottomNav extends StatelessWidget {
     required this.onTap,
   });
 
-  /// Đồng bộ BottomNav của app tài xế: thanh trắng bo góc trên, đổ bóng, tab
-  /// đang chọn là viên thuốc cam đặc với icon trắng.
+  /// Thanh menu liquid glass dạng viên thuốc nổi: kính mờ, viền sáng, bóng nhẹ;
+  /// tab đang chọn là viên kính nhuốm màu cam với icon và nhãn màu cam.
+  @override
+  Widget build(BuildContext context) {
+    final dark = context.isDark;
+    const radius = 30.0;
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg, AppSpacing.xs, AppSpacing.lg, AppSpacing.md),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(radius),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: dark ? .35 : .12),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(radius),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(radius),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: dark
+                        ? [
+                            Colors.white.withValues(alpha: .18),
+                            Colors.white.withValues(alpha: .08),
+                          ]
+                        : [
+                            Colors.white.withValues(alpha: .85),
+                            Colors.white.withValues(alpha: .55),
+                          ],
+                  ),
+                  border: Border.all(
+                      color: Colors.white.withValues(alpha: dark ? .25 : .9),
+                      width: 1.2),
+                ),
+                child: Row(children: [
+                  for (var i = 0; i < items.length; i++)
+                    Expanded(
+                      child: _NavTab(
+                        item: items[i],
+                        selected: i == selectedIndex,
+                        onTap: () => onTap(i),
+                      ),
+                    ),
+                ]),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavTab extends StatelessWidget {
+  final AppNavItem item;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _NavTab(
+      {required this.item, required this.selected, required this.onTap});
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Material(
-      color: c.surface,
-      elevation: 16,
-      shadowColor: c.shadow.withValues(alpha: 0.16),
-      borderRadius:
-          const BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-      clipBehavior: Clip.antiAlias,
-      child: NavigationBarTheme(
-        data: NavigationBarThemeData(
-          height: 68,
-          elevation: 0,
-          backgroundColor: c.surface,
-          surfaceTintColor: Colors.transparent,
-          indicatorColor: c.primary,
-          indicatorShape: const StadiumBorder(),
-          iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
-                size: 24,
-                color: states.contains(WidgetState.selected)
-                    ? Colors.white
-                    : c.textSecondary,
-              )),
-          labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
-                fontSize: AppFontSize.sm,
-                fontWeight: states.contains(WidgetState.selected)
-                    ? FontWeight.w800
-                    : FontWeight.w600,
-                color: states.contains(WidgetState.selected)
-                    ? c.primary
-                    : c.textSecondary,
-              )),
-        ),
-        child: NavigationBar(
-          selectedIndex: selectedIndex,
-          onDestinationSelected: onTap,
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          destinations: [
-            for (final item in items)
-              NavigationDestination(
-                icon: Icon(item.icon),
-                selectedIcon: Icon(item.activeIcon),
-                label: item.label,
-                tooltip: item.label,
-              ),
-          ],
+    final color = selected ? c.primary : c.textSecondary;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: item.label,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: AppDuration.normal,
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            color: selected
+                ? c.primary.withValues(alpha: 0.14)
+                : Colors.transparent,
+            border: Border.all(
+              color: selected
+                  ? c.primary.withValues(alpha: 0.35)
+                  : Colors.transparent,
+              width: 1.2,
+            ),
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(selected ? item.activeIcon : item.icon,
+                size: AppSize.iconLg, color: color),
+            const SizedBox(height: 2),
+            Text(item.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.caption.copyWith(
+                    fontSize: AppFontSize.sm,
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                    color: color)),
+          ]),
         ),
       ),
     );
@@ -497,8 +570,9 @@ class AppCard extends StatelessWidget {
       margin: margin,
       padding: padding ?? const EdgeInsets.all(AppSpace.lg),
       decoration: BoxDecoration(
-        color: c.surface,
-        borderRadius: elevated ? BorderRadius.circular(AppRadius.card) : null,
+        color: c.glass,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: c.glassBorder, width: 1.2),
         boxShadow: elevated ? c.cardShadow : null,
       ),
       child: child,

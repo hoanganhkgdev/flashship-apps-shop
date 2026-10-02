@@ -1,3 +1,4 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -118,7 +119,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final tab = ref.watch(_tabProvider);
     return Scaffold(
-      backgroundColor: context.colors.background,
+      backgroundColor: Colors.transparent,
       body: IndexedStack(index: tab, children: _pages),
       bottomNavigationBar: AppBottomNav(
         selectedIndex: tab,

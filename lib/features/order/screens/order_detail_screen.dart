@@ -16,6 +16,7 @@ import '../../../core/utils/contact_launcher.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/map_style.dart';
 import '../../../core/utils/marker_icon_builder.dart';
+import '../../../core/widgets/app_decor_widgets.dart';
 import '../../../core/widgets/app_form_widgets.dart';
 import '../data/order_repository.dart';
 import '../models/order_model.dart';
@@ -272,7 +273,7 @@ class _State extends ConsumerState<OrderDetailScreen>
                 height: 64,
                 decoration: BoxDecoration(
                   color: c.warningSoft,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(Icons.star_rounded, color: c.warning, size: 36),
               ),
@@ -295,7 +296,7 @@ class _State extends ConsumerState<OrderDetailScreen>
                   backgroundColor: c.warning,
                   minimumSize: const Size(double.infinity, 48),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(8)),
                   elevation: 0,
                 ),
                 onPressed: () {
@@ -325,7 +326,7 @@ class _State extends ConsumerState<OrderDetailScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      useSafeArea: true,
       builder: (_) => _RatingSheet(
         orderCode: widget.orderCode,
         driverName: _order!.driver?.name ?? '',
@@ -383,60 +384,23 @@ class _State extends ConsumerState<OrderDetailScreen>
         statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
       ),
       child: Scaffold(
-        backgroundColor: c.surface,
-        body: SafeArea(
-          bottom: false,
-          child: Column(children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-              decoration: BoxDecoration(
-                color: c.surface,
-                border: Border(bottom: BorderSide(color: c.divider)),
-              ),
-              child: Row(children: [
-                GestureDetector(
-                  onTap: () =>
-                      context.canPop() ? context.pop() : context.go('/home'),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: c.surface,
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                      border: Border.all(color: c.divider),
-                    ),
-                    child: Icon(Icons.arrow_back_ios_new_rounded,
-                        size: 17, color: c.textPrimary),
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: GestureDetector(
-                    onLongPress: _order == null ? null : _copyInfo,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                            widget.orderCode.startsWith('#')
-                                ? widget.orderCode
-                                : '#${widget.orderCode}',
-                            style: TextStyle(
-                                fontSize: AppFontSize.xxl,
-                                fontWeight: FontWeight.w800,
-                                color: c.textPrimary)),
-                        if (_order != null)
-                          Text('Đặt lúc ${Fmt.dateTime(_order!.createdAt)}',
-                              style: TextStyle(
-                                  fontSize: AppFontSize.sm,
-                                  color: c.textTertiary)),
-                      ],
-                    ),
-                  ),
-                ),
-                if (_order != null)
-                  Container(
+        backgroundColor: Colors.transparent,
+        body: Column(children: [
+          AppPageHeader(
+            title: widget.orderCode.startsWith('#')
+                ? widget.orderCode
+                : '#${widget.orderCode}',
+            subtitle: _order == null
+                ? null
+                : 'Đặt lúc ${Fmt.dateTime(_order!.createdAt)}',
+            onBack: () =>
+                context.canPop() ? context.pop() : context.go('/home'),
+            onTitleLongPress: _order == null ? null : _copyInfo,
+            trailing: _order == null
+                ? null
+                : Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: Fmt.statusColor(_order!.status)
                           .withValues(alpha: 0.12),
@@ -446,37 +410,33 @@ class _State extends ConsumerState<OrderDetailScreen>
                         _order!.status == 'processing'
                             ? 'Đã lấy hàng'
                             : Fmt.orderStatus(_order!.status),
-                        style: TextStyle(
-                            fontSize: AppFontSize.sm,
+                        style: AppTextStyles.label.copyWith(
                             fontWeight: FontWeight.w700,
                             color: Fmt.statusColor(_order!.status))),
                   ),
-              ]),
+          ),
+          Expanded(
+            child: ColoredBox(
+              color: Colors.transparent,
+              child: _loading
+                  ? Center(child: CircularProgressIndicator(color: c.primary))
+                  : _error != null
+                      ? _ErrorView(onRetry: _fetchOrder)
+                      : _order == null
+                          ? const Center(child: Text('Không tìm thấy đơn hàng'))
+                          : _Body(
+                              order: _order!,
+                              realtimeLat: _realtimeLat,
+                              realtimeLng: _realtimeLng,
+                              cancelling: _cancelling,
+                              ratingDone: _ratingDone,
+                              onRefresh: _fetchSilent,
+                              onCancel: _cancelOrder,
+                              onRate: _showRating,
+                            ),
             ),
-            Expanded(
-              child: ColoredBox(
-                color: c.background,
-                child: _loading
-                    ? Center(child: CircularProgressIndicator(color: c.primary))
-                    : _error != null
-                        ? _ErrorView(onRetry: _fetchOrder)
-                        : _order == null
-                            ? const Center(
-                                child: Text('Không tìm thấy đơn hàng'))
-                            : _Body(
-                                order: _order!,
-                                realtimeLat: _realtimeLat,
-                                realtimeLng: _realtimeLng,
-                                cancelling: _cancelling,
-                                ratingDone: _ratingDone,
-                                onRefresh: _fetchSilent,
-                                onCancel: _cancelOrder,
-                                onRate: _showRating,
-                              ),
-              ),
-            ),
-          ]),
-        ),
+          ),
+        ]),
       ),
     );
   }

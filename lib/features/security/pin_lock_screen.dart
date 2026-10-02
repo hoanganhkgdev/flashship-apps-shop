@@ -123,7 +123,7 @@ class _PinLockScreenState extends ConsumerState<PinLockScreen> {
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: c.background,
+        backgroundColor: Colors.transparent,
         body: SafeArea(
           child: Column(
             children: [

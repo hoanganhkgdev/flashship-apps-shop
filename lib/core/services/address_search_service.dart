@@ -25,10 +25,15 @@ class AddressSearchService {
     receiveTimeout: const Duration(seconds: 5),
   ));
 
+  /// Tìm gợi ý địa chỉ. Khi có [lat]/[lng] (trung tâm khu vực) và
+  /// [restrictToBounds], chỉ trả về địa điểm nằm trong bán kính [radiusKm] —
+  /// giống cách app khách hàng giới hạn theo khu vực.
   static Future<List<AddressResult>> search(
     String query, {
     double? lat,
     double? lng,
+    double radiusKm = kAddressSearchRadiusKm,
+    bool restrictToBounds = false,
   }) async {
     if (query.trim().length < 3) return [];
     try {
@@ -40,7 +45,8 @@ class AddressSearchService {
       };
       if (lat != null && lng != null) {
         params['location'] = '$lat,$lng';
-        params['radius'] = 25000;
+        params['radius'] = (radiusKm * 1000).toInt();
+        if (restrictToBounds) params['strictbounds'] = true;
       }
 
       final res = await _dio.get(

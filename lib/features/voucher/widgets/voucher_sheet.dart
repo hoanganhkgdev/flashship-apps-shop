@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/app_decor_widgets.dart';
 import '../../../core/widgets/app_form_widgets.dart';
 import '../voucher_model.dart';
 import '../voucher_provider.dart';
@@ -64,35 +65,16 @@ class _VoucherSheetState extends ConsumerState<VoucherSheet> {
   @override
   Widget build(BuildContext context) {
     final vouchersAsync = ref.watch(voucherProvider);
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+    final c = context.colors;
+    return AppSheet(
+      icon: Icons.local_activity_rounded,
+      color: c.accent2,
+      title: 'Mã giảm giá',
+      subtitle: 'Nhập mã hoặc chọn ưu đãi có sẵn',
+      scrollable: false,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── Header ──────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 8, 0),
-            child: Row(children: [
-              const Text('Mã giảm giá',
-                  style: TextStyle(
-                      fontSize: AppFontSize.xl,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary)),
-              const Spacer(),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close_rounded,
-                    color: AppColors.textSecondary),
-              ),
-            ]),
-          ),
-          const Divider(height: 1, color: Color(0xFFF0F0F0)),
-
           // ── Nhập mã thủ công ────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -144,15 +126,13 @@ class _VoucherSheetState extends ConsumerState<VoucherSheet> {
               ),
             ),
 
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text('Mã có thể áp dụng',
-                  style: TextStyle(
-                      fontSize: AppFontSize.sm,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary)),
+                  style: AppTextStyles.label
+                      .copyWith(color: AppColors.textSecondary)),
             ),
           ),
 

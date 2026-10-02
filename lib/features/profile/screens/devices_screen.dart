@@ -1,3 +1,4 @@
+import '../../../core/widgets/app_decor_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
@@ -28,21 +29,8 @@ class DevicesScreen extends ConsumerWidget {
     final async = ref.watch(_devicesProvider);
 
     return Scaffold(
-      backgroundColor: c.background,
-      appBar: AppBar(
-        backgroundColor: c.surface,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        title: Text('Thiết bị đăng nhập',
-            style: TextStyle(
-                fontSize: AppFontSize.xl,
-                fontWeight: FontWeight.w800,
-                color: c.textPrimary)),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Divider(height: 1, color: c.divider),
-        ),
-      ),
+      backgroundColor: Colors.transparent,
+      appBar: const AppPageHeader(title: 'Thiết bị đăng nhập'),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => Center(
@@ -152,10 +140,10 @@ class _DeviceCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: c.surface,
+        color: c.glass,
         borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(
-          color: device.isCurrent ? AppColors.primary : c.divider,
+          color: device.isCurrent ? AppColors.primary : c.glassBorder,
           width: device.isCurrent ? 1.5 : 1,
         ),
       ),
@@ -164,11 +152,9 @@ class _DeviceCard extends StatelessWidget {
           Container(
             width: 42,
             height: 42,
-            decoration: BoxDecoration(
-              color: (device.isCurrent ? AppColors.primary : c.textSecondary)
-                  .withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
+            decoration: glassIconDecoration(
+                context, device.isCurrent ? AppColors.primary : c.textSecondary,
+                circle: true),
             child: Icon(
               device.isTablet
                   ? Icons.tablet_mac_rounded
@@ -225,9 +211,7 @@ class _DeviceCard extends StatelessWidget {
             TextButton(
               onPressed: onRevoke,
               style: TextButton.styleFrom(foregroundColor: c.danger),
-              child: const Text('Đăng xuất',
-                  style: TextStyle(
-                      fontSize: AppFontSize.base, fontWeight: FontWeight.w700)),
+              child: const Text('Đăng xuất', style: AppTextStyles.bodyStrong),
             ),
         ],
       ),

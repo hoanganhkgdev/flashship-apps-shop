@@ -43,7 +43,7 @@ class VoucherCard extends StatelessWidget {
     final accent = dimmed ? c.textTertiary : c.success;
 
     Widget content = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
@@ -55,8 +55,7 @@ class VoucherCard extends StatelessWidget {
                 voucher.code,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    fontSize: AppFontSize.base,
+                style: AppTextStyles.bodyStrong.copyWith(
                     fontWeight: FontWeight.w800,
                     color: accent,
                     letterSpacing: 0.5),
@@ -112,9 +111,10 @@ class VoucherCard extends StatelessWidget {
     final card = Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: c.surface,
+        color: c.glass,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        boxShadow: c.cardShadow,
+        border: Border.all(color: c.glassBorder, width: 1.2),
+        boxShadow: context.isDark ? null : AppShadows.soft,
       ),
       clipBehavior: Clip.antiAlias,
       // IntrinsicHeight: Row(crossAxisAlignment: stretch) cần chiều cao xác
@@ -124,7 +124,7 @@ class VoucherCard extends StatelessWidget {
         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           // ── Dải trái ──
           Container(
-            width: 56,
+            width: 64,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: dimmed

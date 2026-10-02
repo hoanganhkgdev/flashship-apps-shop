@@ -69,9 +69,9 @@ class _ReorderTile extends StatelessWidget {
         width: 232,
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
         decoration: BoxDecoration(
-          color: c.surface,
+          color: c.glass,
           borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(color: c.divider),
+          border: Border.all(color: c.glassBorder, width: 1.2),
           boxShadow: c.cardShadow,
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -84,7 +84,7 @@ class _ReorderTile extends StatelessWidget {
                   color: c.textPrimary)),
           const SizedBox(height: 4),
           Text(_address,
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                   fontSize: AppFontSize.base,
@@ -93,10 +93,8 @@ class _ReorderTile extends StatelessWidget {
           const Spacer(),
           Row(children: [
             Text(Fmt.currency(order.shippingFee),
-                style: TextStyle(
-                    fontSize: AppFontSize.md,
-                    fontWeight: FontWeight.w800,
-                    color: c.textPrimary)),
+                style:
+                    AppTextStyles.sectionTitle.copyWith(color: c.textPrimary)),
             const Spacer(),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -108,10 +106,7 @@ class _ReorderTile extends StatelessWidget {
                 Icon(Icons.replay_rounded, size: 14, color: c.primary),
                 const SizedBox(width: 4),
                 Text('Đặt lại',
-                    style: TextStyle(
-                        fontSize: AppFontSize.base,
-                        fontWeight: FontWeight.w700,
-                        color: c.primary)),
+                    style: AppTextStyles.bodyStrong.copyWith(color: c.primary)),
               ]),
             ),
           ]),

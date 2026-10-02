@@ -24,141 +24,112 @@ class _Body extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    const pad = EdgeInsets.symmetric(horizontal: AppSpacing.lg);
+    const gap = SizedBox(height: AppSpacing.md);
+    final expired = !order.canRate &&
+        order.isCompleted &&
+        order.driverRating == null &&
+        order.completedAt != null &&
+        DateTime.now().difference(order.completedAt!).inHours > 24;
+
     return RefreshIndicator(
       color: c.primary,
       onRefresh: onRefresh,
       child: ListView(
-        padding: EdgeInsets.zero,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding:
+            const EdgeInsets.only(top: AppSpacing.lg, bottom: AppSpacing.xl4),
         children: [
-          const SizedBox(height: 12),
-
-          // ── Status ───────────────────────────────────────────────────
           _StatusCard(order: order),
-          const SizedBox(height: 12),
-
-          // ── Driver ───────────────────────────────────────────────────
+          gap,
           if (order.driver != null) ...[
             _DriverCard(
               order: order,
               realtimeLat: realtimeLat,
               realtimeLng: realtimeLng,
             ),
-            const SizedBox(height: 12),
+            gap,
           ],
-
-          // Vị trí tài xế vẫn được cập nhật realtime; bản đồ được lược khỏi
-          // trang tóm tắt để giữ bố cục gọn đúng thiết kế.
-
-          // ── Route ─────────────────────────────────────────────────────
-          // Batch: stops list / Single: route card
-          if (order.isBatch && order.stops.isNotEmpty) ...[
-            _StopsCard(order: order, onStopDelivered: onRefresh),
-          ] else
+          // Đơn gộp: danh sách điểm giao / đơn lẻ: thẻ lộ trình.
+          if (order.isBatch && order.stops.isNotEmpty)
+            _StopsCard(order: order, onStopDelivered: onRefresh)
+          else
             _RouteCard(order: order),
-          const SizedBox(height: 12),
-
-          // ── Order info ─────────────────────────────────────────────────
+          gap,
           _OrderInfoCard(order: order),
-
-          // ── Note ───────────────────────────────────────────────────────
           if (order.orderNote?.isNotEmpty == true) ...[
-            const SizedBox(height: 12),
+            gap,
             _NoteCard(note: order.orderNote!),
           ],
-
-          // ── Cancel button ──────────────────────────────────────────────
+          if (order.driverRating != null) ...[
+            gap,
+            _RatingDisplay(rating: order.driverRating!),
+          ],
+          if (expired) ...[
+            gap,
+            Padding(
+              padding: pad,
+              child: Text(
+                  'Đã quá thời hạn đánh giá (24 giờ sau khi hoàn thành)',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.label.copyWith(color: c.textSecondary)),
+            ),
+          ],
+          if (order.canRate && !ratingDone) ...[
+            gap,
+            Padding(
+              padding: pad,
+              child: FilledButton.icon(
+                onPressed: onRate,
+                style: FilledButton.styleFrom(
+                  backgroundColor: c.warning,
+                  foregroundColor: Colors.white,
+                  minimumSize:
+                      const Size(double.infinity, AppSize.buttonHeight),
+                ),
+                icon: const Icon(Icons.star_rounded, size: AppSize.iconMd),
+                label: const Text('Đánh giá tài xế'),
+              ),
+            ),
+          ],
+          if (order.isCompleted || order.isCancelled) ...[
+            gap,
+            Padding(
+              padding: pad,
+              child: OutlinedButton.icon(
+                onPressed: () => reorderOrder(context, order),
+                style: OutlinedButton.styleFrom(
+                  minimumSize:
+                      const Size(double.infinity, AppSize.buttonHeight),
+                ),
+                icon: const Icon(Icons.replay_rounded, size: AppSize.iconMd),
+                label: const Text('Đặt lại đơn tương tự'),
+              ),
+            ),
+          ],
           if (order.canCancel) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 42,
-              child: TextButton(
+            gap,
+            Padding(
+              padding: pad,
+              child: OutlinedButton.icon(
                 onPressed: cancelling ? null : onCancel,
-                style: TextButton.styleFrom(foregroundColor: c.danger),
-                child: cancelling
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: c.danger,
+                  side: BorderSide(color: c.danger.withValues(alpha: .4)),
+                  minimumSize:
+                      const Size(double.infinity, AppSize.buttonHeight),
+                ),
+                icon: cancelling
                     ? SizedBox(
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: c.danger))
-                    : const Text('Huỷ đơn hàng',
-                        style: TextStyle(
-                            fontSize: AppFontSize.lg,
-                            fontWeight: FontWeight.w700)),
+                    : const Icon(Icons.close_rounded, size: AppSize.iconMd),
+                label: const Text('Huỷ đơn hàng'),
               ),
             ),
           ],
-
-          // ── Rate button ────────────────────────────────────────────────
-          if (order.canRate && !ratingDone) ...[
-            const SizedBox(height: 12),
-            _FlatCard(
-              child: SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton.icon(
-                  onPressed: onRate,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: c.warning,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.md)),
-                  ),
-                  icon: const Icon(Icons.star_rounded, size: 18),
-                  label: const Text('Đánh giá tài xế',
-                      style: TextStyle(
-                          fontSize: AppFontSize.lg,
-                          fontWeight: FontWeight.w700)),
-                ),
-              ),
-            ),
-          ],
-
-          // Nút đánh giá bị ẩn do quá 24h (canRate == false) nhưng chưa từng
-          // đánh giá — báo lý do thay vì im lặng không hiện gì, tránh shop
-          // tưởng app thiếu tính năng.
-          if (!order.canRate &&
-              order.isCompleted &&
-              order.driverRating == null &&
-              order.completedAt != null &&
-              DateTime.now().difference(order.completedAt!).inHours > 24) ...[
-            const SizedBox(height: 12),
-            Text('Đã quá thời hạn đánh giá (24 giờ sau khi hoàn thành)',
-                style: TextStyle(
-                    fontSize: AppFontSize.sm, color: c.textSecondary)),
-          ],
-
-          if (order.driverRating != null) ...[
-            const SizedBox(height: 12),
-            _RatingDisplay(rating: order.driverRating!),
-          ],
-
-          // ── Đặt lại ──────────────────────────────────────────────────
-          if (order.isCompleted || order.isCancelled) ...[
-            const SizedBox(height: 12),
-            _FlatCard(
-              child: SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: OutlinedButton.icon(
-                  onPressed: () => reorderOrder(context, order),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: c.primary,
-                    side: BorderSide(color: c.primary),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.md)),
-                  ),
-                  icon: const Icon(Icons.replay_rounded, size: 18),
-                  label: const Text('Đặt lại đơn tương tự',
-                      style: TextStyle(
-                          fontSize: AppFontSize.md,
-                          fontWeight: FontWeight.w700)),
-                ),
-              ),
-            ),
-          ],
-
-          const SizedBox(height: 32),
         ],
       ),
     );

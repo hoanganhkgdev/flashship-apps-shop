@@ -4,40 +4,44 @@ import 'package:google_fonts/google_fonts.dart';
 /// Font size scale — thay cho số fontSize rải rác khắp app (trước đây có
 /// hơn 20 giá trị lẻ như 13.5/11.5/9.5 do chỉnh tay qua thời gian).
 class AppFontSize {
-  static const tiny = 10.0; // ký hiệu ngắn trong badge
-  static const xxs = 11.0; // nhãn điều hướng, badge ngắn
-  static const xs = 12.0; // caption, timestamp, chip
-  static const sm = 12.0; // bodySmall, helper text
-  static const base = 13.0; // text phụ mặc định
-  static const md = 14.0; // bodyMedium, text mặc định
-  static const lg = 15.0; // bodyLarge, nút bấm
-  static const xl = 16.0; // titleMedium, appbar title
-  static const xxl = 18.0; // section title
-  static const xxxl = 20.0; // titleLarge
-  static const display1 = 22.0; // headlineSmall
-  static const display2 = 24.0; // headlineMedium
-  static const display3 = 26.0; // headlineLarge
-  static const display4 = 26.0; // số PIN, số lớn
-  static const hero = 32.0; // splash/hero
+  // Giữ các alias cũ để không làm thay đổi API của Shop, nhưng giá
+  // trị bám theo thang chữ của Driver.
+  static const tiny = 10.0;
+  static const xxs = 10.0;
+  static const xs = 10.0;
+  static const sm = 12.0;
+  static const base = 14.0;
+  static const md = 16.0;
+  static const lg = 18.0;
+  static const xl = 20.0;
+  static const xxl = 24.0;
+  static const xxxl = 28.0;
+  static const display1 = 28.0;
+  static const display2 = 32.0;
+  static const display3 = 36.0;
+  static const display4 = 40.0;
+  static const hero = 48.0;
 }
 
 /// Shared typography for the shop app, used by both light and dark themes.
 /// Change sizes in [AppFontSize] and the font family here.
 /// System text scaling remains controlled by Flutter and the user's settings.
 abstract final class AppTypography {
+  static final fontFamily = GoogleFonts.inter().fontFamily;
+
   static TextStyle style({
     required double fontSize,
     FontWeight? fontWeight,
     Color? color,
   }) =>
-      GoogleFonts.manrope(
+      GoogleFonts.inter(
         fontSize: fontSize,
         fontWeight: fontWeight,
         color: color,
       );
 
   static TextTheme textTheme(TextTheme base, {required Color color}) {
-    return GoogleFonts.manropeTextTheme(
+    return GoogleFonts.interTextTheme(
       base.copyWith(
         displayLarge: const TextStyle(
             fontSize: AppFontSize.hero, fontWeight: FontWeight.w700),

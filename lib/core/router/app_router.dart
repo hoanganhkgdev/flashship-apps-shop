@@ -17,7 +17,9 @@ import '../../features/order/models/shop_order_type.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/security/pin_lock_screen.dart';
 import '../../features/security/providers/pin_provider.dart';
+import '../../features/referral/referral_screen.dart';
 import '../../features/stats/stats_screen.dart';
+import '../../features/voucher/voucher_screen.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/version/providers/app_version_provider.dart';
 
@@ -151,6 +153,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           builder: (_, __) => const NotificationInboxScreen()),
       GoRoute(
           path: '/address-book', builder: (_, __) => const AddressBookScreen()),
+      GoRoute(path: '/vouchers', builder: (_, __) => const VoucherScreen()),
+      GoRoute(path: '/referral', builder: (_, __) => const ReferralScreen()),
     ],
   );
 });

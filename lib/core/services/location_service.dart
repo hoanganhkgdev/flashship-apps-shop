@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:geolocator/geolocator.dart';
@@ -33,7 +34,25 @@ class LocationService {
             timeLimit: const Duration(seconds: 10),
           );
 
-    return Geolocator.getCurrentPosition(locationSettings: settings);
+    // GPS có thể không trả kết quả trong thời hạn (trong nhà, simulator chưa đặt
+    // vị trí, vừa bật định vị): không để lỗi này thoát ra thành exception chưa
+    // bắt — thử vị trí gần nhất đã biết, không có thì trả null để màn hình tự
+    // xử lý (người dùng vẫn kéo bản đồ chọn tay được).
+    try {
+      return await Geolocator.getCurrentPosition(locationSettings: settings);
+    } on TimeoutException {
+      return _lastKnownOrNull();
+    } catch (_) {
+      return _lastKnownOrNull();
+    }
+  }
+
+  static Future<Position?> _lastKnownOrNull() async {
+    try {
+      return await Geolocator.getLastKnownPosition();
+    } catch (_) {
+      return null;
+    }
   }
 
   static Future<String?> addressFromCoords(double lat, double lng) async {

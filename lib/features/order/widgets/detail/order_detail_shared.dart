@@ -4,19 +4,18 @@ part of '../../screens/order_detail_screen.dart';
 
 class _FlatCard extends StatelessWidget {
   final Widget child;
-  const _FlatCard({required this.child});
+
+  /// Màu vầng sáng mờ ở góc card (vd màu trạng thái đơn).
+  final Color? glow;
+  const _FlatCard({required this.child, this.glow});
 
   @override
-  Widget build(BuildContext context) => Container(
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(horizontal: 20),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(color: context.colors.divider),
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        child: SizedBox(
+          width: double.infinity,
+          child: GlassCard(blur: false, glow: glow, child: child),
         ),
-        child: child,
       );
 }
 
@@ -32,21 +31,13 @@ class _CardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(children: [
-        Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            color: iconColor.withValues(alpha: context.isDark ? 0.18 : 0.1),
-            borderRadius: BorderRadius.circular(7),
-          ),
-          child: Icon(icon, size: 15, color: iconColor),
+        AppIconBadge(icon: icon, color: iconColor, size: 36),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Text(label,
+              style: AppTextStyles.sectionTitle
+                  .copyWith(color: context.colors.textPrimary)),
         ),
-        const SizedBox(width: 10),
-        Text(label,
-            style: TextStyle(
-                fontSize: AppFontSize.md,
-                fontWeight: FontWeight.w700,
-                color: context.colors.textPrimary)),
       ]);
 }
 
@@ -59,12 +50,23 @@ class _ErrorView extends StatelessWidget {
     final c = context.colors;
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.wifi_off_rounded, size: 48, color: c.textSecondary),
-        const SizedBox(height: 12),
+        AppIconBadge(
+            icon: Icons.wifi_off_rounded, color: c.textSecondary, size: 64),
+        const SizedBox(height: AppSpacing.lg),
         Text('Không thể tải đơn hàng',
-            style: TextStyle(fontSize: AppFontSize.md, color: c.textSecondary)),
-        const SizedBox(height: 12),
-        TextButton(onPressed: onRetry, child: const Text('Thử lại')),
+            style: AppTextStyles.bodyStrong.copyWith(color: c.textPrimary)),
+        const SizedBox(height: AppSpacing.xs),
+        Text('Kiểm tra kết nối rồi thử lại',
+            style: AppTextStyles.label.copyWith(color: c.textSecondary)),
+        const SizedBox(height: AppSpacing.lg),
+        FilledButton.tonal(
+          onPressed: onRetry,
+          style: FilledButton.styleFrom(
+              minimumSize: const Size(140, AppSize.buttonHeight),
+              backgroundColor: c.primarySoft,
+              foregroundColor: c.primary),
+          child: const Text('Thử lại'),
+        ),
       ]),
     );
   }

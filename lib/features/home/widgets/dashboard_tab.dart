@@ -1,7 +1,5 @@
 part of '../screens/home_screen.dart';
 
-// ─── Dashboard Tab ───────────────────────────────────────────────────────────
-
 class _DashboardTab extends ConsumerWidget {
   const _DashboardTab();
 
@@ -13,165 +11,125 @@ class _DashboardTab extends ConsumerWidget {
     final todayAsync = ref.watch(todayStatsProvider);
     final c = context.colors;
 
+    Future<void> refresh() async {
+      final ordersRefresh =
+          ref.read(orderListProvider.notifier).fetch(refresh: true);
+      ref.invalidate(todayStatsProvider);
+      await Future.wait([ordersRefresh, ref.read(todayStatsProvider.future)]);
+    }
+
     return ColoredBox(
-      color: c.background,
-      child: RefreshIndicator(
-        color: c.primary,
-        onRefresh: () async {
-          final ordersRefresh =
-              ref.read(orderListProvider.notifier).fetch(refresh: true);
-          ref.invalidate(todayStatsProvider);
-          await Future.wait(
-              [ordersRefresh, ref.read(todayStatsProvider.future)]);
-        },
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            // ── Header ─────────────────────────────────────────────────
-            SliverToBoxAdapter(
-              child: _Header(
-                shopName: user?.name ?? 'Cửa hàng',
-                shopAddress: user?.address ?? user?.phone ?? '',
-                today: todayAsync.valueOrNull,
-              ),
-            ),
+      color: Colors.transparent,
+      child: Column(children: [
+        _Header(
+          shopName: user?.name ?? 'Cửa hàng',
+          shopAddress: user?.address ?? user?.phone ?? '',
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            color: c.primary,
+            onRefresh: refresh,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                const SliverToBoxAdapter(child: _SoftUpdateBanner()),
 
-            // ── Banner nhắc cập nhật (không bắt buộc) ─────────────────────
-            const SliverToBoxAdapter(child: _SoftUpdateBanner()),
-
-            // ── Đơn đang chạy lên đầu: chủ shop mở app chủ yếu để xem tài xế
-            // đang tới đâu. Chưa có đơn nào thì thẻ tạo đơn lên đầu thay thế.
-            if (active.isNotEmpty) ...[
-              SliverToBoxAdapter(
-                child: _SectionTitle(
-                  icon: Icons.local_shipping_outlined,
-                  title: 'Đang giao',
-                  count: active.length,
-                ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                sliver: SliverList.separated(
-                  itemCount: active.take(3).length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (_, i) {
-                    final order = active[i];
-                    return _OrderCard(key: ValueKey(order.code), order: order);
-                  },
-                ),
-              ),
-              if (active.length > 3)
+                // Hành động tạo đơn là nhu cầu chính của chủ shop.
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                    child: Text('+ ${active.length - 3} đơn khác đang chạy',
-                        style: TextStyle(
-                            fontSize: AppFontSize.base,
-                            fontWeight: FontWeight.w600,
-                            color: c.textSecondary)),
-                  ),
-                ),
-            ],
-
-            // ── Tạo đơn mới ──────────────────────────────────────────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding:
-                    EdgeInsets.fromLTRB(20, active.isNotEmpty ? 22 : 14, 20, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (active.isNotEmpty) ...[
-                      Text('Tạo đơn mới',
-                          style: TextStyle(
-                              fontSize: AppFontSize.xl,
-                              fontWeight: FontWeight.w800,
-                              color: c.textPrimary)),
-                      const SizedBox(height: 10),
-                    ],
-                    CreateOrderCard(
+                    padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 0),
+                    child: CreateOrderCard(
                       onDeliveryTap: () => context.push('/create-order',
                           extra: ShopOrderType.delivery),
                       onPickupTap: () => context.push('/create-order',
                           extra: ShopOrderType.pickup),
                       onBatchTap: () => context.push('/create-batch'),
                     ),
-                  ],
-                ),
-              ),
-            ),
-
-            // ── Chưa có đơn nào đang chạy ────────────────────────────────
-            if (active.isEmpty) ...[
-              if (orders.isLoading)
-                const SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Center(
-                        child: CircularProgressIndicator(strokeWidth: 2)),
-                  ),
-                )
-              else if (orders.error != null)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                    child: Column(children: [
-                      Text(orders.error!, textAlign: TextAlign.center),
-                      TextButton.icon(
-                        onPressed: () => ref
-                            .read(orderListProvider.notifier)
-                            .fetch(refresh: true),
-                        icon: const Icon(Icons.refresh_rounded),
-                        label: const Text('Thử lại'),
-                      ),
-                    ]),
-                  ),
-                )
-              else if (orders.orders.isEmpty)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 22),
-                    child: _EmptyOrders(),
                   ),
                 ),
-            ],
 
-            // ── Đặt lại nhanh từ các đơn đã hoàn thành ───────────────────
-            const SliverToBoxAdapter(child: _QuickReorderSection()),
-
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-                child: OutlinedButton(
-                  onPressed: () => ref.read(_tabProvider.notifier).state = 1,
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(46),
-                    foregroundColor: c.primary,
-                    side: BorderSide(color: c.divider),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 0),
+                    child: _TodayOverviewCard(
+                      stats: todayAsync.valueOrNull ?? const TodayStats(),
+                      loading: todayAsync.isLoading,
+                      onTap: () => ref.read(_tabProvider.notifier).state = 2,
                     ),
                   ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('Xem tất cả đơn hàng',
-                          style: TextStyle(
-                              fontSize: AppFontSize.md,
-                              fontWeight: FontWeight.w800)),
-                      SizedBox(width: 6),
-                      Icon(Icons.chevron_right_rounded, size: 20),
-                    ],
+                ),
+
+                if (active.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: _SectionTitle(
+                      icon: Icons.local_shipping_rounded,
+                      title: 'Đơn đang giao (${active.length})',
+                      actionLabel: 'Xem tất cả',
+                      onAction: () => ref.read(_tabProvider.notifier).state = 1,
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg, 0, AppSpacing.lg, 0),
+                    sliver: SliverList.separated(
+                      itemCount: active.take(3).length,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(height: AppSpacing.md),
+                      itemBuilder: (_, i) => _OrderCard(
+                          key: ValueKey(active[i].code), order: active[i]),
+                    ),
+                  ),
+                ] else if (orders.isLoading) ...[
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.all(AppSpacing.xl2),
+                      child: Center(
+                          child: CircularProgressIndicator(strokeWidth: 2)),
+                    ),
+                  ),
+                ] else if (orders.error != null) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 0),
+                      child: _HomeErrorCard(
+                        message: orders.error!,
+                        onRetry: refresh,
+                      ),
+                    ),
+                  ),
+                ] else if (orders.orders.isEmpty) ...[
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.only(top: AppSpacing.lg),
+                      child: _EmptyOrders(),
+                    ),
+                  ),
+                ],
+
+                const SliverToBoxAdapter(child: _QuickReorderSection()),
+                const SliverToBoxAdapter(child: _FrequentAddressSection()),
+                const SliverToBoxAdapter(child: _VoucherSection()),
+
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.lg,
+                        AppSpacing.xl, AppSpacing.lg, AppSpacing.xl3),
+                    child: OutlinedButton.icon(
+                      onPressed: () =>
+                          ref.read(_tabProvider.notifier).state = 1,
+                      icon: const Icon(Icons.receipt_long_rounded),
+                      label: const Text('Xem tất cả đơn hàng'),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 40)),
-          ],
+          ),
         ),
-      ),
+      ]),
     );
   }
 }
@@ -179,39 +137,69 @@ class _DashboardTab extends ConsumerWidget {
 class _SectionTitle extends StatelessWidget {
   final IconData icon;
   final String title;
-  final int? count;
-  const _SectionTitle({required this.icon, required this.title, this.count});
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  const _SectionTitle({
+    required this.icon,
+    required this.title,
+    this.actionLabel,
+    this.onAction,
+  });
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 22, 20, 12),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.xl, AppSpacing.lg, AppSpacing.md),
       child: Row(children: [
-        Icon(icon, size: 21, color: c.primary),
-        const SizedBox(width: 8),
+        AppIconBadge(icon: icon, color: c.primary, size: 28),
+        const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: Text(title,
-              style: TextStyle(
-                  fontSize: AppFontSize.xl,
-                  fontWeight: FontWeight.w800,
-                  color: c.textPrimary)),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.sectionTitle.copyWith(color: c.textPrimary)),
         ),
-        if (count != null)
-          Container(
-            constraints: const BoxConstraints(minWidth: 26),
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-            decoration: BoxDecoration(
-              color: c.infoSoft,
-              borderRadius: BorderRadius.circular(AppRadius.full),
-            ),
-            child: Text('$count',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: AppFontSize.base,
-                    fontWeight: FontWeight.w800,
-                    color: c.info)),
+        if (actionLabel != null)
+          GestureDetector(
+            onTap: onAction,
+            behavior: HitTestBehavior.opaque,
+            child: Text(actionLabel!,
+                style: AppTextStyles.label.copyWith(color: c.primary)),
           ),
+      ]),
+    );
+  }
+}
+
+class _HomeErrorCard extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
+
+  const _HomeErrorCard({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: c.warningSoft,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: c.warning.withValues(alpha: .2)),
+      ),
+      child: Row(children: [
+        AppIconBadge(icon: Icons.cloud_off_rounded, color: c.warning, size: 40),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Text(message,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.label.copyWith(color: c.textSecondary)),
+        ),
+        TextButton(onPressed: onRetry, child: const Text('Thử lại')),
       ]),
     );
   }

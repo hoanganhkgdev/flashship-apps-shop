@@ -29,3 +29,46 @@ BoxDecoration cargoChipDecoration(bool selected, Color color) => BoxDecoration(
       borderRadius: BorderRadius.circular(AppRadius.sm),
       border: selected ? Border.all(color: color, width: 1.5) : null,
     );
+
+/// Ô chọn loại hàng dùng chung giữa các màn tạo đơn.
+class CargoTile extends StatelessWidget {
+  final CargoType cargo;
+  final bool selected;
+  final VoidCallback onTap;
+  const CargoTile(
+      {super.key,
+      required this.cargo,
+      required this.selected,
+      required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: AnimatedContainer(
+        duration: AppDuration.fast,
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        decoration: BoxDecoration(
+          color: selected ? cargo.color.withValues(alpha: 0.1) : c.surfaceAlt,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(
+              color: selected ? cargo.color : Colors.transparent, width: 1.5),
+        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(cargo.icon,
+              size: AppSize.iconLg,
+              color: selected ? cargo.color : c.textTertiary),
+          const SizedBox(height: AppSpacing.xs),
+          Text(cargo.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.label.copyWith(
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                  color: selected ? c.textPrimary : c.textSecondary)),
+        ]),
+      ),
+    );
+  }
+}

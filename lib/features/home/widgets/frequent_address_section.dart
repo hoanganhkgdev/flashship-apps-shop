@@ -27,10 +27,8 @@ class _FrequentAddressSection extends ConsumerWidget {
               child: Row(children: [
                 Container(
                   padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: c.info.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                  decoration: glassIconDecoration(context, c.info,
+                      radius: AppRadius.xs),
                   child:
                       Icon(Icons.location_on_rounded, size: 15, color: c.info),
                 ),
@@ -72,9 +70,9 @@ class _AddressChip extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: c.surface,
+          color: c.glass,
           borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: c.divider),
+          border: Border.all(color: c.glassBorder, width: 1.2),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(Icons.location_on_rounded, size: 14, color: c.textSecondary),

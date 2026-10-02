@@ -54,11 +54,13 @@ class _DriverCard extends StatelessWidget {
             ? parts.first.substring(0, 1).toUpperCase()
             : '${parts.first[0]}${parts.last[0]}'.toUpperCase();
     return _FlatCard(
+      glow: c.info,
       child: Row(children: [
         SizedBox(
           width: 52,
           height: 52,
-          child: ClipOval(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.md),
             child: driver.avatarUrl?.trim().isNotEmpty == true
                 ? Image.network(
                     driver.avatarUrl!.trim(),
@@ -76,16 +78,20 @@ class _DriverCard extends StatelessWidget {
                   ),
           ),
         ),
-        const SizedBox(width: 14),
+        const SizedBox(width: AppSpacing.md),
         Expanded(
             child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text('TÀI XẾ',
+                style: AppTextStyles.caption
+                    .copyWith(color: c.textTertiary, letterSpacing: .6)),
+            const SizedBox(height: 2),
             Text(driver.name,
-                style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: AppFontSize.xl,
-                    color: c.textPrimary)),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.sectionTitle
+                    .copyWith(fontSize: AppFontSize.lg, color: c.textPrimary)),
             const SizedBox(height: 2),
             Row(children: [
               Icon(Icons.star_rounded, size: 14, color: c.warning),
@@ -100,7 +106,7 @@ class _DriverCard extends StatelessWidget {
             icon: Icons.map_outlined,
             color: c.accent2,
             onTap: () => _openDriverLocation(context)),
-        const SizedBox(width: 8),
+        const SizedBox(width: AppSpacing.xs),
         _ActionBtn(
             icon: Icons.call_rounded,
             color: c.primary,
@@ -140,18 +146,8 @@ class _ActionBtn extends StatelessWidget {
       {required this.icon, required this.color, required this.onTap});
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 46,
-          height: 46,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: Colors.white, size: 21),
-        ),
-      );
+  Widget build(BuildContext context) =>
+      GlassIconButton(icon: icon, color: color, onPressed: onTap);
 }
 
 // ─── Driver Map Card ──────────────────────────────────────────────────────────
@@ -300,7 +296,7 @@ class _DriverMapCardState extends State<_DriverMapCard> {
             iconColor: c.primary),
         const SizedBox(height: 12),
         ClipRRect(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
           child: SizedBox(
             height: 180,
             child: gm.GoogleMap(

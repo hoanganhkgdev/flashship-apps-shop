@@ -1,11 +1,12 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
+import '../../../core/widgets/app_decor_widgets.dart';
 import '../../../core/widgets/app_form_widgets.dart';
+import '../../../core/widgets/glass_decor.dart';
 import '../providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -19,18 +20,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
-  final _otpCtrl = TextEditingController();
   bool _obscure = true;
-  bool _passwordMode = true;
-  bool _otpSent = false;
-  int _countdown = 0;
-  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    // Xoá lỗi còn sót lại từ màn xác thực khác (vd Đăng ký) — authProvider.error
-    // dùng chung cho mọi thao tác, không tự xoá khi chuyển màn.
     WidgetsBinding.instance.addPostFrameCallback(
         (_) => ref.read(authProvider.notifier).clearError());
   }
@@ -39,396 +33,230 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void dispose() {
     _phoneCtrl.dispose();
     _passCtrl.dispose();
-    _otpCtrl.dispose();
-    _timer?.cancel();
     super.dispose();
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    final ok = _passwordMode
-        ? await ref.read(authProvider.notifier).login(
-              phone: _phoneCtrl.text.trim(),
-              password: _passCtrl.text,
-            )
-        : await ref.read(authProvider.notifier).loginWithOtp(
-              phone: _phoneCtrl.text.trim(),
-              otp: _otpCtrl.text.trim(),
-            );
+    final ok = await ref.read(authProvider.notifier).login(
+          phone: _phoneCtrl.text.trim(),
+          password: _passCtrl.text,
+        );
     if (!ok && mounted) setState(() {});
-  }
-
-  Future<void> _sendLoginOtp() async {
-    final phoneError = Validators.phone(_phoneCtrl.text);
-    if (phoneError != null) {
-      _formKey.currentState?.validate();
-      return;
-    }
-    final ok = await ref
-        .read(authProvider.notifier)
-        .sendLoginOtp(_phoneCtrl.text.trim());
-    if (!ok || !mounted) return;
-    setState(() {
-      _otpSent = true;
-      _countdown = 60;
-    });
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted || _countdown <= 1) {
-        timer.cancel();
-        if (mounted) setState(() => _countdown = 0);
-      } else {
-        setState(() => _countdown--);
-      }
-    });
-  }
-
-  void _switchMode(bool passwordMode) {
-    if (_passwordMode == passwordMode) return;
-    ref.read(authProvider.notifier).clearError();
-    setState(() {
-      _passwordMode = passwordMode;
-      _otpSent = false;
-      _otpCtrl.clear();
-    });
-    _timer?.cancel();
   }
 
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    final bottom = MediaQuery.viewInsetsOf(context).bottom;
+    final top = MediaQuery.paddingOf(context).top;
     final c = context.colors;
+    const overlap = 36.0;
+    final headerHeight = top + 250;
 
     return Scaffold(
-      backgroundColor: c.surface,
+      backgroundColor: Colors.transparent,
       resizeToAvoidBottomInset: false,
-      body: SafeArea(
-        top: false,
-        bottom: false,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(bottom: bottom),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Hero ──────────────────────────────────────────────────
-              _LoginHero(primary: c.primary),
-
-              // ── Form sheet ────────────────────────────────────────────
-              Transform.translate(
-                offset: const Offset(0, -20),
-                child: Container(
+      body: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: EdgeInsets.only(bottom: bottom + AppSpacing.xl2),
+        child: Stack(children: [
+          _LoginHeader(height: headerHeight, topInset: top),
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+                AppSpacing.lg, headerHeight - overlap, AppSpacing.lg, 0),
+            child: Form(
+              key: _formKey,
+              child: Column(children: [
+                Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(24, 28, 24, 40),
+                  padding: const EdgeInsets.all(AppSpacing.xl),
                   decoration: BoxDecoration(
+                    // Thẻ đè lên mép dưới header nên phải đặc: kính trong sẽ để
+                    // lộ đường cong cam của header xuyên qua.
                     color: c.surface,
-                    borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(AppRadius.xl)),
+                    borderRadius: BorderRadius.circular(AppRadius.xl),
+                    border: Border.all(color: c.glassBorder, width: 1.2),
+                    boxShadow: context.isDark ? null : AppShadows.raised,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Đăng nhập',
-                          style: TextStyle(
-                              fontSize: AppFontSize.display1,
-                              fontWeight: FontWeight.w800,
-                              color: c.textPrimary)),
-                      const SizedBox(height: 4),
-                      Text('Nhập số điện thoại và mật khẩu để tiếp tục',
-                          style: TextStyle(
-                              fontSize: AppFontSize.md,
-                              color: c.textSecondary)),
-                      const SizedBox(height: 20),
-
-                      // Chuyển phương thức đăng nhập. Backend hiện xác thực
-                      // OTP trong luồng khôi phục nên tab OTP dẫn vào đúng
-                      // luồng gửi/nhập mã thay vì giả lập đăng nhập cục bộ.
-                      Container(
-                        height: 44,
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: c.background,
-                          borderRadius: BorderRadius.circular(AppRadius.full),
-                          border: Border.all(color: c.divider),
-                        ),
-                        child: Row(children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => _switchMode(true),
-                              child: Container(
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: _passwordMode
-                                      ? c.surface
-                                      : Colors.transparent,
-                                  borderRadius:
-                                      BorderRadius.circular(AppRadius.full),
-                                  border: _passwordMode
-                                      ? Border.all(color: c.divider)
-                                      : null,
-                                ),
-                                child: Text('Mật khẩu',
-                                    style: TextStyle(
-                                        fontSize: AppFontSize.base,
-                                        fontWeight: FontWeight.w700,
-                                        color: _passwordMode
-                                            ? c.textPrimary
-                                            : c.textTertiary)),
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () => _switchMode(false),
-                              child: Container(
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: !_passwordMode
-                                      ? c.surface
-                                      : Colors.transparent,
-                                  borderRadius:
-                                      BorderRadius.circular(AppRadius.full),
-                                  border: !_passwordMode
-                                      ? Border.all(color: c.divider)
-                                      : null,
-                                ),
-                                child: Text('Mã OTP',
-                                    style: TextStyle(
-                                        fontSize: AppFontSize.base,
-                                        fontWeight: FontWeight.w700,
-                                        color: !_passwordMode
-                                            ? c.textPrimary
-                                            : c.textTertiary)),
-                              ),
-                            ),
-                          ),
-                        ]),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // ── Form ──────────────────────────────────────────
-                      Form(
-                        key: _formKey,
-                        child: Column(
+                      Row(children: [
+                        AppIconBadge(
+                            icon: Icons.person_rounded,
+                            color: c.primary,
+                            size: 48),
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              AppLabel('Số điện thoại'),
-                              const SizedBox(height: 6),
-                              PhoneField(
-                                controller: _phoneCtrl,
-                                hint: '0912 345 678',
-                                fillColor: c.surface,
-                                outlined: true,
-                                textInputAction: TextInputAction.next,
-                                validator: Validators.phone,
-                              ),
-                              if (_passwordMode) ...[
-                                const SizedBox(height: AppSpace.lg),
-                                AppLabel('Mật khẩu'),
-                                const SizedBox(height: 6),
-                                AppField(
-                                  controller: _passCtrl,
-                                  hint: '••••••••',
-                                  fillColor: c.surface,
-                                  outlined: true,
-                                  prefixIcon: Icon(Icons.lock_outline_rounded,
-                                      size: 20, color: c.textSecondary),
-                                  obscureText: _obscure,
-                                  textInputAction: TextInputAction.done,
-                                  onFieldSubmitted: (_) => _submit(),
-                                  suffixIcon: GestureDetector(
-                                    onTap: () =>
-                                        setState(() => _obscure = !_obscure),
-                                    child: Icon(
-                                      _obscure
-                                          ? Icons.visibility_outlined
-                                          : Icons.visibility_off_outlined,
-                                      size: 20,
-                                      color: c.textSecondary,
-                                    ),
-                                  ),
-                                  validator: Validators.password,
-                                ),
-                              ] else if (_otpSent) ...[
-                                const SizedBox(height: AppSpace.lg),
-                                AppLabel('Mã OTP'),
-                                const SizedBox(height: 6),
-                                AppField(
-                                  controller: _otpCtrl,
-                                  hint: 'Nhập mã gồm 6 chữ số',
-                                  fillColor: c.surface,
-                                  outlined: true,
-                                  prefixIcon: Icon(Icons.sms_outlined,
-                                      size: 20, color: c.textSecondary),
-                                  keyboardType: TextInputType.number,
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.digitsOnly,
-                                    LengthLimitingTextInputFormatter(6),
-                                  ],
-                                  textInputAction: TextInputAction.done,
-                                  onFieldSubmitted: (_) => _submit(),
-                                  validator: (value) => value?.length == 6
-                                      ? null
-                                      : 'Mã OTP gồm 6 chữ số',
-                                ),
-                              ],
-                              if (auth.error != null) ...[
-                                const SizedBox(height: AppSpace.lg),
-                                AppErrorBox(auth.error!),
-                              ],
-                            ]),
-                      ),
-                      const SizedBox(height: AppSpace.md),
-
-                      // ── Forgot password ─────────────────────────────────
-                      if (_passwordMode)
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: GestureDetector(
-                            onTap: () => context.push('/forgot-password'),
-                            child: Text('Quên mật khẩu?',
-                                style: TextStyle(
-                                    fontSize: AppFontSize.md,
-                                    fontWeight: FontWeight.w600,
-                                    color: c.primary)),
+                              Text('Đăng nhập',
+                                  style: AppTextStyles.screenTitle.copyWith(
+                                      color: c.textPrimary,
+                                      fontWeight: FontWeight.w800)),
+                              const SizedBox(height: AppSpacing.xxs),
+                              Text('Tạo đơn nhanh · Quản lý giao hàng dễ dàng',
+                                  style: AppTextStyles.label
+                                      .copyWith(color: c.textSecondary)),
+                            ],
                           ),
                         ),
-                      SizedBox(
-                          height: _passwordMode
-                              ? AppSpace.lg + AppSpace.xs
-                              : AppSpace.lg),
-
-                      // ── Button ───────────────────────────────────────────
-                      SizedBox(
-                        width: double.infinity,
-                        height: 54,
-                        child: FilledButton(
-                          onPressed: auth.isLoading
-                              ? null
-                              : _passwordMode
-                                  ? _submit
-                                  : _otpSent
-                                      ? _submit
-                                      : _sendLoginOtp,
-                          child: auth.isLoading
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: Colors.white))
-                              : Text(!_passwordMode && !_otpSent
-                                  ? 'Gửi mã OTP'
-                                  : 'Đăng nhập'),
-                        ),
-                      ),
-                      if (!_passwordMode && _otpSent) ...[
-                        const SizedBox(height: 12),
-                        Center(
-                          child: TextButton(
-                            onPressed: _countdown == 0 && !auth.isLoading
-                                ? _sendLoginOtp
-                                : null,
-                            child: Text(_countdown > 0
-                                ? 'Gửi lại mã sau ${_countdown}s'
-                                : 'Gửi lại mã OTP'),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: AppSpace.xl),
-
-                      // ── Divider ──────────────────────────────────────────
-                      Row(children: [
-                        Expanded(child: Divider(color: c.divider)),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text('hoặc',
-                              style: TextStyle(
-                                  fontSize: AppFontSize.base,
-                                  color: c.textTertiary)),
-                        ),
-                        Expanded(child: Divider(color: c.divider)),
                       ]),
-                      const SizedBox(height: AppSpace.xl),
-
-                      // ── Register link ────────────────────────────────────
-                      Center(
-                        child: GestureDetector(
-                          onTap: () => context.push('/register'),
-                          child: Row(mainAxisSize: MainAxisSize.min, children: [
-                            Text('Chưa có tài khoản? ',
-                                style: TextStyle(
-                                    fontSize: AppFontSize.md,
-                                    color: c.textSecondary)),
-                            Text('Đăng ký cửa hàng mới',
-                                style: TextStyle(
-                                    fontSize: AppFontSize.md,
-                                    fontWeight: FontWeight.w700,
-                                    color: c.primary)),
-                          ]),
+                      const SizedBox(height: AppSpacing.xl),
+                      PhoneField(
+                        controller: _phoneCtrl,
+                        hint: '0912 345 678',
+                        fillColor: c.surfaceAlt,
+                        outlined: true,
+                        textInputAction: TextInputAction.next,
+                        validator: Validators.phone,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      AppField(
+                        controller: _passCtrl,
+                        hint: 'Mật khẩu',
+                        fillColor: c.surfaceAlt,
+                        outlined: true,
+                        prefixIcon: Icon(Icons.lock_outline_rounded,
+                            size: AppSize.iconMd, color: c.textSecondary),
+                        obscureText: _obscure,
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) => _submit(),
+                        suffixIcon: IconButton(
+                          onPressed: () => setState(() => _obscure = !_obscure),
+                          icon: Icon(
+                            _obscure
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                            size: AppSize.iconMd,
+                            color: c.textSecondary,
+                          ),
                         ),
+                        validator: Validators.password,
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => context.push('/forgot-password'),
+                          child: const Text('Quên mật khẩu?'),
+                        ),
+                      ),
+                      if (auth.error != null) ...[
+                        const SizedBox(height: AppSpacing.xs),
+                        AppErrorBox(auth.error!),
+                        const SizedBox(height: AppSpacing.md),
+                      ],
+                      AppButton(
+                        label: 'Đăng nhập',
+                        isLoading: auth.isLoading,
+                        onPressed: _submit,
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: AppSpacing.xl),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text('Chưa có tài khoản? ',
+                        style: AppTextStyles.body
+                            .copyWith(color: c.textSecondary)),
+                    TextButton(
+                      onPressed: () => context.push('/register'),
+                      child: const Text('Đăng ký ngay'),
+                    ),
+                  ],
+                ),
+              ]),
+            ),
           ),
-        ),
+        ]),
       ),
     );
   }
 }
 
-// ─── Khối thương hiệu ────────────────────────────────────────────────────────
-
-class _LoginHero extends StatelessWidget {
-  final Color primary;
-  const _LoginHero({required this.primary});
+/// Phần đầu trang: nền gradient cam bo cong phía dưới, đốm sáng mềm phía sau và
+/// logo đặt trên tấm kính mờ — cùng ngôn ngữ với màn splash.
+class _LoginHeader extends StatelessWidget {
+  final double height;
+  final double topInset;
+  const _LoginHeader({required this.height, required this.topInset});
 
   @override
   Widget build(BuildContext context) {
-    final top = MediaQuery.of(context).padding.top;
     return Container(
+      height: height,
       width: double.infinity,
-      height: top + 220,
-      decoration: BoxDecoration(
-        color: context.colors.surface,
+      clipBehavior: Clip.antiAlias,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.primaryGradientStart,
+            AppColors.primaryGradientMiddle,
+            AppColors.primaryGradientEnd,
+          ],
+        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(36)),
       ),
-      child: Stack(
-        clipBehavior: Clip.hardEdge,
-        children: [
-          Positioned(
-            left: 24,
-            bottom: 26,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: context.colors.primarySoft,
-                    borderRadius: BorderRadius.circular(14),
+      child: Stack(children: [
+        // Đốm sáng để kính có thứ "khúc xạ".
+        const Positioned(
+          top: -40,
+          left: -90,
+          child: SoftGlow(
+              color: Color(0xFFFFE08A), diameter: 280, alpha: 0.55),
+        ),
+        const Positioned(
+          bottom: -30,
+          right: -80,
+          child: SoftGlow(
+              color: Color(0xFFFF5A2A), diameter: 300, alpha: 0.50),
+        ),
+        const Positioned(
+          top: 30,
+          right: -50,
+          child: SoftGlow(
+              color: Color(0xFF3DBE6B), diameter: 190, alpha: 0.40),
+        ),
+
+        // Vài viên kính nhỏ nổi xung quanh.
+        Positioned(top: topInset + 34, left: 26, child: const GlassOrb(size: 44)),
+        Positioned(
+            top: topInset + 96, right: 30, child: const GlassOrb(size: 26)),
+        const Positioned(bottom: 62, left: 40, child: GlassOrb(size: 30)),
+        const Positioned(bottom: 50, right: 52, child: GlassOrb(size: 48)),
+
+        // Logo trên tấm kính mờ.
+        Padding(
+          padding: EdgeInsets.only(top: topInset, bottom: 36),
+          child: Center(
+            child: GlassPanel(
+              radius: 30,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+                // Ảnh logo có viền trong suốt rộng: cắt bớt để logo to hơn mà
+                // tấm kính vẫn gọn.
+                child: ClipRect(
+                  child: Align(
+                    alignment: const Alignment(0.13, -0.02),
+                    widthFactor: 0.78,
+                    heightFactor: 0.68,
+                    child: Image.asset('assets/images/logo-vertical.png',
+                        width: 210, fit: BoxFit.contain),
                   ),
-                  child: Icon(Icons.layers_rounded, color: primary, size: 24),
                 ),
-                const SizedBox(height: 8),
-                const Text('FlashShip Shop',
-                    style: TextStyle(
-                        fontSize: AppFontSize.xxxl,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary)),
-                const SizedBox(height: 2),
-                Text('Quản lý đơn giao hàng cho cửa hàng của bạn',
-                    style: TextStyle(
-                        fontSize: AppFontSize.md,
-                        color: context.colors.textSecondary)),
-              ],
+              ),
             ),
           ),
-        ],
-      ),
+        ),
+      ]),
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 import '../services/location_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/map_style.dart';
+import 'app_decor_widgets.dart';
 
 class MapPickResult {
   final String address;
@@ -76,7 +77,16 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
 
   Future<void> _loadGpsLocation() async {
     final pos = await LocationService.getCurrentPosition();
-    if (!mounted || pos == null) return;
+    if (!mounted) return;
+    if (pos == null) {
+      // Không lấy được vị trí hiện tại: giữ tâm bản đồ mặc định và nhắc người
+      // dùng tự kéo bản đồ tới chỗ cần chọn.
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text(
+            'Không lấy được vị trí hiện tại. Hãy kéo bản đồ tới địa điểm cần chọn.'),
+      ));
+      return;
+    }
     _centerLat = pos.latitude;
     _centerLng = pos.longitude;
     if (_mapReady && _controller != null) {
@@ -133,7 +143,8 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = context.isDark;
+    final canConfirm = !_loadingAddress && _address != null;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -141,176 +152,161 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
         statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
       ),
       child: Scaffold(
-        backgroundColor: c.surface,
-        body: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-                decoration: BoxDecoration(
-                  color: c.surface,
-                  border: Border(bottom: BorderSide(color: c.divider)),
-                ),
-                child: Row(
-                  children: [
-                    InkWell(
-                      onTap: () => Navigator.of(context).pop(),
+        backgroundColor: Colors.transparent,
+        body: Column(
+          children: [
+            AppPageHeader(
+              title: 'Chọn vị trí shop',
+              subtitle: 'Kéo bản đồ để đặt ghim đúng vị trí',
+              onBack: () => Navigator.of(context).pop(),
+            ),
+            Expanded(
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: gm.GoogleMap(
+                      style: _mapStyle,
+                      initialCameraPosition: gm.CameraPosition(
+                        target: gm.LatLng(_centerLat, _centerLng),
+                        zoom: 15.5,
+                      ),
+                      onMapCreated: _onMapCreated,
+                      onCameraMove: _onCameraMove,
+                      onCameraIdle: _onCameraIdle,
+                      myLocationEnabled: _hasLocationPermission,
+                      myLocationButtonEnabled: false,
+                      zoomControlsEnabled: false,
+                      compassEnabled: false,
+                      mapToolbarEnabled: false,
+                    ),
+                  ),
+                  // Ghim cố định giữa bản đồ + chấm bóng dưới đầu nhọn.
+                  IgnorePointer(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 44),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.location_pin,
+                                color: c.primary, size: 52),
+                            Container(
+                              width: 12,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.25),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: AppSpacing.lg,
+                    right: AppSpacing.lg,
+                    child: Material(
+                      color: c.surface,
+                      elevation: 3,
+                      shadowColor: c.shadow,
                       borderRadius: BorderRadius.circular(AppRadius.md),
-                      child: Container(
-                        width: 42,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: c.surface,
-                          borderRadius: BorderRadius.circular(AppRadius.md),
-                          border: Border.all(color: c.divider),
-                        ),
-                        child: Icon(Icons.arrow_back_ios_new_rounded,
-                            size: 17, color: c.textPrimary),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Text('Chọn vị trí shop',
-                        style: TextStyle(
-                            fontSize: AppFontSize.xxl,
-                            fontWeight: FontWeight.w800,
-                            color: c.textPrimary)),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: gm.GoogleMap(
-                        style: _mapStyle,
-                        initialCameraPosition: gm.CameraPosition(
-                          target: gm.LatLng(_centerLat, _centerLng),
-                          zoom: 15.5,
-                        ),
-                        onMapCreated: _onMapCreated,
-                        onCameraMove: _onCameraMove,
-                        onCameraIdle: _onCameraIdle,
-                        myLocationEnabled: _hasLocationPermission,
-                        myLocationButtonEnabled: false,
-                        zoomControlsEnabled: false,
-                        compassEnabled: false,
-                        mapToolbarEnabled: false,
-                      ),
-                    ),
-                    const IgnorePointer(
-                      child: Center(
-                        child: Padding(
-                          padding: EdgeInsets.only(bottom: 42),
-                          child: Icon(Icons.location_pin,
-                              color: AppColors.primary, size: 58),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 18,
-                      right: 18,
-                      child: Material(
-                        color: c.surface,
+                      child: InkWell(
+                        onTap: _loadGpsLocation,
                         borderRadius: BorderRadius.circular(AppRadius.md),
-                        child: InkWell(
-                          onTap: _loadGpsLocation,
-                          borderRadius: BorderRadius.circular(AppRadius.md),
-                          child: Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(AppRadius.md),
-                              border: Border.all(color: c.divider),
-                              boxShadow: c.cardShadow,
-                            ),
-                            child: Icon(Icons.my_location_rounded,
-                                size: 22, color: c.textPrimary),
-                          ),
+                        child: SizedBox(
+                          width: 46,
+                          height: 46,
+                          child: Icon(Icons.my_location_rounded,
+                              size: AppSize.iconMd, color: c.primary),
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.fromLTRB(
-                    20, 18, 20, MediaQuery.paddingOf(context).bottom + 18),
-                decoration: BoxDecoration(
-                  color: c.surface,
-                  border: Border(top: BorderSide(color: c.divider)),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.location_on_outlined,
-                            color: c.primary, size: 24),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 180),
-                            layoutBuilder: (currentChild, previousChildren) =>
-                                Stack(
-                              alignment: Alignment.centerLeft,
-                              children: [
-                                ...previousChildren,
-                                if (currentChild != null) currentChild,
-                              ],
-                            ),
-                            child: _loadingAddress
-                                ? Padding(
-                                    key: const ValueKey('loading'),
-                                    padding: const EdgeInsets.only(top: 8),
+            ),
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                  MediaQuery.paddingOf(context).bottom + AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: c.surface,
+                borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(AppRadius.xl)),
+                boxShadow: isDark ? null : AppShadows.raised,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('ĐỊA CHỈ ĐÃ CHỌN',
+                      style: AppTextStyles.caption
+                          .copyWith(color: c.textTertiary, letterSpacing: .6)),
+                  const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Icon(Icons.location_on_rounded,
+                            color: c.primary, size: AppSize.iconMd),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: AnimatedSwitcher(
+                          duration: AppDuration.fast,
+                          layoutBuilder: (currentChild, previousChildren) =>
+                              Stack(
+                            alignment: Alignment.centerLeft,
+                            children: [
+                              ...previousChildren,
+                              if (currentChild != null) currentChild,
+                            ],
+                          ),
+                          child: _loadingAddress
+                              ? Padding(
+                                  key: const ValueKey('loading'),
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: ClipRRect(
+                                    borderRadius:
+                                        BorderRadius.circular(AppRadius.full),
                                     child: LinearProgressIndicator(
                                         color: c.primary,
                                         backgroundColor: c.primarySoft),
-                                  )
-                                : Text(
-                                    _address ?? 'Đang xác định địa chỉ...',
-                                    key: ValueKey(_address),
-                                    style: TextStyle(
-                                        fontSize: AppFontSize.xl,
-                                        height: 1.35,
-                                        fontWeight: FontWeight.w700,
-                                        color: c.textPrimary),
-                                    textAlign: TextAlign.left,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
-                          ),
+                                )
+                              : Text(
+                                  _address ?? 'Đang xác định địa chỉ...',
+                                  key: ValueKey(_address),
+                                  style: AppTextStyles.bodyStrong.copyWith(
+                                      fontSize: AppFontSize.md,
+                                      height: 1.35,
+                                      color: c.textPrimary),
+                                  textAlign: TextAlign.left,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      height: 54,
-                      child: FilledButton(
-                        onPressed: (_loadingAddress || _address == null)
-                            ? null
-                            : _confirm,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: c.primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.full),
-                          ),
-                        ),
-                        child: const Text('Chọn địa điểm này',
-                            style: TextStyle(
-                                fontSize: AppFontSize.xl,
-                                fontWeight: FontWeight.w700)),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  FilledButton.icon(
+                    onPressed: canConfirm ? _confirm : null,
+                    style: FilledButton.styleFrom(
+                        minimumSize:
+                            const Size.fromHeight(AppSize.buttonHeight)),
+                    icon: const Icon(Icons.check_rounded, size: AppSize.iconMd),
+                    label: const Text('Chọn địa điểm này'),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

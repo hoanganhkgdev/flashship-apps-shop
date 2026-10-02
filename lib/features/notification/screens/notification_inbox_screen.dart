@@ -1,3 +1,4 @@
+import '../../../core/widgets/app_decor_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -82,90 +83,31 @@ class _NotificationInboxScreenState
     final c = context.colors;
 
     return Scaffold(
-      backgroundColor: c.background,
+      backgroundColor: Colors.transparent,
       body: Column(
         children: [
           // ── Header ────────────────────────────────────────────────────
-          Container(
-            padding: EdgeInsets.fromLTRB(
-                20, MediaQuery.of(context).padding.top + 12, 20, 16),
-            decoration: BoxDecoration(
-              color: c.surface,
-              border: Border(bottom: BorderSide(color: c.divider)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                GestureDetector(
-                  onTap: () => context.pop(),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: c.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: c.divider),
-                    ),
-                    child: Icon(Icons.arrow_back_ios_new_rounded,
-                        size: 16, color: c.textPrimary),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: [
-                    Text('Thông báo',
-                        style: TextStyle(
-                            fontSize: AppFontSize.display1,
-                            fontWeight: FontWeight.w800,
-                            color: c.textPrimary)),
-                    if (unreadCount > 0) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: c.primary,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text('$unreadCount',
-                            style: const TextStyle(
-                                fontSize: AppFontSize.sm,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white)),
-                      ),
-                    ],
-                  ]),
-                  if (unreadCount > 0) ...[
-                    const SizedBox(height: 2),
-                    Text('$unreadCount thông báo chưa đọc',
-                        style: TextStyle(
-                            fontSize: AppFontSize.sm, color: c.textSecondary)),
-                  ],
-                ]),
-                const Spacer(),
-                if (unreadCount > 0)
-                  GestureDetector(
-                    onTap: () =>
+          AppPageHeader(
+            title: 'Thông báo',
+            subtitle:
+                unreadCount > 0 ? '$unreadCount thông báo chưa đọc' : null,
+            onBack: () => context.pop(),
+            trailing: unreadCount > 0
+                ? TextButton(
+                    onPressed: () =>
                         ref.read(notificationProvider.notifier).markAllRead(),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: c.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text('Đọc tất cả',
-                          style: TextStyle(
-                              fontSize: AppFontSize.sm,
-                              fontWeight: FontWeight.w700,
-                              color: c.primary)),
+                    style: TextButton.styleFrom(
+                      backgroundColor: c.primarySoft,
+                      foregroundColor: c.primary,
+                      shape: const StadiumBorder(),
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
                     ),
-                  ),
-              ],
-            ),
+                    child: const Text('Đọc tất cả'),
+                  )
+                : null,
           ),
 
-          // ── List ──────────────────────────────────────────────────────
+// ── List ──────────────────────────────────────────────────────
           Expanded(
             child: groups.isEmpty
                 ? const _EmptyState()
@@ -301,7 +243,7 @@ class _GroupCardState extends State<_GroupCard> {
           borderRadius: BorderRadius.circular(AppRadius.card),
           child: Container(
             decoration: BoxDecoration(
-              color: c.surface,
+              color: c.glass,
               borderRadius: BorderRadius.circular(AppRadius.card),
               border: Border.all(color: unread ? c.primary : c.divider),
             ),
@@ -317,10 +259,8 @@ class _GroupCardState extends State<_GroupCard> {
                         Container(
                           width: 44,
                           height: 44,
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: .12),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          decoration: glassIconDecoration(context, color,
+                              radius: AppRadius.sm),
                           child: Icon(icon, size: 22, color: color),
                         ),
                         if (g.isGrouped)

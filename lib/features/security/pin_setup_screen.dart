@@ -62,7 +62,7 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
     final c = context.colors;
 
     return Scaffold(
-      backgroundColor: c.background,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

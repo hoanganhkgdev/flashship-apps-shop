@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 
-/// Hành trình lấy → giao: vòng rỗng (điểm lấy) nối chấm đặc (điểm giao) bằng
+/// Hành trình lấy → giao: chấm đỏ (điểm lấy) nối chấm xanh lá (điểm giao) bằng
 /// một đường mảnh. Dùng chung cho thẻ đơn ở trang chủ và danh sách đơn.
 class OrderRouteLines extends StatelessWidget {
   final String pickup;
@@ -18,7 +18,7 @@ class OrderRouteLines extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final pickupColor = dimmed ? c.textTertiary : c.primary;
+    final pickupColor = dimmed ? c.textTertiary : c.danger;
     final deliveryColor = dimmed ? c.textTertiary : c.success;
 
     return IntrinsicHeight(
@@ -43,10 +43,8 @@ class OrderRouteLines extends StatelessWidget {
             Container(
               width: 10,
               height: 10,
-              decoration: BoxDecoration(
-                color: deliveryColor,
-                borderRadius: BorderRadius.circular(3),
-              ),
+              decoration:
+                  BoxDecoration(shape: BoxShape.circle, color: deliveryColor),
             ),
             const SizedBox(height: 4),
           ]),
@@ -63,7 +61,7 @@ class OrderRouteLines extends StatelessWidget {
                       fontSize: AppFontSize.sm, color: c.textTertiary)),
               const SizedBox(height: 8),
               Text(delivery.isEmpty ? '—' : delivery,
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                       fontSize: AppFontSize.md,
