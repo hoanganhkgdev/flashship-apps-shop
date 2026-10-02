@@ -567,7 +567,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
             child: Column(children: [
               // ── Header ──────────────────────────────────────────────────
               AppPageHeader(
-                title: 'Đặt đơn',
+                // Luồng cố định theo loại đơn: tiêu đề cho biết đang tạo đơn nào.
+                title: _isOutbound ? 'Giao hàng' : 'Lấy hàng',
                 subtitle: _isOutbound
                     ? 'Tài xế lấy hàng tại shop và giao tới khách'
                     : 'Tài xế lấy hàng tại điểm lấy và giao về shop',
@@ -650,8 +651,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                             _ContactPhoneField(
                               icon: Icons.phone_iphone_rounded,
                               label: _isOutbound
-                                  ? 'SĐT người nhận (bắt buộc)'
-                                  : 'SĐT cửa hàng nhận (bắt buộc)',
+                                  ? 'SĐT người nhận'
+                                  : 'SĐT cửa hàng nhận',
                               controller: _receiverPhoneCtrl,
                               warn: _showPhoneWarning,
                               onChanged: (v) => setState(() {
@@ -664,7 +665,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                               Divider(height: 1, indent: 16, color: c.divider),
                               _ContactPhoneField(
                                 icon: Icons.call_outlined,
-                                label: 'SĐT người giao (bắt buộc)',
+                                label: 'SĐT người giao',
                                 controller: _senderPhoneCtrl,
                                 warn: _submitAttempted &&
                                     _senderPhone.trim().isEmpty,
