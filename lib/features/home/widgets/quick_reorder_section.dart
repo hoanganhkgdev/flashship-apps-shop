@@ -9,6 +9,8 @@ class _QuickReorderSection extends ConsumerWidget {
   const _QuickReorderSection();
 
   static const _maxItems = 6;
+  static const _shadowTop = 14.0;
+  static const _shadowBottom = 22.0;
 
   String _key(OrderModel o) => o.isBatch
       ? 'batch|${o.stops.length}|${o.stops.isNotEmpty ? o.stops.first['address'] : ''}'
@@ -29,11 +31,13 @@ class _QuickReorderSection extends ConsumerWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const _SectionTitle(icon: Icons.replay_rounded, title: 'Đặt lại nhanh'),
       SizedBox(
-        height: 148,
+        // Thẻ cao 132 + chừa trên/dưới cho bóng (blur 16, lệch xuống 4 → lan
+        // ~12px lên và ~20px xuống); ListView cắt mọi thứ ngoài khung nên thiếu
+        // chỗ thì bóng bị đứt thành một đường thẳng.
+        height: 132 + _shadowTop + _shadowBottom,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
-          // Chừa chỗ cho bóng thẻ không bị cắt.
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+          padding: const EdgeInsets.fromLTRB(20, _shadowTop, 20, _shadowBottom),
           itemCount: recent.length,
           separatorBuilder: (_, __) => const SizedBox(width: 10),
           itemBuilder: (_, i) => _ReorderTile(order: recent[i]),
