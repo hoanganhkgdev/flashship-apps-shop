@@ -439,6 +439,8 @@ class _CreateBatchOrderScreenState
                 hasDestination: stop.destination != null,
               ))
           .toList(growable: false),
+      areasAvailable:
+          ref.read(destinationPricesProvider).valueOrNull?.isNotEmpty ?? false,
     );
     if (validationError != null) {
       ScaffoldMessenger.of(context).showSnackBar(

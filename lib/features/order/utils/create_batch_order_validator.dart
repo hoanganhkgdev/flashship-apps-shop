@@ -24,6 +24,8 @@ class CreateBatchOrderValidator {
     required double? pickupLat,
     required double? pickupLng,
     required List<BatchStopValidationInput> stops,
+    // Thành phố có khu vực giao để chọn (chỉ để thông báo cho đúng).
+    bool areasAvailable = false,
   }) {
     if (pickupAddress.trim().isEmpty) {
       return 'Vui lòng nhập địa chỉ cửa hàng';
@@ -36,7 +38,9 @@ class CreateBatchOrderValidator {
       // SĐT người nhận không bắt buộc: tài xế có thể xin shop sau.
       if (stop.hasDestination) continue;
       if (stop.address.trim().isEmpty) {
-        return 'Điểm ${index + 1}: cần nhập địa chỉ hoặc chọn khu vực giao';
+        return areasAvailable
+            ? 'Điểm ${index + 1}: cần nhập địa chỉ hoặc chọn khu vực giao'
+            : 'Điểm ${index + 1}: cần nhập địa chỉ';
       }
       if (stop.lat == null || stop.lng == null) {
         return 'Điểm ${index + 1}: vui lòng chọn địa chỉ từ gợi ý hoặc bản đồ';

@@ -31,8 +31,23 @@ void main() {
           validStop,
           BatchStopValidationInput(address: '', phone: '', lat: 10, lng: 106),
         ],
+        areasAvailable: true,
       ),
       'Điểm 2: cần nhập địa chỉ hoặc chọn khu vực giao',
+    );
+  });
+
+  test('the stop message only mentions areas when the city has some', () {
+    expect(
+      CreateBatchOrderValidator.validate(
+        pickupAddress: 'Shop',
+        pickupLat: 10,
+        pickupLng: 106,
+        stops: const [
+          BatchStopValidationInput(address: '', phone: '', lat: 10, lng: 106),
+        ],
+      ),
+      'Điểm 1: cần nhập địa chỉ',
     );
   });
 

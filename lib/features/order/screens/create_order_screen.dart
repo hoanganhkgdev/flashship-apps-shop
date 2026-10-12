@@ -413,6 +413,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       deliveryLat: _deliveryLat,
       deliveryLng: _deliveryLng,
       hasDestination: _hasDestination,
+      areasAvailable: _isOutbound &&
+          (ref.read(destinationPricesProvider).valueOrNull?.isNotEmpty ??
+              false),
     );
     if (locationError != null) {
       setState(() => _error = locationError);

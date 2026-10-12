@@ -13,11 +13,16 @@ class CreateOrderValidator {
     // Đã chọn khu vực giao: địa chỉ/toạ độ điểm giao không bắt buộc (hệ thống
     // dùng tâm khu vực), nhưng điểm lấy vẫn cần.
     bool hasDestination = false,
+    // Thành phố có khu vực giao để chọn: thông báo thiếu điểm giao nhắc tới
+    // khu vực; không có thì chỉ nhắc nhập địa chỉ.
+    bool areasAvailable = false,
   }) {
-    if (pickupAddress == null || (deliveryAddress == null && !hasDestination)) {
-      return hasDestination
-          ? 'Vui lòng chọn điểm lấy hàng'
-          : 'Vui lòng chọn điểm lấy và điểm giao';
+    if (pickupAddress == null) return 'Vui lòng chọn điểm lấy hàng';
+    // Điểm giao cần ít nhất một trong hai: địa chỉ giao hoặc khu vực giao.
+    if (deliveryAddress == null && !hasDestination) {
+      return areasAvailable
+          ? 'Vui lòng nhập địa chỉ giao hàng hoặc chọn khu vực giao'
+          : 'Vui lòng chọn điểm giao';
     }
     if (pickupLat == null || pickupLng == null) {
       return 'Đang xác định toạ độ, vui lòng đợi vài giây rồi thử lại.';
