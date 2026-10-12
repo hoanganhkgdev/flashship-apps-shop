@@ -117,14 +117,14 @@ void main() {
     );
   });
 
-  test('delivery does not require the receiver phone', () {
+  test('delivery requires the receiver phone', () {
     expect(
       CreateOrderValidator.contacts(
         orderType: ShopOrderType.delivery,
-        receiverPhone: '',
+        receiverPhone: '  ',
         senderPhone: '',
       ),
-      isNull,
+      'Vui lòng nhập SĐT người nhận',
     );
   });
 

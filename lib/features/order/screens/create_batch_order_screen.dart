@@ -987,7 +987,8 @@ class _StopCard extends StatelessWidget {
       );
 
   bool get _complete =>
-      stop.addressCtrl.text.trim().isNotEmpty || stop.destination != null;
+      (stop.addressCtrl.text.trim().isNotEmpty || stop.destination != null) &&
+      stop.phoneCtrl.text.trim().isNotEmpty;
 
   Widget _indexBadge(BuildContext context) {
     final c = context.colors;
@@ -1219,7 +1220,7 @@ class _StopCard extends StatelessWidget {
         _BareField(
           controller: stop.phoneCtrl,
           icon: Icons.phone_iphone_rounded,
-          hint: 'SĐT người nhận (không bắt buộc)',
+          hint: 'SĐT người nhận (bắt buộc)',
           keyboardType: TextInputType.phone,
         ),
         Divider(height: 1, color: c.divider),

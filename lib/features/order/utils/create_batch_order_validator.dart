@@ -35,15 +35,20 @@ class CreateBatchOrderValidator {
     }
     for (var index = 0; index < stops.length; index++) {
       final stop = stops[index];
-      // SĐT người nhận không bắt buộc: tài xế có thể xin shop sau.
-      if (stop.hasDestination) continue;
-      if (stop.address.trim().isEmpty) {
-        return areasAvailable
-            ? 'Điểm ${index + 1}: cần nhập địa chỉ hoặc chọn khu vực giao'
-            : 'Điểm ${index + 1}: cần nhập địa chỉ';
+      final n = index + 1;
+      // Điểm giao cần địa chỉ (có toạ độ) hoặc khu vực giao.
+      if (!stop.hasDestination) {
+        if (stop.address.trim().isEmpty) {
+          return areasAvailable
+              ? 'Điểm $n: cần nhập địa chỉ hoặc chọn khu vực giao'
+              : 'Điểm $n: cần nhập địa chỉ';
+        }
+        if (stop.lat == null || stop.lng == null) {
+          return 'Điểm $n: vui lòng chọn địa chỉ từ gợi ý hoặc bản đồ';
+        }
       }
-      if (stop.lat == null || stop.lng == null) {
-        return 'Điểm ${index + 1}: vui lòng chọn địa chỉ từ gợi ý hoặc bản đồ';
+      if (stop.phone.trim().isEmpty) {
+        return 'Điểm $n: cần nhập SĐT người nhận';
       }
     }
     return null;

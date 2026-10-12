@@ -51,18 +51,19 @@ void main() {
     );
   });
 
-  test('does not require the receiver phone on a stop', () {
+  test('requires the receiver phone on every stop', () {
     expect(
       CreateBatchOrderValidator.validate(
         pickupAddress: 'Shop',
         pickupLat: 10,
         pickupLng: 106,
         stops: const [
+          validStop,
           BatchStopValidationInput(
-              address: 'Điểm giao', phone: '', lat: 10, lng: 106),
+              address: 'Điểm giao', phone: ' ', lat: 10, lng: 106),
         ],
       ),
-      isNull,
+      'Điểm 2: cần nhập SĐT người nhận',
     );
   });
 
@@ -74,7 +75,7 @@ void main() {
         pickupLng: 106,
         stops: const [
           BatchStopValidationInput(
-              address: '', phone: '', hasDestination: true),
+              address: '', phone: '0900000000', hasDestination: true),
         ],
       ),
       isNull,

@@ -608,8 +608,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     return result ?? false;
   }
 
-  // Chỉ đơn lấy hàng mới bắt buộc SĐT nhận (là SĐT cửa hàng).
-  bool get _needsPhone => !_isOutbound && _receiverPhone.trim().isEmpty;
+  bool get _needsPhone => _receiverPhone.trim().isEmpty;
 
   bool get _showPhoneWarning => _submitAttempted && _needsPhone;
 
@@ -726,7 +725,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                             _ContactPhoneField(
                               icon: Icons.phone_iphone_rounded,
                               label: _isOutbound
-                                  ? 'SĐT người nhận (không bắt buộc)'
+                                  ? 'SĐT người nhận'
                                   : 'SĐT cửa hàng nhận',
                               controller: _receiverPhoneCtrl,
                               warn: _showPhoneWarning,
