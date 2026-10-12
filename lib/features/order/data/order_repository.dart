@@ -204,7 +204,7 @@ class CreateBatchStopRequest {
 
   Map<String, dynamic> toJson() => {
         'address': address,
-        'phone': phone,
+        if (phone.isNotEmpty) 'phone': phone,
         'name': name,
         'note': note,
         'lat': lat,

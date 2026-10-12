@@ -32,7 +32,22 @@ void main() {
           BatchStopValidationInput(address: '', phone: '', lat: 10, lng: 106),
         ],
       ),
-      'Điểm 2: cần nhập địa chỉ và SĐT',
+      'Điểm 2: cần nhập địa chỉ',
+    );
+  });
+
+  test('does not require the receiver phone on a stop', () {
+    expect(
+      CreateBatchOrderValidator.validate(
+        pickupAddress: 'Shop',
+        pickupLat: 10,
+        pickupLng: 106,
+        stops: const [
+          BatchStopValidationInput(
+              address: 'Điểm giao', phone: '', lat: 10, lng: 106),
+        ],
+      ),
+      isNull,
     );
   });
 

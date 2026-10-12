@@ -29,8 +29,9 @@ class CreateBatchOrderValidator {
     }
     for (var index = 0; index < stops.length; index++) {
       final stop = stops[index];
-      if (stop.address.trim().isEmpty || stop.phone.trim().isEmpty) {
-        return 'Điểm ${index + 1}: cần nhập địa chỉ và SĐT';
+      // SĐT người nhận không bắt buộc: tài xế có thể xin shop sau.
+      if (stop.address.trim().isEmpty) {
+        return 'Điểm ${index + 1}: cần nhập địa chỉ';
       }
       if (stop.lat == null || stop.lng == null) {
         return 'Điểm ${index + 1}: vui lòng chọn địa chỉ từ gợi ý hoặc bản đồ';
