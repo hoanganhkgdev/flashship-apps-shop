@@ -1978,7 +1978,17 @@ class _DestinationSheet extends StatefulWidget {
 }
 
 class _DestinationSheetState extends State<_DestinationSheet> {
+  // Chỉ cần ô tìm kiếm khi danh sách đủ dài để phải cuộn.
+  static const _searchThreshold = 8;
+
+  final _searchCtrl = TextEditingController();
   String _query = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1987,51 +1997,133 @@ class _DestinationSheetState extends State<_DestinationSheet> {
     final shown = widget.options
         .where((o) => q.isEmpty || o.name.toLowerCase().contains(q))
         .toList();
-    return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+    return AppSheet(
+      icon: Icons.sell_rounded,
+      title: 'Khu vực giao',
+      subtitle: 'Chọn nơi giao để áp giá cố định',
+      scrollable: false,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
-          child: TextField(
-            onChanged: (v) => setState(() => _query = v),
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search_rounded),
-              hintText: 'Tìm khu vực giao',
+        if (widget.options.length > _searchThreshold)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg, AppSpacing.md, AppSpacing.lg, 0),
+            child: AppField(
+              controller: _searchCtrl,
+              hint: 'Tìm khu vực giao',
+              prefixIcon: const Icon(Icons.search_rounded),
+              textInputAction: TextInputAction.search,
+              onChanged: (v) => setState(() => _query = v),
             ),
           ),
-        ),
         Flexible(
-          child: ListView(shrinkWrap: true, children: [
-            ListTile(
-              leading: Icon(Icons.route_rounded, color: c.primary),
-              title: const Text('Tự tính theo quãng đường'),
-              trailing: widget.selectedId == null
-                  ? Icon(Icons.check_rounded, color: c.primary)
-                  : null,
-              onTap: () => Navigator.pop(context, widget.autoOption),
-            ),
-            for (final o in shown)
-              ListTile(
-                title: Text(o.name),
-                subtitle: o.feeMax != null && o.feeMax! > o.fee
-                    ? Text('Tối đa ${Fmt.currency(o.feeMax!)}')
-                    : null,
-                trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Text(Fmt.currency(o.fee),
-                      style: AppTextStyles.body
-                          .copyWith(fontWeight: FontWeight.w600)),
-                  if (o.id == widget.selectedId) ...[
-                    const SizedBox(width: AppSpacing.sm),
-                    Icon(Icons.check_rounded, color: c.primary),
-                  ],
-                ]),
-                onTap: () => Navigator.pop(context, o),
-              ),
-          ]),
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xl),
+            children: [
+              if (q.isEmpty) ...[
+                _DestinationTile(
+                  icon: Icons.route_rounded,
+                  title: 'Tự tính theo quãng đường',
+                  subtitle: 'Giá theo km, tự áp giá khu vực nếu trùng',
+                  selected: widget.selectedId == null,
+                  onTap: () => Navigator.pop(context, widget.autoOption),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+              ],
+              if (shown.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+                  child: Center(
+                    child: Text('Không tìm thấy khu vực phù hợp',
+                        style: AppTextStyles.body
+                            .copyWith(color: c.textSecondary)),
+                  ),
+                ),
+              for (final o in shown) ...[
+                _DestinationTile(
+                  icon: Icons.location_on_rounded,
+                  title: o.name,
+                  subtitle: o.feeMax != null && o.feeMax! > o.fee
+                      ? 'Tối đa ${Fmt.currency(o.feeMax!)}'
+                      : null,
+                  price: Fmt.currency(o.fee),
+                  selected: o.id == widget.selectedId,
+                  onTap: () => Navigator.pop(context, o),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+              ],
+            ],
+          ),
         ),
       ]),
+    );
+  }
+}
+
+class _DestinationTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final String? price;
+  final bool selected;
+  final VoidCallback onTap;
+  const _DestinationTile({
+    required this.icon,
+    required this.title,
+    required this.selected,
+    required this.onTap,
+    this.subtitle,
+    this.price,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Material(
+      color: selected ? c.primarySoft : c.surfaceAlt,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+          child: Row(children: [
+            Icon(icon,
+                size: AppSize.iconMd,
+                color: selected ? c.primary : c.textSecondary),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: AppTextStyles.bodyStrong.copyWith(
+                          color: selected ? c.primary : c.textPrimary)),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: AppSpacing.xxs),
+                    Text(subtitle!,
+                        style: AppTextStyles.label
+                            .copyWith(color: c.textSecondary)),
+                  ],
+                ],
+              ),
+            ),
+            if (price != null) ...[
+              const SizedBox(width: AppSpacing.md),
+              Text(price!,
+                  style: AppTextStyles.bodyStrong
+                      .copyWith(color: selected ? c.primary : c.textPrimary)),
+            ],
+            if (selected) ...[
+              const SizedBox(width: AppSpacing.sm),
+              Icon(Icons.check_circle_rounded,
+                  size: AppSize.iconMd, color: c.primary),
+            ],
+          ]),
+        ),
+      ),
     );
   }
 }

@@ -110,4 +110,45 @@ void main() {
     expect(find.text('55.000đ'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('destination sheet searches long lists and reports no match',
+      (tester) async {
+    tester.view.physicalSize = const Size(440, 956);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          destinationPricesProvider.overrideWith((ref) async => [
+                for (var i = 1; i <= 10; i++)
+                  DestinationPrice(id: i, name: 'Điểm $i', fee: 10000 * i),
+                const DestinationPrice(id: 11, name: 'Sân bay', fee: 55000),
+              ]),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: const CreateOrderScreen(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.text('KHU VỰC GIAO (GIÁ CỐ ĐỊNH)'));
+    await tester.pumpAndSettle();
+    expect(find.text('Khu vực giao'), findsOneWidget);
+    expect(find.text('Tìm khu vực giao'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).last, 'bay');
+    await tester.pumpAndSettle();
+    expect(find.text('Sân bay'), findsOneWidget);
+    expect(find.text('Điểm 1'), findsNothing);
+
+    await tester.enterText(find.byType(TextField).last, 'xyz');
+    await tester.pumpAndSettle();
+    expect(find.text('Không tìm thấy khu vực phù hợp'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
