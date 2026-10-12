@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/support_links.dart';
 import '../../../core/theme/theme_mode_provider.dart';
 import '../../legal/legal_page_screen.dart';
 import '../../../core/widgets/app_decor_widgets.dart';
@@ -1024,12 +1024,11 @@ class _SupportTile extends StatelessWidget {
   // Giá trị cấu hình từ server có thể sai định dạng hoặc máy không có ứng dụng
   // xử lý — báo cho người dùng thay vì im lặng.
   Future<void> _open(BuildContext context) async {
-    var opened = false;
-    try {
-      opened = await launchUrl(item.uri, mode: LaunchMode.externalApplication);
-    } catch (_) {
-      opened = false;
-    }
+    final opened = await openSupportChannel(
+      type: item.type,
+      value: item.value,
+      link: item.link,
+    );
     if (!opened && context.mounted) {
       AppSnackbar.error(
           context, 'Không thể mở "${item.title}" trên thiết bị này');

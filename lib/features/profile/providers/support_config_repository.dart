@@ -11,7 +11,7 @@ class SupportConfigRepository {
   const SupportConfigRepository(this._api);
 
   Future<List<SupportConfigItem>> fetchAll() async {
-    final response = await _api.get('/support-configs');
+    final response = await _api.get('/shop/support');
     final data = unwrap(response) as List<dynamic>? ?? const [];
     return data
         .map((item) => SupportConfigItem.fromJson(item as Map<String, dynamic>))

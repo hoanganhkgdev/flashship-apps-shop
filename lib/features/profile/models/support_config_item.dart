@@ -5,10 +5,14 @@ class SupportConfigItem {
   final String type;
   final String value;
 
+  /// Đường dẫn server đã chuẩn hoá để mở app (tel:, https://zalo.me/…, …).
+  final String? link;
+
   const SupportConfigItem({
     required this.title,
     required this.type,
     required this.value,
+    this.link,
   });
 
   factory SupportConfigItem.fromJson(Map<String, dynamic> json) =>
@@ -16,9 +20,9 @@ class SupportConfigItem {
         title: json['title'] as String,
         type: json['type'] as String? ?? 'other',
         value: json['value'] as String,
+        link: json['link'] as String?,
       );
 
-  Uri get uri => Uri.parse(value);
   IconData? get materialIcon => switch (type) {
         'phone' => Icons.phone_rounded,
         'email' => Icons.email_rounded,
