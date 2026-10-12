@@ -153,12 +153,14 @@ class BatchPricingStop {
   final double? lat;
   final double? lng;
   final double? cargoWeight;
+  final int? destinationId;
 
   const BatchPricingStop({
     required this.address,
     this.lat,
     this.lng,
     this.cargoWeight,
+    this.destinationId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -166,6 +168,7 @@ class BatchPricingStop {
         if (lat != null) 'lat': lat,
         if (lng != null) 'lng': lng,
         if (cargoWeight != null) 'cargo_weight': cargoWeight,
+        if (destinationId != null) 'destination_id': destinationId,
       };
 }
 
@@ -191,6 +194,7 @@ class CreateBatchStopRequest {
   final double lat;
   final double lng;
   final int? codAmount;
+  final int? destinationId;
 
   const CreateBatchStopRequest({
     required this.address,
@@ -200,6 +204,7 @@ class CreateBatchStopRequest {
     required this.lat,
     required this.lng,
     this.codAmount,
+    this.destinationId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -210,6 +215,7 @@ class CreateBatchStopRequest {
         'lat': lat,
         'lng': lng,
         if (codAmount != null) 'cod_amount': codAmount,
+        if (destinationId != null) 'destination_id': destinationId,
       };
 }
 

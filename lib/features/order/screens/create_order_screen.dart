@@ -27,6 +27,7 @@ import '../models/shop_order_type.dart';
 import '../data/order_repository.dart';
 import '../providers/order_provider.dart';
 import '../utils/pricing_request.dart';
+import '../widgets/destination_sheet.dart';
 import '../utils/create_order_validator.dart';
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -297,22 +298,15 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   }
 
   Future<void> _pickDestination(List<DestinationPrice> options) async {
-    // Dùng bản ghi `-1` để phân biệt "Tự tính theo km" với việc đóng sheet.
-    const auto = DestinationPrice(id: -1, name: '', fee: 0);
-    final picked = await showModalBottomSheet<DestinationPrice>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (_) => _DestinationSheet(
-        options: options,
-        selectedId: _destination?.id,
-        autoOption: auto,
-      ),
+    final choice = await showDestinationSheet(
+      context,
+      options: options,
+      selectedId: _destination?.id,
     );
-    if (picked == null || !mounted) return;
+    if (choice == null || !mounted) return;
     setState(() {
       _userEdited = true;
-      _destination = picked.id == auto.id ? null : picked;
+      _destination = choice.destination;
       // Hiện ngay giá của khu vực khi chưa đủ địa chỉ để báo giá; khi đủ,
       // _estimate() thay bằng giá server (đã gồm phụ phí và điều kiện áp dụng).
       _fee = _destination?.fee;
@@ -1954,173 +1948,6 @@ class _ThousandsFormatter extends TextInputFormatter {
     return TextEditingValue(
       text: formatted,
       selection: TextSelection.collapsed(offset: formatted.length),
-    );
-  }
-}
-
-// ─── Chọn khu vực giao có giá cố định ────────────────────────────────────────
-
-class _DestinationSheet extends StatefulWidget {
-  final List<DestinationPrice> options;
-  final int? selectedId;
-  final DestinationPrice autoOption;
-  const _DestinationSheet({
-    required this.options,
-    required this.selectedId,
-    required this.autoOption,
-  });
-
-  @override
-  State<_DestinationSheet> createState() => _DestinationSheetState();
-}
-
-class _DestinationSheetState extends State<_DestinationSheet> {
-  // Chỉ cần ô tìm kiếm khi danh sách đủ dài để phải cuộn.
-  static const _searchThreshold = 8;
-
-  final _searchCtrl = TextEditingController();
-  String _query = '';
-
-  @override
-  void dispose() {
-    _searchCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final q = _query.trim().toLowerCase();
-    final shown = widget.options
-        .where((o) => q.isEmpty || o.name.toLowerCase().contains(q))
-        .toList();
-    return AppSheet(
-      icon: Icons.sell_rounded,
-      title: 'Khu vực giao',
-      subtitle: 'Chọn nơi giao để áp giá cố định',
-      scrollable: false,
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        if (widget.options.length > _searchThreshold)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg, AppSpacing.md, AppSpacing.lg, 0),
-            child: AppField(
-              controller: _searchCtrl,
-              hint: 'Tìm khu vực giao',
-              prefixIcon: const Icon(Icons.search_rounded),
-              textInputAction: TextInputAction.search,
-              onChanged: (v) => setState(() => _query = v),
-            ),
-          ),
-        Flexible(
-          child: ListView(
-            shrinkWrap: true,
-            padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xl),
-            children: [
-              if (q.isEmpty) ...[
-                _DestinationTile(
-                  icon: Icons.route_rounded,
-                  title: 'Tự tính theo quãng đường',
-                  subtitle: 'Giá theo km, tự áp giá khu vực nếu trùng',
-                  selected: widget.selectedId == null,
-                  onTap: () => Navigator.pop(context, widget.autoOption),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-              ],
-              if (shown.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
-                  child: Center(
-                    child: Text('Không tìm thấy khu vực phù hợp',
-                        style: AppTextStyles.body
-                            .copyWith(color: c.textSecondary)),
-                  ),
-                ),
-              for (final o in shown) ...[
-                _DestinationTile(
-                  icon: Icons.location_on_rounded,
-                  title: o.name,
-                  subtitle: o.feeMax != null && o.feeMax! > o.fee
-                      ? 'Tối đa ${Fmt.currency(o.feeMax!)}'
-                      : null,
-                  price: Fmt.currency(o.fee),
-                  selected: o.id == widget.selectedId,
-                  onTap: () => Navigator.pop(context, o),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-              ],
-            ],
-          ),
-        ),
-      ]),
-    );
-  }
-}
-
-class _DestinationTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final String? price;
-  final bool selected;
-  final VoidCallback onTap;
-  const _DestinationTile({
-    required this.icon,
-    required this.title,
-    required this.selected,
-    required this.onTap,
-    this.subtitle,
-    this.price,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Material(
-      color: selected ? c.primarySoft : c.surfaceAlt,
-      borderRadius: BorderRadius.circular(AppRadius.md),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-          child: Row(children: [
-            Icon(icon,
-                size: AppSize.iconMd,
-                color: selected ? c.primary : c.textSecondary),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: AppTextStyles.bodyStrong.copyWith(
-                          color: selected ? c.primary : c.textPrimary)),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: AppSpacing.xxs),
-                    Text(subtitle!,
-                        style: AppTextStyles.label
-                            .copyWith(color: c.textSecondary)),
-                  ],
-                ],
-              ),
-            ),
-            if (price != null) ...[
-              const SizedBox(width: AppSpacing.md),
-              Text(price!,
-                  style: AppTextStyles.bodyStrong
-                      .copyWith(color: selected ? c.primary : c.textPrimary)),
-            ],
-            if (selected) ...[
-              const SizedBox(width: AppSpacing.sm),
-              Icon(Icons.check_circle_rounded,
-                  size: AppSize.iconMd, color: c.primary),
-            ],
-          ]),
-        ),
-      ),
     );
   }
 }

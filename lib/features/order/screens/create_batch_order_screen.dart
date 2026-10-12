@@ -15,6 +15,7 @@ import '../models/cargo_type.dart';
 import '../data/order_repository.dart';
 import '../providers/order_provider.dart';
 import '../utils/create_batch_order_validator.dart';
+import '../widgets/destination_sheet.dart';
 
 // ─── Stop model (local) ───────────────────────────────────────────────────────
 
@@ -30,6 +31,8 @@ class _Stop {
   double? lat, lng;
   int? fee;
   double? distanceKm;
+  // Khu vực giao shop chọn cho điểm này (giá cố định); null = tính theo km.
+  DestinationPrice? destination;
   bool estimating = false;
 
   _Stop()
@@ -201,6 +204,25 @@ class _CreateBatchOrderScreenState
     _estimateAll();
   }
 
+  Future<void> _pickStopDestination(int i) async {
+    final options = ref.read(destinationPricesProvider).valueOrNull ?? const [];
+    if (options.isEmpty) return;
+    final stop = _stops[i];
+    final choice = await showDestinationSheet(
+      context,
+      options: options,
+      selectedId: stop.destination?.id,
+    );
+    if (choice == null || !mounted) return;
+    setState(() {
+      stop.destination = choice.destination;
+      // Hiện ngay giá khu vực khi điểm chưa có địa chỉ để báo giá; khi đã có,
+      // _estimateAll() thay bằng giá server.
+      stop.fee = choice.destination?.fee;
+    });
+    await _estimateAll();
+  }
+
   // ── Estimate ────────────────────────────────────────────────────────────
 
   // Gọi 1 lần /shop/pricing/estimate-batch cho toàn bộ điểm giao thay vì lặp
@@ -236,6 +258,7 @@ class _CreateBatchOrderScreenState
                       lat: stop.lat,
                       lng: stop.lng,
                       cargoWeight: _cargoWeight,
+                      destinationId: stop.destination?.id,
                     ))
                 .toList(growable: false),
           );
@@ -434,6 +457,7 @@ class _CreateBatchOrderScreenState
           lat: s.lat!,
           lng: s.lng!,
           codAmount: cod.isEmpty ? null : int.tryParse(cod),
+          destinationId: s.destination?.id,
         );
       }).toList(growable: false);
 
@@ -471,6 +495,8 @@ class _CreateBatchOrderScreenState
     final isDark = context.isDark;
     final hasFee = _stops.any((s) => s.fee != null);
     final shop = ref.watch(authProvider).user;
+    final destinations =
+        ref.watch(destinationPricesProvider).valueOrNull ?? const [];
     BoxDecoration cardDeco() => BoxDecoration(
           color: c.glass,
           borderRadius: BorderRadius.circular(AppRadius.card),
@@ -621,6 +647,8 @@ class _CreateBatchOrderScreenState
                         _expandedStopId == stop.id ? null : stop.id;
                   }),
                   onPickAddress: () => _pickStopAddress(i),
+                  hasDestinations: destinations.isNotEmpty,
+                  onPickDestination: () => _pickStopDestination(i),
                   onAddressChanged: (_) => _estimateAll(),
                   onRemove: () => _removeStop(i),
                 );
@@ -924,6 +952,8 @@ class _StopCard extends StatelessWidget {
   final bool isExpanded;
   final VoidCallback onToggle;
   final VoidCallback onPickAddress;
+  final bool hasDestinations;
+  final VoidCallback onPickDestination;
   final ValueChanged<String> onAddressChanged;
   final VoidCallback onRemove;
 
@@ -935,6 +965,8 @@ class _StopCard extends StatelessWidget {
     required this.isExpanded,
     required this.onToggle,
     required this.onPickAddress,
+    required this.hasDestinations,
+    required this.onPickDestination,
     required this.onAddressChanged,
     required this.onRemove,
   });
@@ -1012,6 +1044,7 @@ class _StopCard extends StatelessWidget {
     final c = context.colors;
     final hasAddress = stop.addressCtrl.text.isNotEmpty;
     final subParts = [
+      if (stop.destination != null) stop.destination!.name,
       if (stop.nameCtrl.text.isNotEmpty) stop.nameCtrl.text,
       if (stop.phoneCtrl.text.isNotEmpty) stop.phoneCtrl.text,
       if (stop.codCtrl.text.isNotEmpty) 'Tiền lấy hàng ${stop.codCtrl.text}',
@@ -1141,6 +1174,35 @@ class _StopCard extends StatelessWidget {
             ]),
           ),
         ),
+        if (hasDestinations) ...[
+          Divider(height: 1, color: c.divider),
+          InkWell(
+            onTap: onPickDestination,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+              child: Row(children: [
+                Icon(Icons.sell_outlined,
+                    size: AppSize.iconSm + 2, color: c.primary),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Text(
+                    stop.destination == null
+                        ? 'Khu vực giao: tự tính theo quãng đường'
+                        : 'Khu vực giao: ${stop.destination!.name} · ${Fmt.currency(stop.destination!.fee)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.body.copyWith(
+                        color: stop.destination == null
+                            ? c.textSecondary
+                            : c.textPrimary),
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, color: c.textTertiary),
+              ]),
+            ),
+          ),
+        ],
         Divider(height: 1, color: c.divider),
         _BareField(
           controller: stop.phoneCtrl,
