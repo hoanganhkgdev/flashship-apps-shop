@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/vi_text.dart';
 import '../../../core/widgets/app_decor_widgets.dart';
 import '../../../core/widgets/app_form_widgets.dart';
 import '../data/order_repository.dart';
@@ -51,9 +52,6 @@ class DestinationSheet extends StatefulWidget {
 }
 
 class DestinationSheetState extends State<DestinationSheet> {
-  // Chỉ cần ô tìm kiếm khi danh sách đủ dài để phải cuộn.
-  static const _searchThreshold = 8;
-
   final _searchCtrl = TextEditingController();
   String _query = '';
 
@@ -66,28 +64,36 @@ class DestinationSheetState extends State<DestinationSheet> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final q = _query.trim().toLowerCase();
-    final shown = widget.options
-        .where((o) => q.isEmpty || o.name.toLowerCase().contains(q))
-        .toList();
+    final q = _query.trim();
+    final shown =
+        widget.options.where((o) => matchesVietnamese(o.name, q)).toList();
     return AppSheet(
       icon: Icons.sell_rounded,
       title: 'Khu vực giao',
       subtitle: 'Chọn nơi giao để áp giá cố định',
       scrollable: false,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        if (widget.options.length > _searchThreshold)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg, AppSpacing.md, AppSpacing.lg, 0),
-            child: AppField(
-              controller: _searchCtrl,
-              hint: 'Tìm khu vực giao',
-              prefixIcon: const Icon(Icons.search_rounded),
-              textInputAction: TextInputAction.search,
-              onChanged: (v) => setState(() => _query = v),
-            ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg, AppSpacing.md, AppSpacing.lg, 0),
+          child: AppField(
+            controller: _searchCtrl,
+            hint: 'Tìm khu vực giao',
+            prefixIcon: const Icon(Icons.search_rounded),
+            suffixIcon: _query.isEmpty
+                ? null
+                : IconButton(
+                    tooltip: 'Xoá',
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () {
+                      _searchCtrl.clear();
+                      setState(() => _query = '');
+                    },
+                  ),
+            textInputAction: TextInputAction.search,
+            onChanged: (v) => setState(() => _query = v),
           ),
+        ),
         Flexible(
           child: ListView(
             shrinkWrap: true,

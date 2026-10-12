@@ -98,6 +98,8 @@ void main() {
     await tester.tap(find.text('KHU VỰC GIAO (GIÁ CỐ ĐỊNH)'));
     await tester.pumpAndSettle();
 
+    // Ô tìm kiếm luôn hiện, kể cả khi danh sách ngắn.
+    expect(find.text('Tìm khu vực giao'), findsOneWidget);
     expect(find.text('Sân bay'), findsOneWidget);
     expect(find.text('Bãi Thơm'), findsOneWidget);
     expect(find.text('Tối đa 180.000đ'), findsOneWidget);
@@ -147,6 +149,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Sân bay'), findsOneWidget);
     expect(find.text('Điểm 1'), findsNothing);
+
+    // Gõ không dấu và đảo thứ tự từ vẫn tìm ra.
+    await tester.enterText(find.byType(TextField).last, 'bay san');
+    await tester.pumpAndSettle();
+    expect(find.text('Sân bay'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField).last, 'xyz');
     await tester.pumpAndSettle();
