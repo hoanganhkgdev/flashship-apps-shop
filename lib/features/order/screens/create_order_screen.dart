@@ -314,10 +314,16 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     await _estimate();
   }
 
+  // Đã chọn khu vực giao thì địa chỉ chi tiết không bắt buộc: hệ thống dùng
+  // tên/tâm khu vực làm điểm giao.
+  bool get _hasDestination => _isOutbound && _destination != null;
+
   // ── Estimate ────────────────────────────────────────────────────────────────
 
   Future<void> _estimate() async {
-    if (_pickupAddr == null || _deliveryAddr == null) return;
+    if (_pickupAddr == null || (_deliveryAddr == null && !_hasDestination)) {
+      return;
+    }
     // Lưu lại phí cũ TRƯỚC khi setState() dưới đây ghi đè _fee = null cho
     // trạng thái loading — dùng để so sánh xem phí có thực sự đổi không.
     final oldFee = _fee;
@@ -405,6 +411,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       pickupLng: _pickupLng,
       deliveryLat: _deliveryLat,
       deliveryLng: _deliveryLng,
+      hasDestination: _hasDestination,
     );
     if (locationError != null) {
       setState(() => _error = locationError);
@@ -433,7 +440,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
             CreateOrderRequest(
               isOutbound: _isOutbound,
               pickupAddress: _pickupAddr!,
-              deliveryAddress: _deliveryAddr!,
+              deliveryAddress: _deliveryAddr ?? _destination!.name,
               deliveryPhone: _receiverPhone.trim(),
               deliveryName: _receiverName.trim(),
               pickupName: _senderName.trim(),
@@ -684,9 +691,11 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                               label: 'ĐIỂM GIAO HÀNG',
                               address: _deliveryAddr,
                               placeName: _deliveryPlaceName,
-                              placeholder: _isOutbound
-                                  ? 'Chọn địa chỉ giao hàng'
-                                  : 'Chọn địa chỉ cửa hàng',
+                              placeholder: !_isOutbound
+                                  ? 'Chọn địa chỉ cửa hàng'
+                                  : _hasDestination
+                                      ? 'Địa chỉ chi tiết (không bắt buộc)'
+                                      : 'Chọn địa chỉ giao hàng',
                               onTap: () => _pickAddress(isPickup: false),
                             ),
                             if (_isOutbound) ..._destinationRow(c),

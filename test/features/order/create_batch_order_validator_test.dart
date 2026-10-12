@@ -32,7 +32,7 @@ void main() {
           BatchStopValidationInput(address: '', phone: '', lat: 10, lng: 106),
         ],
       ),
-      'Điểm 2: cần nhập địa chỉ',
+      'Điểm 2: cần nhập địa chỉ hoặc chọn khu vực giao',
     );
   });
 
@@ -45,6 +45,21 @@ void main() {
         stops: const [
           BatchStopValidationInput(
               address: 'Điểm giao', phone: '', lat: 10, lng: 106),
+        ],
+      ),
+      isNull,
+    );
+  });
+
+  test('a stop with only a delivery area needs no address or coordinates', () {
+    expect(
+      CreateBatchOrderValidator.validate(
+        pickupAddress: 'Shop',
+        pickupLat: 10,
+        pickupLng: 106,
+        stops: const [
+          BatchStopValidationInput(
+              address: '', phone: '', hasDestination: true),
         ],
       ),
       isNull,

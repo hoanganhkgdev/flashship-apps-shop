@@ -164,7 +164,7 @@ class BatchPricingStop {
   });
 
   Map<String, dynamic> toJson() => {
-        'address': address,
+        if (address.isNotEmpty) 'address': address,
         if (lat != null) 'lat': lat,
         if (lng != null) 'lng': lng,
         if (cargoWeight != null) 'cargo_weight': cargoWeight,
@@ -191,8 +191,8 @@ class CreateBatchStopRequest {
   final String phone;
   final String name;
   final String note;
-  final double lat;
-  final double lng;
+  final double? lat;
+  final double? lng;
   final int? codAmount;
   final int? destinationId;
 
@@ -201,19 +201,19 @@ class CreateBatchStopRequest {
     required this.phone,
     required this.name,
     required this.note,
-    required this.lat,
-    required this.lng,
+    this.lat,
+    this.lng,
     this.codAmount,
     this.destinationId,
   });
 
   Map<String, dynamic> toJson() => {
-        'address': address,
+        if (address.isNotEmpty) 'address': address,
         if (phone.isNotEmpty) 'phone': phone,
         'name': name,
         'note': note,
-        'lat': lat,
-        'lng': lng,
+        if (lat != null) 'lat': lat,
+        if (lng != null) 'lng': lng,
         if (codAmount != null) 'cod_amount': codAmount,
         if (destinationId != null) 'destination_id': destinationId,
       };

@@ -17,6 +17,37 @@ void main() {
     );
   });
 
+  test('a chosen delivery area replaces the delivery address and coordinates',
+      () {
+    expect(
+      CreateOrderValidator.locations(
+        pickupAddress: 'Shop',
+        deliveryAddress: null,
+        pickupLat: 10,
+        pickupLng: 106,
+        deliveryLat: null,
+        deliveryLng: null,
+        hasDestination: true,
+      ),
+      isNull,
+    );
+  });
+
+  test('a chosen delivery area still requires the pickup point', () {
+    expect(
+      CreateOrderValidator.locations(
+        pickupAddress: null,
+        deliveryAddress: null,
+        pickupLat: null,
+        pickupLng: null,
+        deliveryLat: null,
+        deliveryLng: null,
+        hasDestination: true,
+      ),
+      'Vui lòng chọn điểm lấy hàng',
+    );
+  });
+
   test('requires resolved coordinates', () {
     expect(
       CreateOrderValidator.locations(

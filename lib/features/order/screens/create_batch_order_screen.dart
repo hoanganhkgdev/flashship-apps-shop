@@ -231,8 +231,10 @@ class _CreateBatchOrderScreenState
   Future<void> _estimateAll() async {
     final pickupAddr = _pickupAddrCtrl.text.trim();
     if (pickupAddr.isEmpty) return;
-    final validStops =
-        _stops.where((s) => s.addressCtrl.text.trim().isNotEmpty).toList();
+    final validStops = _stops
+        .where((s) =>
+            s.addressCtrl.text.trim().isNotEmpty || s.destination != null)
+        .toList();
     if (validStops.isEmpty) return;
 
     // Lưu tổng phí cũ TRƯỚC khi set fee = null cho trạng thái loading — dùng
@@ -337,6 +339,7 @@ class _CreateBatchOrderScreenState
   bool get _hasUnsavedData =>
       _stops.length > 1 ||
       _stops.any((s) =>
+          s.destination != null ||
           s.addressCtrl.text.trim().isNotEmpty ||
           s.phoneCtrl.text.trim().isNotEmpty ||
           s.nameCtrl.text.trim().isNotEmpty ||
@@ -433,6 +436,7 @@ class _CreateBatchOrderScreenState
                 phone: stop.phoneCtrl.text,
                 lat: stop.lat,
                 lng: stop.lng,
+                hasDestination: stop.destination != null,
               ))
           .toList(growable: false),
     );
@@ -454,8 +458,8 @@ class _CreateBatchOrderScreenState
           phone: s.phoneCtrl.text.trim(),
           name: s.nameCtrl.text.trim(),
           note: s.noteCtrl.text.trim(),
-          lat: s.lat!,
-          lng: s.lng!,
+          lat: s.lat,
+          lng: s.lng,
           codAmount: cod.isEmpty ? null : int.tryParse(cod),
           destinationId: s.destination?.id,
         );
@@ -980,7 +984,8 @@ class _StopCard extends StatelessWidget {
         ),
       );
 
-  bool get _complete => stop.addressCtrl.text.trim().isNotEmpty;
+  bool get _complete =>
+      stop.addressCtrl.text.trim().isNotEmpty || stop.destination != null;
 
   Widget _indexBadge(BuildContext context) {
     final c = context.colors;
@@ -1072,7 +1077,8 @@ class _StopCard extends StatelessWidget {
                   Text(
                     hasAddress
                         ? stop.addressCtrl.text
-                        : 'Điểm ${index + 1} · chưa nhập địa chỉ',
+                        : stop.destination?.name ??
+                            'Điểm ${index + 1} · chưa nhập địa chỉ',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.bodyStrong.copyWith(
@@ -1156,7 +1162,11 @@ class _StopCard extends StatelessWidget {
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Text(
-                  hasAddress ? stop.addressCtrl.text : 'Chọn địa chỉ giao hàng',
+                  hasAddress
+                      ? stop.addressCtrl.text
+                      : stop.destination != null
+                          ? 'Địa chỉ chi tiết (không bắt buộc)'
+                          : 'Chọn địa chỉ giao hàng',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.bodyStrong.copyWith(

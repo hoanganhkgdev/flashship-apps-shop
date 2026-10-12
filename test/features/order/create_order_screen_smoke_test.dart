@@ -108,6 +108,8 @@ void main() {
     // Chưa có địa chỉ để báo giá, nhưng phí vẫn hiện theo khu vực đã chọn.
     expect(find.text('Sân bay · 55.000đ'), findsOneWidget);
     expect(find.text('55.000đ'), findsWidgets);
+    // Đã chọn khu vực nên địa chỉ giao chi tiết không còn bắt buộc.
+    expect(find.text('Địa chỉ chi tiết (không bắt buộc)'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

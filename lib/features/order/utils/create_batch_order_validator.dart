@@ -4,11 +4,15 @@ class BatchStopValidationInput {
   final double? lat;
   final double? lng;
 
+  /// Đã chọn khu vực giao: địa chỉ/toạ độ của điểm không bắt buộc.
+  final bool hasDestination;
+
   const BatchStopValidationInput({
     required this.address,
     required this.phone,
     this.lat,
     this.lng,
+    this.hasDestination = false,
   });
 }
 
@@ -30,8 +34,9 @@ class CreateBatchOrderValidator {
     for (var index = 0; index < stops.length; index++) {
       final stop = stops[index];
       // SĐT người nhận không bắt buộc: tài xế có thể xin shop sau.
+      if (stop.hasDestination) continue;
       if (stop.address.trim().isEmpty) {
-        return 'Điểm ${index + 1}: cần nhập địa chỉ';
+        return 'Điểm ${index + 1}: cần nhập địa chỉ hoặc chọn khu vực giao';
       }
       if (stop.lat == null || stop.lng == null) {
         return 'Điểm ${index + 1}: vui lòng chọn địa chỉ từ gợi ý hoặc bản đồ';
