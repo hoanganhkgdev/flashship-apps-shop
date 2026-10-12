@@ -313,7 +313,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     setState(() {
       _userEdited = true;
       _destination = picked.id == auto.id ? null : picked;
-      _fee = null;
+      // Hiện ngay giá của khu vực khi chưa đủ địa chỉ để báo giá; khi đủ,
+      // _estimate() thay bằng giá server (đã gồm phụ phí và điều kiện áp dụng).
+      _fee = _destination?.fee;
     });
     await _estimate();
   }

@@ -101,6 +101,13 @@ void main() {
     expect(find.text('Sân bay'), findsOneWidget);
     expect(find.text('Bãi Thơm'), findsOneWidget);
     expect(find.text('Tối đa 180.000đ'), findsOneWidget);
+
+    await tester.tap(find.text('Sân bay'));
+    await tester.pumpAndSettle();
+
+    // Chưa có địa chỉ để báo giá, nhưng phí vẫn hiện theo khu vực đã chọn.
+    expect(find.text('Sân bay · 55.000đ'), findsOneWidget);
+    expect(find.text('55.000đ'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 }
