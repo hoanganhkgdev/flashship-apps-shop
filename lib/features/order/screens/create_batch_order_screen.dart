@@ -16,6 +16,7 @@ import '../data/order_repository.dart';
 import '../providers/order_provider.dart';
 import '../utils/create_batch_order_validator.dart';
 import '../widgets/destination_sheet.dart';
+import '../../../core/router/app_route.dart';
 
 // ─── Stop model (local) ───────────────────────────────────────────────────────
 
@@ -191,9 +192,7 @@ class _CreateBatchOrderScreenState
 
   Future<void> _pickStopAddress(int index) async {
     final result = await Navigator.of(context).push<MapPickResult>(
-      MaterialPageRoute(
-        builder: (_) => AddressPickerScreen(title: 'Địa chỉ điểm ${index + 1}'),
-      ),
+      appRoute(AddressPickerScreen(title: 'Địa chỉ điểm ${index + 1}')),
     );
     if (result == null || !mounted) return;
     setState(() {

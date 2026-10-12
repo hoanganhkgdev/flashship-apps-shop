@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/address_search_service.dart';
 import '../theme/app_theme.dart';
 import 'map_picker_screen.dart';
+import '../router/app_route.dart';
 
 class AddressAutocompleteField extends StatefulWidget {
   final TextEditingController controller;
@@ -122,7 +123,7 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
     _focusNode.unfocus();
 
     final result = await Navigator.of(context).push<MapPickResult>(
-      MaterialPageRoute(builder: (_) => const MapPickerScreen()),
+      appRoute(const MapPickerScreen()),
     );
     if (result == null || !mounted) return;
 

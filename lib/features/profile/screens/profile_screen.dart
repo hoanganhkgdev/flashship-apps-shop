@@ -22,6 +22,7 @@ import '../../../core/widgets/map_picker_screen.dart';
 import '../../security/pin_setup_screen.dart';
 import '../../security/providers/pin_provider.dart';
 import 'devices_screen.dart';
+import '../../../core/router/app_route.dart';
 
 final _profileStatsProvider =
     FutureProvider.autoDispose<Map<String, dynamic>>((ref) {
@@ -41,8 +42,8 @@ class ProfileScreen extends ConsumerWidget {
       onAddressTap: () => context.push('/address-book'),
       onVouchersTap: () => context.push('/vouchers'),
       onReferralTap: () => context.push('/referral'),
-      onDevicesTap: () => Navigator.push(
-          context, MaterialPageRoute(builder: (_) => const DevicesScreen())),
+      onDevicesTap: () =>
+          Navigator.push(context, appRoute(const DevicesScreen())),
       onPasswordTap: () => _showPasswordSheet(context, ref),
       onSupportTap: () => _showSupport(context),
       onLogout: () => _logout(context, ref),
@@ -80,9 +81,7 @@ class ProfileScreen extends ConsumerWidget {
         }
 
         void legal(String slug, String title) => close(() => Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (_) => LegalPageScreen(slug: slug, title: title))));
+            context, appRoute(LegalPageScreen(slug: slug, title: title))));
 
         return Consumer(builder: (_, sRef, __) {
           final c = sheetContext.colors;
@@ -330,8 +329,8 @@ class ProfileScreen extends ConsumerWidget {
                 pickerRow(ctx, Icons.location_on_outlined, addrCtrl.text,
                     'Chọn địa chỉ cửa hàng', () async {
                   final result = await Navigator.of(ctx).push<MapPickResult>(
-                    MaterialPageRoute(
-                      builder: (_) => AddressPickerScreen(
+                    appRoute(
+                      AddressPickerScreen(
                           title: 'Địa chỉ cửa hàng',
                           cityId: cityId,
                           cityName: cityName),
@@ -441,7 +440,7 @@ class ProfileScreen extends ConsumerWidget {
     // (pinProvider.setPin) khi người dùng nhập xong và xác nhận khớp.
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const PinSetupScreen()),
+      appRoute(const PinSetupScreen()),
     );
   }
 

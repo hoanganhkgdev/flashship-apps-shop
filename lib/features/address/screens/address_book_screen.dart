@@ -7,6 +7,7 @@ import '../../../core/widgets/app_form_widgets.dart';
 import '../../../core/widgets/map_picker_screen.dart';
 import '../models/address_entry.dart';
 import '../providers/address_provider.dart';
+import '../../../core/router/app_route.dart';
 
 class AddressBookScreen extends ConsumerWidget {
   const AddressBookScreen({super.key});
@@ -306,8 +307,8 @@ class _AddAddressDialogScreenState
 
   Future<void> _pickAddress() async {
     final result = await Navigator.of(context, rootNavigator: true)
-        .push<MapPickResult>(MaterialPageRoute(
-      builder: (_) => AddressPickerScreen(
+        .push<MapPickResult>(appRoute(
+      AddressPickerScreen(
         title: 'Chọn địa chỉ giao',
         initialQuery: _pickedAddress.isNotEmpty ? _pickedAddress : null,
       ),

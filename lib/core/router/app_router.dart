@@ -22,8 +22,32 @@ import '../../features/stats/stats_screen.dart';
 import '../../features/voucher/voucher_screen.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/version/providers/app_version_provider.dart';
+import '../widgets/app_decor_widgets.dart';
 
 final appNavigatorKey = GlobalKey<NavigatorState>();
+
+/// Trang của router: mỗi màn tự vẽ nền đặc của app. Các màn hình để nền trong
+/// suốt (nền chung vẽ một lần phía ngoài Navigator), nên nếu không có nền riêng
+/// thì khi chuyển màn, màn cũ vẫn hiện xuyên qua màn mới trong lúc trượt.
+Page<void> _page(GoRouterState state, Widget child) => appPage(
+      key: state.pageKey,
+      name: state.name ?? state.matchedLocation,
+      arguments: state.extra,
+      child: child,
+    );
+
+Page<void> appPage({
+  required LocalKey key,
+  required Widget child,
+  String? name,
+  Object? arguments,
+}) =>
+    MaterialPage<void>(
+      key: key,
+      name: name,
+      arguments: arguments,
+      child: AppBackdrop(child: child),
+    );
 
 // Splash chỉ chờ các tác vụ khởi tạo thật, không giữ màn hình theo timer.
 final splashReadyProvider = StateProvider<bool>((ref) => false);
@@ -86,75 +110,104 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
-      GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-      GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
+      GoRoute(
+          path: '/splash',
+          pageBuilder: (_, state) => _page(state, const SplashScreen())),
+      GoRoute(
+          path: '/login',
+          pageBuilder: (_, state) => _page(state, const LoginScreen())),
+      GoRoute(
+          path: '/register',
+          pageBuilder: (_, state) => _page(state, const RegisterScreen())),
       GoRoute(
           path: '/forgot-password',
-          builder: (_, __) => const ForgotPasswordScreen()),
+          pageBuilder: (_, state) =>
+              _page(state, const ForgotPasswordScreen())),
       GoRoute(
         path: '/otp',
-        builder: (_, state) =>
-            OtpScreen(regData: state.extra as Map<String, dynamic>),
+        pageBuilder: (_, state) => _page(
+            state, OtpScreen(regData: state.extra as Map<String, dynamic>)),
       ),
-      GoRoute(path: '/home', builder: (_, __) => const HomeScreen()),
+      GoRoute(
+          path: '/home',
+          pageBuilder: (_, state) => _page(state, const HomeScreen())),
       GoRoute(
         path: '/pin-lock',
-        builder: (_, __) => PinLockScreen(
-          onUnlocked: () =>
-              ref.read(pinLockPassedProvider.notifier).state = true,
+        pageBuilder: (_, state) => _page(
+          state,
+          PinLockScreen(
+            onUnlocked: () =>
+                ref.read(pinLockPassedProvider.notifier).state = true,
+          ),
         ),
       ),
       GoRoute(
         path: '/create-batch',
-        builder: (_, state) {
+        pageBuilder: (_, state) {
           final extra = state.extra;
           if (extra is Map<String, dynamic>) {
-            return CreateBatchOrderScreen(reorderFrom: extra);
+            return _page(state, CreateBatchOrderScreen(reorderFrom: extra));
           }
-          return const CreateBatchOrderScreen();
+          return _page(state, const CreateBatchOrderScreen());
         },
       ),
       GoRoute(
         path: '/create-order',
-        builder: (_, state) {
+        pageBuilder: (_, state) {
           final extra = state.extra;
           if (extra is ShopOrderType) {
-            return CreateOrderScreen(orderType: extra);
+            return _page(state, CreateOrderScreen(orderType: extra));
           }
           if (extra is bool) {
-            return CreateOrderScreen(
-              orderType: extra ? ShopOrderType.delivery : ShopOrderType.pickup,
+            return _page(
+              state,
+              CreateOrderScreen(
+                orderType:
+                    extra ? ShopOrderType.delivery : ShopOrderType.pickup,
+              ),
             );
           }
           if (extra is AddressEntry) {
-            return CreateOrderScreen(prefillDelivery: extra);
+            return _page(state, CreateOrderScreen(prefillDelivery: extra));
           }
           if (extra is Map<String, dynamic>) {
-            return CreateOrderScreen(
-              orderType: (extra['isOutbound'] as bool? ?? true)
-                  ? ShopOrderType.delivery
-                  : ShopOrderType.pickup,
-              reorderFrom: extra,
+            return _page(
+              state,
+              CreateOrderScreen(
+                orderType: (extra['isOutbound'] as bool? ?? true)
+                    ? ShopOrderType.delivery
+                    : ShopOrderType.pickup,
+                reorderFrom: extra,
+              ),
             );
           }
-          return const CreateOrderScreen();
+          return _page(state, const CreateOrderScreen());
         },
       ),
       GoRoute(
         path: '/order/:code',
-        builder: (_, state) =>
-            OrderDetailScreen(orderCode: state.pathParameters['code']!),
+        pageBuilder: (_, state) => _page(
+            state, OrderDetailScreen(orderCode: state.pathParameters['code']!)),
       ),
-      GoRoute(path: '/stats', builder: (_, __) => const StatsScreen()),
-      GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
+      GoRoute(
+          path: '/stats',
+          pageBuilder: (_, state) => _page(state, const StatsScreen())),
+      GoRoute(
+          path: '/profile',
+          pageBuilder: (_, state) => _page(state, const ProfileScreen())),
       GoRoute(
           path: '/notifications',
-          builder: (_, __) => const NotificationInboxScreen()),
+          pageBuilder: (_, state) =>
+              _page(state, const NotificationInboxScreen())),
       GoRoute(
-          path: '/address-book', builder: (_, __) => const AddressBookScreen()),
-      GoRoute(path: '/vouchers', builder: (_, __) => const VoucherScreen()),
-      GoRoute(path: '/referral', builder: (_, __) => const ReferralScreen()),
+          path: '/address-book',
+          pageBuilder: (_, state) => _page(state, const AddressBookScreen())),
+      GoRoute(
+          path: '/vouchers',
+          pageBuilder: (_, state) => _page(state, const VoucherScreen())),
+      GoRoute(
+          path: '/referral',
+          pageBuilder: (_, state) => _page(state, const ReferralScreen())),
     ],
   );
 });

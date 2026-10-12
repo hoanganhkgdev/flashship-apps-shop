@@ -29,6 +29,7 @@ import '../providers/order_provider.dart';
 import '../utils/pricing_request.dart';
 import '../widgets/destination_sheet.dart';
 import '../utils/create_order_validator.dart';
+import '../../../core/router/app_route.dart';
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -221,9 +222,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         : (_isOutbound ? 'Địa chỉ giao hàng' : 'Địa chỉ cửa hàng');
 
     final result = await Navigator.of(context).push<MapPickResult>(
-      MaterialPageRoute(
-        builder: (_) => AddressPickerScreen(title: title),
-      ),
+      appRoute(AddressPickerScreen(title: title)),
     );
     if (result == null || !mounted) return;
     setState(() {

@@ -10,6 +10,7 @@ import '../services/address_history_service.dart';
 import '../services/address_search_service.dart';
 import '../theme/app_theme.dart';
 import 'map_picker_screen.dart';
+import '../router/app_route.dart';
 
 class AddressPickerScreen extends ConsumerStatefulWidget {
   final String title;
@@ -208,7 +209,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
   Future<void> _openMap() async {
     _focusNode.unfocus();
     final result = await Navigator.of(context).push<MapPickResult>(
-      MaterialPageRoute(builder: (_) => const MapPickerScreen()),
+      appRoute(const MapPickerScreen()),
     );
     if (result != null && mounted) {
       await AddressHistoryService.save(AddressHistoryItem(

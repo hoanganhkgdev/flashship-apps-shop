@@ -19,6 +19,7 @@ import 'features/security/pin_lock_screen.dart';
 import 'features/security/providers/pin_provider.dart';
 import 'features/version/providers/app_version_provider.dart';
 import 'firebase_options.dart';
+import 'core/router/app_route.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
@@ -137,8 +138,7 @@ class _FlashShipShopAppState extends ConsumerState<FlashShipShopApp>
     final ctx = appNavigatorKey.currentContext;
     if (ctx == null) return;
     await Navigator.of(ctx, rootNavigator: true).push(
-      MaterialPageRoute(
-          fullscreenDialog: true, builder: (_) => const PinLockScreen()),
+      appRoute(const PinLockScreen(), fullscreenDialog: true),
     );
   }
 
