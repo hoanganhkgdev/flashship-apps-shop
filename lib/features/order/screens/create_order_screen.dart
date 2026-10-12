@@ -329,7 +329,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     final oldFee = _fee;
     setState(() {
       _loadingFee = true;
-      _fee = null;
+      // Đã chọn khu vực thì giữ giá khu vực trong lúc chờ (và nếu báo giá lỗi),
+      // thay vì xoá phí về "—".
+      _fee = _hasDestination ? _destination!.fee : null;
     });
     try {
       final p = buildPricingParams(

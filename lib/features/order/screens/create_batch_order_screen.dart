@@ -244,7 +244,8 @@ class _CreateBatchOrderScreenState
     setState(() {
       for (final s in validStops) {
         s.estimating = true;
-        s.fee = null;
+        // Điểm đã chọn khu vực giữ giá khu vực khi chờ hoặc khi báo giá lỗi.
+        s.fee = s.destination?.fee;
       }
     });
 
