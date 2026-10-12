@@ -10,9 +10,11 @@ Map<String, dynamic> buildPricingParams({
   required double? deliveryLng,
   required String pickupAddress,
   required String deliveryAddress,
+  int? destinationId,
 }) {
   final p = <String, dynamic>{'cargo_type': cargoType};
   if (cargoWeight != null) p['cargo_weight'] = cargoWeight;
+  if (destinationId != null) p['destination_id'] = destinationId;
   if (pickupLat != null && deliveryLat != null) {
     p['pickup_lat'] = pickupLat;
     p['pickup_lng'] = pickupLng;

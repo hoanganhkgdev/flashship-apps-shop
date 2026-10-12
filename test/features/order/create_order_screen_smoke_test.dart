@@ -1,4 +1,5 @@
 import 'package:flashship_shop/core/theme/app_theme.dart';
+import 'package:flashship_shop/features/order/data/order_repository.dart';
 import 'package:flashship_shop/features/order/screens/create_order_screen.dart';
 import 'package:flashship_shop/features/order/models/shop_order_type.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +15,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [
+          destinationPricesProvider.overrideWith((ref) async => const []),
+        ],
         child: MaterialApp(
           theme: AppTheme.light,
           home: const CreateOrderScreen(),
@@ -44,6 +48,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [
+          destinationPricesProvider.overrideWith((ref) async => const []),
+        ],
         child: MaterialApp(
           theme: AppTheme.light,
           home: const CreateOrderScreen(orderType: ShopOrderType.pickup),
@@ -56,6 +63,44 @@ void main() {
     expect(find.text('Giao hàng'), findsNothing);
     expect(find.text('SĐT người giao'), findsOneWidget);
     expect(find.text('Chọn địa chỉ cửa hàng'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'shows the destination picker only when the city has fixed prices',
+      (tester) async {
+    tester.view.physicalSize = const Size(440, 956);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          destinationPricesProvider.overrideWith((ref) async => const [
+                DestinationPrice(id: 1, name: 'Sân bay', fee: 55000),
+                DestinationPrice(
+                    id: 2, name: 'Bãi Thơm', fee: 150000, feeMax: 180000),
+              ]),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: const CreateOrderScreen(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('KHU VỰC GIAO (GIÁ CỐ ĐỊNH)'), findsOneWidget);
+    expect(find.text('Tự tính theo quãng đường'), findsOneWidget);
+
+    await tester.tap(find.text('KHU VỰC GIAO (GIÁ CỐ ĐỊNH)'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sân bay'), findsOneWidget);
+    expect(find.text('Bãi Thơm'), findsOneWidget);
+    expect(find.text('Tối đa 180.000đ'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

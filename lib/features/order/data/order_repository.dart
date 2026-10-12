@@ -6,6 +6,39 @@ final orderRepositoryProvider = Provider<OrderRepository>(
   (ref) => ApiOrderRepository(ref.read(apiClientProvider)),
 );
 
+/// Điểm đến có giá cố định của thành phố shop (vd. Sân bay, An Thới).
+class DestinationPrice {
+  final int id;
+  final String name;
+  final int fee;
+  final int? feeMax;
+
+  const DestinationPrice({
+    required this.id,
+    required this.name,
+    required this.fee,
+    this.feeMax,
+  });
+
+  factory DestinationPrice.fromJson(Map<String, dynamic> json) =>
+      DestinationPrice(
+        id: (json['id'] as num).toInt(),
+        name: json['name'] as String,
+        fee: (json['fee'] as num).toInt(),
+        feeMax: (json['fee_max'] as num?)?.toInt(),
+      );
+}
+
+/// Lỗi tải danh sách chỉ làm ẩn ô chọn khu vực, không chặn việc đặt đơn.
+final destinationPricesProvider =
+    FutureProvider.autoDispose<List<DestinationPrice>>((ref) async {
+  try {
+    return await ref.read(orderRepositoryProvider).fetchDestinations();
+  } catch (_) {
+    return const [];
+  }
+});
+
 class OrderPage {
   final List<OrderModel> orders;
   final bool hasMore;
@@ -65,6 +98,7 @@ class CreateOrderRequest {
   final double? deliveryLat;
   final double? deliveryLng;
   final String? voucherCode;
+  final int? destinationId;
 
   const CreateOrderRequest({
     required this.isOutbound,
@@ -85,6 +119,7 @@ class CreateOrderRequest {
     this.deliveryLat,
     this.deliveryLng,
     this.voucherCode,
+    this.destinationId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -109,6 +144,7 @@ class CreateOrderRequest {
         if (deliveryLat != null) 'delivery_lat': deliveryLat,
         if (deliveryLng != null) 'delivery_lng': deliveryLng,
         if (voucherCode != null) 'voucher_code': voucherCode,
+        if (destinationId != null) 'destination_id': destinationId,
       };
 }
 
@@ -221,6 +257,7 @@ abstract interface class OrderRepository {
     double radiusKm = 5,
   });
   Future<PricingEstimate> estimate(Map<String, dynamic> params);
+  Future<List<DestinationPrice>> fetchDestinations();
   Future<OrderModel> create(CreateOrderRequest request);
   Future<BatchPricingEstimate> estimateBatch({
     required String cargoType,
@@ -270,6 +307,15 @@ class ApiOrderRepository implements OrderRepository {
     final data = body['data'] as List<dynamic>? ?? const [];
     return data
         .map((item) => NearbyDriver.fromJson(item as Map<String, dynamic>))
+        .toList(growable: false);
+  }
+
+  @override
+  Future<List<DestinationPrice>> fetchDestinations() async {
+    final response = await _api.get('/shop/pricing/destinations');
+    final data = unwrap(response) as List<dynamic>? ?? const [];
+    return data
+        .map((e) => DestinationPrice.fromJson(e as Map<String, dynamic>))
         .toList(growable: false);
   }
 

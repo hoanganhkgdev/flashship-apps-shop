@@ -55,6 +55,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   String? _pickupPlaceName, _deliveryPlaceName;
   double? _pickupLat, _pickupLng, _deliveryLat, _deliveryLng;
 
+  // Khu vực giao do shop chọn (giá cố định); null = tự tính theo quãng đường.
+  DestinationPrice? _destination;
+
   // Cargo
   String _cargoType = 'food';
 
@@ -252,6 +255,69 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     await _estimate();
   }
 
+  /// Ô "Khu vực giao" chỉ hiện khi thành phố có điểm đến giá cố định.
+  List<Widget> _destinationRow(Palette c) {
+    final options =
+        ref.watch(destinationPricesProvider).valueOrNull ?? const [];
+    if (options.isEmpty) return const [];
+    final selected = _destination;
+    return [
+      Divider(height: 1, color: c.divider),
+      InkWell(
+        onTap: () => _pickDestination(options),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+          child: Row(children: [
+            Icon(Icons.sell_outlined,
+                size: AppSize.iconSm + 2, color: c.primary),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('KHU VỰC GIAO (GIÁ CỐ ĐỊNH)',
+                      style: AppTextStyles.caption
+                          .copyWith(color: c.textTertiary)),
+                  const SizedBox(height: 2),
+                  Text(
+                    selected == null
+                        ? 'Tự tính theo quãng đường'
+                        : '${selected.name} · ${Fmt.currency(selected.fee)}',
+                    style: AppTextStyles.body,
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: c.textTertiary),
+          ]),
+        ),
+      ),
+    ];
+  }
+
+  Future<void> _pickDestination(List<DestinationPrice> options) async {
+    // Dùng bản ghi `-1` để phân biệt "Tự tính theo km" với việc đóng sheet.
+    const auto = DestinationPrice(id: -1, name: '', fee: 0);
+    final picked = await showModalBottomSheet<DestinationPrice>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => _DestinationSheet(
+        options: options,
+        selectedId: _destination?.id,
+        autoOption: auto,
+      ),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _userEdited = true;
+      _destination = picked.id == auto.id ? null : picked;
+      _fee = null;
+    });
+    await _estimate();
+  }
+
   // ── Estimate ────────────────────────────────────────────────────────────────
 
   Future<void> _estimate() async {
@@ -273,6 +339,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         deliveryLng: _deliveryLng,
         pickupAddress: _pickupAddr ?? '',
         deliveryAddress: _deliveryAddr ?? '',
+        destinationId: _isOutbound ? _destination?.id : null,
       );
       final estimate = await ref.read(orderRepositoryProvider).estimate(p);
       if (mounted) {
@@ -390,6 +457,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               deliveryLat: _deliveryLat,
               deliveryLng: _deliveryLng,
               voucherCode: _voucherCode,
+              destinationId: _isOutbound ? _destination?.id : null,
             ),
           );
       ref.read(orderListProvider.notifier).addOrder(order);
@@ -628,6 +696,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                                   : 'Chọn địa chỉ cửa hàng',
                               onTap: () => _pickAddress(isPickup: false),
                             ),
+                            if (_isOutbound) ..._destinationRow(c),
                           ]),
                         ),
                         const SizedBox(height: 24),
@@ -1886,6 +1955,81 @@ class _ThousandsFormatter extends TextInputFormatter {
     return TextEditingValue(
       text: formatted,
       selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+// ─── Chọn khu vực giao có giá cố định ────────────────────────────────────────
+
+class _DestinationSheet extends StatefulWidget {
+  final List<DestinationPrice> options;
+  final int? selectedId;
+  final DestinationPrice autoOption;
+  const _DestinationSheet({
+    required this.options,
+    required this.selectedId,
+    required this.autoOption,
+  });
+
+  @override
+  State<_DestinationSheet> createState() => _DestinationSheetState();
+}
+
+class _DestinationSheetState extends State<_DestinationSheet> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final q = _query.trim().toLowerCase();
+    final shown = widget.options
+        .where((o) => q.isEmpty || o.name.toLowerCase().contains(q))
+        .toList();
+    return Padding(
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
+          child: TextField(
+            onChanged: (v) => setState(() => _query = v),
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.search_rounded),
+              hintText: 'Tìm khu vực giao',
+            ),
+          ),
+        ),
+        Flexible(
+          child: ListView(shrinkWrap: true, children: [
+            ListTile(
+              leading: Icon(Icons.route_rounded, color: c.primary),
+              title: const Text('Tự tính theo quãng đường'),
+              trailing: widget.selectedId == null
+                  ? Icon(Icons.check_rounded, color: c.primary)
+                  : null,
+              onTap: () => Navigator.pop(context, widget.autoOption),
+            ),
+            for (final o in shown)
+              ListTile(
+                title: Text(o.name),
+                subtitle: o.feeMax != null && o.feeMax! > o.fee
+                    ? Text('Tối đa ${Fmt.currency(o.feeMax!)}')
+                    : null,
+                trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text(Fmt.currency(o.fee),
+                      style: AppTextStyles.body
+                          .copyWith(fontWeight: FontWeight.w600)),
+                  if (o.id == widget.selectedId) ...[
+                    const SizedBox(width: AppSpacing.sm),
+                    Icon(Icons.check_rounded, color: c.primary),
+                  ],
+                ]),
+                onTap: () => Navigator.pop(context, o),
+              ),
+          ]),
+        ),
+      ]),
     );
   }
 }
