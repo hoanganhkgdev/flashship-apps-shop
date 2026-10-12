@@ -42,6 +42,28 @@ void main() {
     );
   });
 
+  test('delivery does not require the receiver phone', () {
+    expect(
+      CreateOrderValidator.contacts(
+        orderType: ShopOrderType.delivery,
+        receiverPhone: '',
+        senderPhone: '',
+      ),
+      isNull,
+    );
+  });
+
+  test('pickup still requires the shop phone', () {
+    expect(
+      CreateOrderValidator.contacts(
+        orderType: ShopOrderType.pickup,
+        receiverPhone: '  ',
+        senderPhone: '0900000002',
+      ),
+      'Vui lòng nhập SĐT cửa hàng',
+    );
+  });
+
   test('valid delivery contacts return no error', () {
     expect(
       CreateOrderValidator.contacts(

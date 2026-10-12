@@ -120,4 +120,16 @@ void main() {
       ],
     });
   });
+
+  test('omits delivery_phone when the receiver phone is empty', () {
+    const request = CreateOrderRequest(
+      isOutbound: true,
+      pickupAddress: 'Điểm lấy',
+      deliveryAddress: 'Điểm giao',
+      deliveryPhone: '',
+      cargoType: 'food',
+    );
+
+    expect(request.toJson().containsKey('delivery_phone'), isFalse);
+  });
 }

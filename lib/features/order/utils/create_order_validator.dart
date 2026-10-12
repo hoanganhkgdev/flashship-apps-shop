@@ -28,10 +28,10 @@ class CreateOrderValidator {
     required String receiverPhone,
     required String senderPhone,
   }) {
-    if (receiverPhone.trim().isEmpty) {
-      return orderType == ShopOrderType.delivery
-          ? 'Vui lòng nhập SĐT người nhận'
-          : 'Vui lòng nhập SĐT cửa hàng';
+    // Đơn giao: SĐT người nhận không bắt buộc (tài xế có thể xin shop sau).
+    // Đơn lấy: đây là SĐT cửa hàng nhận hàng nên vẫn cần.
+    if (orderType == ShopOrderType.pickup && receiverPhone.trim().isEmpty) {
+      return 'Vui lòng nhập SĐT cửa hàng';
     }
     if (orderType == ShopOrderType.pickup && senderPhone.trim().isEmpty) {
       return 'Vui lòng nhập SĐT liên hệ tại điểm lấy';

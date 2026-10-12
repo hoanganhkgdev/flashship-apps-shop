@@ -126,7 +126,7 @@ class CreateOrderRequest {
         'is_outbound': isOutbound ? 1 : 0,
         'pickup_address': pickupAddress,
         'delivery_address': deliveryAddress,
-        'delivery_phone': deliveryPhone,
+        if (deliveryPhone.isNotEmpty) 'delivery_phone': deliveryPhone,
         if (deliveryName?.isNotEmpty == true) 'delivery_name': deliveryName,
         if (pickupName?.isNotEmpty == true) 'pickup_name': pickupName,
         if (pickupPhone?.isNotEmpty == true) 'pickup_phone': pickupPhone,

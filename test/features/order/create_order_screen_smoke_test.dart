@@ -30,7 +30,7 @@ void main() {
     expect(find.text('Lấy hàng'), findsNothing);
     expect(find.text('ĐIỂM LẤY HÀNG'), findsOneWidget);
     expect(find.text('ĐIỂM GIAO HÀNG'), findsOneWidget);
-    expect(find.text('SĐT người nhận'), findsOneWidget);
+    expect(find.text('SĐT người nhận (không bắt buộc)'), findsOneWidget);
     expect(find.text('Đặt đơn'), findsOneWidget);
     expect(
       tester.getSize(find.byType(SingleChildScrollView)).height,

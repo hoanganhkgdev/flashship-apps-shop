@@ -417,10 +417,6 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       return;
     }
 
-    if (_receiverPhone.trim().isEmpty) {
-      setState(() => _error = 'Vui lòng nhập số điện thoại người nhận');
-      return;
-    }
     if (!_isOutbound && _senderPhone.trim().isEmpty) {
       setState(() => _error = 'Vui lòng nhập số điện thoại người giao');
       return;
@@ -607,7 +603,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     return result ?? false;
   }
 
-  bool get _needsPhone => _receiverPhone.trim().isEmpty;
+  // Chỉ đơn lấy hàng mới bắt buộc SĐT nhận (là SĐT cửa hàng).
+  bool get _needsPhone => !_isOutbound && _receiverPhone.trim().isEmpty;
 
   bool get _showPhoneWarning => _submitAttempted && _needsPhone;
 
@@ -722,7 +719,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                             _ContactPhoneField(
                               icon: Icons.phone_iphone_rounded,
                               label: _isOutbound
-                                  ? 'SĐT người nhận'
+                                  ? 'SĐT người nhận (không bắt buộc)'
                                   : 'SĐT cửa hàng nhận',
                               controller: _receiverPhoneCtrl,
                               warn: _showPhoneWarning,
