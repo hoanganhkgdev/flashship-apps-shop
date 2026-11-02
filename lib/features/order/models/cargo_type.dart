@@ -49,6 +49,7 @@ class CargoTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppRadius.md),
       child: AnimatedContainer(
         duration: AppDuration.fast,
+        alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
         decoration: BoxDecoration(
           color: selected ? cargo.color.withValues(alpha: 0.1) : c.surfaceAlt,
@@ -65,7 +66,7 @@ class CargoTile extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppTextStyles.label.copyWith(
-                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                   color: selected ? c.textPrimary : c.textSecondary)),
         ]),
       ),

@@ -90,13 +90,16 @@ class _DriverCard extends StatelessWidget {
             Text(driver.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.sectionTitle
-                    .copyWith(fontSize: AppFontSize.lg, color: c.textPrimary)),
+                style: AppTextStyles.sectionTitle.copyWith(
+                  fontSize: AppFontSize.lg,
+                  color: c.textPrimary,
+                  fontWeight: FontWeight.w600,
+                )),
             const SizedBox(height: 2),
             Row(children: [
-              Icon(Icons.star_rounded, size: 14, color: c.warning),
+              Icon(Icons.phone_outlined, size: 14, color: c.textTertiary),
               const SizedBox(width: 4),
-              Text('4.9 · ${driver.phone}',
+              Text(driver.phone,
                   style: TextStyle(
                       fontSize: AppFontSize.sm, color: c.textSecondary)),
             ]),
@@ -146,8 +149,18 @@ class _ActionBtn extends StatelessWidget {
       {required this.icon, required this.color, required this.onTap});
 
   @override
-  Widget build(BuildContext context) =>
-      GlassIconButton(icon: icon, color: color, onPressed: onTap);
+  Widget build(BuildContext context) => IconButton(
+        onPressed: onTap,
+        style: IconButton.styleFrom(
+          fixedSize: const Size.square(40),
+          foregroundColor: color,
+          backgroundColor: color.withValues(alpha: .10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(11),
+          ),
+        ),
+        icon: Icon(icon, size: 19),
+      );
 }
 
 // ─── Driver Map Card ──────────────────────────────────────────────────────────

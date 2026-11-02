@@ -1,8 +1,25 @@
 part of '../screens/home_screen.dart';
 
-/// Header cố định, cùng cấu trúc với DashboardHeader của Driver: nhận diện
-/// tài khoản ở trái và hành động quan trọng ở phải. Số liệu được đưa xuống
-/// vùng cuộn để header luôn gọn và không che nội dung trên màn hình nhỏ.
+/// Bề mặt đặc dùng riêng trên trang chủ, không lọc nền khi cuộn.
+class _HomeSurface extends StatelessWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+
+  const _HomeSurface({required this.child, this.onTap});
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: context.colors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: context.colors.divider),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(onTap: onTap, child: child),
+      );
+}
+
+/// Header trang chủ đồng bộ cấu trúc phẳng, ấm của app customer.
 class _Header extends ConsumerWidget {
   final String shopName;
   final String shopAddress;
@@ -11,74 +28,235 @@ class _Header extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.colors;
     final unread = ref.watch(unreadCountProvider).valueOrNull ?? 0;
-
-    return GlassHeader(
-      padding: EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        MediaQuery.paddingOf(context).top + AppSpacing.md,
-        AppSpacing.lg,
-        AppSpacing.lg,
+    return SliverPersistentHeader(
+      pinned: true,
+      delegate: _HomeHeaderDelegate(
+        topInset: MediaQuery.paddingOf(context).top,
+        textScale:
+            MediaQuery.textScalerOf(context).scale(16).clamp(16, 22) / 16,
+        shopName: shopName.trim(),
+        shopAddress: shopAddress.trim(),
+        unread: unread,
       ),
-      child: Row(children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Xin chào 👋',
-                  style: AppTextStyles.label.copyWith(color: c.textSecondary)),
-              const SizedBox(height: AppSpacing.xxs),
-              Text(shopName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.screenTitle.copyWith(
-                      color: c.textPrimary, fontWeight: FontWeight.w800)),
-            ],
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Semantics(
-          button: true,
-          label: unread > 0 ? '$unread thông báo chưa đọc' : 'Thông báo',
-          child: Stack(clipBehavior: Clip.none, children: [
-            GlassIconButton(
-              icon: Icons.notifications_none_rounded,
-              color: c.primary,
-              tooltip: 'Thông báo',
-              onPressed: () => context.push('/notifications'),
-            ),
-            if (unread > 0)
-              Positioned(
-                top: 0,
-                right: 0,
-                child: Container(
-                  constraints: const BoxConstraints(minWidth: 18),
-                  height: 18,
-                  padding: const EdgeInsets.symmetric(horizontal: 5),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: c.danger,
-                    borderRadius: BorderRadius.circular(AppRadius.full),
-                    border: Border.all(color: c.surface, width: 2),
-                  ),
-                  child: Text(unread > 9 ? '9+' : '$unread',
-                      style: const TextStyle(
-                          fontSize: AppFontSize.xs,
-                          height: 1,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white)),
-                ),
-              ),
-          ]),
-        ),
-      ]),
     );
   }
 }
 
-/// Card hoạt động hôm nay (liquid glass): phí ship nổi bật cùng vòng tiến độ
-/// hoàn thành, ba ô số liệu bằng kính nhỏ bên dưới.
+class _HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final double topInset;
+  final double textScale;
+  final String shopName;
+  final String shopAddress;
+  final int unread;
+
+  const _HomeHeaderDelegate({
+    required this.topInset,
+    required this.textScale,
+    required this.shopName,
+    required this.shopAddress,
+    required this.unread,
+  });
+
+  static const _addressRow = 56.0;
+  static const _greetingRow = 48.0;
+  static const _gap = 10.0;
+
+  @override
+  double get minExtent => topInset + _gap * 2 + _addressRow * textScale;
+
+  @override
+  double get maxExtent => minExtent + (_greetingRow + _gap) * textScale;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final progress = (shrinkOffset / (maxExtent - minExtent)).clamp(0.0, 1.0);
+    return SizedBox.expand(
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.dark,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFE9DE),
+            border: Border(
+              bottom: BorderSide(
+                color: Color.lerp(
+                  const Color(0xFFFFE9DE),
+                  const Color(0xFFFFD7C7),
+                  progress,
+                )!,
+              ),
+            ),
+          ),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, topInset + 10, 16, 10),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              ClipRect(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  heightFactor: 1 - progress,
+                  child: Opacity(
+                    opacity: 1 - progress,
+                    child: Padding(
+                      padding: EdgeInsets.only(bottom: 10 * textScale),
+                      child: SizedBox(
+                        height: 48 * textScale,
+                        child: Row(children: [
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Xin chào,',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: AppFontSize.caption,
+                                    height: 1,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  shopName.isEmpty
+                                      ? 'Cửa hàng của bạn'
+                                      : shopName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontFamily: AppTypography.fontFamily,
+                                    fontSize: AppFontSize.titleLarge,
+                                    height: 1.15,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Badge(
+                            isLabelVisible: unread > 0,
+                            label: Text(unread > 99 ? '99+' : '$unread'),
+                            backgroundColor: AppColors.danger,
+                            offset: const Offset(-2, 2),
+                            child: IconButton(
+                              tooltip: unread > 0
+                                  ? '$unread thông báo chưa đọc'
+                                  : 'Thông báo',
+                              onPressed: () => context.push('/notifications'),
+                              style: IconButton.styleFrom(
+                                fixedSize: const Size.square(44),
+                                backgroundColor:
+                                    Colors.white.withValues(alpha: .70),
+                                foregroundColor: AppColors.textPrimary,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.md),
+                                ),
+                              ),
+                              icon: const Icon(
+                                Icons.notifications_none_rounded,
+                                size: 23,
+                              ),
+                            ),
+                          ),
+                        ]),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => context.push('/profile'),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  child: Ink(
+                    height: 56 * textScale,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: Row(children: [
+                      Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFEDE6),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                        ),
+                        child: const Icon(
+                          Icons.storefront_rounded,
+                          size: 18,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Địa chỉ lấy hàng',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: AppTypography.fontFamily,
+                                fontSize: 10,
+                                height: 1.1,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              shopAddress.isEmpty
+                                  ? 'Thêm địa chỉ cửa hàng'
+                                  : shopAddress,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: AppTypography.fontFamily,
+                                fontSize: AppFontSize.body,
+                                fontWeight: FontWeight.w600,
+                                color: shopAddress.isEmpty
+                                    ? AppColors.primary
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 20,
+                        color: AppColors.textSecondary,
+                      ),
+                    ]),
+                  ),
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _HomeHeaderDelegate oldDelegate) =>
+      topInset != oldDelegate.topInset ||
+      textScale != oldDelegate.textScale ||
+      shopName != oldDelegate.shopName ||
+      shopAddress != oldDelegate.shopAddress ||
+      unread != oldDelegate.unread;
+}
+
 class _TodayOverviewCard extends StatelessWidget {
   final TodayStats stats;
   final bool loading;
@@ -93,204 +271,138 @@ class _TodayOverviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final dark = context.isDark;
-    final now = DateTime.now();
-    final date =
-        '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}';
-    final progress = stats.orders > 0
-        ? (stats.completed / stats.orders).clamp(0.0, 1.0)
-        : 0.0;
-    final radius = BorderRadius.circular(AppRadius.card);
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: radius,
-        boxShadow: dark ? null : AppShadows.soft,
-      ),
-      child: ClipRRect(
-        borderRadius: radius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: onTap,
-              child: Ink(
+    return _HomeSurface(
+      onTap: onTap,
+      child: LayoutBuilder(builder: (context, constraints) {
+        final compact = constraints.maxWidth < 300 ||
+            MediaQuery.textScalerOf(context).scale(1) > 1.3;
+        final metrics = [
+          _TodayMetric(
+            icon: Icons.receipt_long_outlined,
+            value: loading ? '—' : '${stats.orders}',
+            label: 'Tổng đơn',
+            color: c.primary,
+            compact: compact,
+          ),
+          _TodayMetric(
+            icon: Icons.check_circle_outline_rounded,
+            value: loading ? '—' : '${stats.completed}',
+            label: 'Hoàn thành',
+            color: c.success,
+            compact: compact,
+          ),
+          _TodayMetric(
+            icon: Icons.local_shipping_outlined,
+            value: loading ? '—' : '${stats.active}',
+            label: 'Đang xử lý',
+            color: c.info,
+            compact: compact,
+          ),
+        ];
+        return Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  borderRadius: radius,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: dark
-                        ? [
-                            Colors.white.withValues(alpha: .14),
-                            Colors.white.withValues(alpha: .05),
-                          ]
-                        : [
-                            Colors.white.withValues(alpha: .85),
-                            Colors.white.withValues(alpha: .45),
-                          ],
-                  ),
-                  border: Border.all(
-                      color: Colors.white.withValues(alpha: dark ? .22 : .9),
-                      width: 1.2),
+                  color: c.primarySoft,
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: Stack(children: [
-                  // Vầng xanh lá mờ ở góc phải — nhấn vào số tiền.
-                  Positioned(
-                    top: -50,
-                    right: -40,
-                    child: Container(
-                      width: 190,
-                      height: 190,
+                child: LayoutBuilder(builder: (context, revenueConstraints) {
+                  final label = Row(children: [
+                    Container(
+                      width: 34,
+                      height: 34,
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(colors: [
-                          c.success.withValues(alpha: dark ? .25 : .22),
-                          c.success.withValues(alpha: 0),
-                        ]),
+                        color: c.surface,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.account_balance_wallet_outlined,
+                        size: 18,
+                        color: c.primary,
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    child: Column(
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(children: [
-                            AppIconBadge(
-                                icon: Icons.insights_rounded,
-                                color: c.success,
-                                size: 36),
-                            const SizedBox(width: AppSpacing.md),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Hoạt động hôm nay',
-                                      style: AppTextStyles.sectionTitle
-                                          .copyWith(color: c.textPrimary)),
-                                  Text(date,
-                                      style: AppTextStyles.caption.copyWith(
-                                          fontWeight: FontWeight.w500,
-                                          color: c.textSecondary)),
-                                ],
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Phí giao hàng hôm nay',
+                              maxLines: 1,
+                              style: AppTextStyles.label.copyWith(
+                                color: c.textPrimary,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                            Text('Thống kê',
-                                style: AppTextStyles.label
-                                    .copyWith(color: c.primary)),
-                            Icon(Icons.chevron_right_rounded,
-                                size: AppSize.iconMd, color: c.primary),
-                          ]),
-                          const SizedBox(height: AppSpacing.lg),
-                          Row(children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('PHÍ SHIP HÔM NAY',
-                                      style: AppTextStyles.caption.copyWith(
-                                          color: c.textTertiary,
-                                          letterSpacing: .6)),
-                                  const SizedBox(height: AppSpacing.xs),
-                                  AnimatedSwitcher(
-                                    duration: AppDuration.normal,
-                                    child: loading
-                                        ? Container(
-                                            key:
-                                                const ValueKey('today-loading'),
-                                            width: 132,
-                                            height: 34,
-                                            decoration: BoxDecoration(
-                                              color: c.surfaceAlt,
-                                              borderRadius:
-                                                  BorderRadius.circular(
-                                                      AppRadius.sm),
-                                            ),
-                                          )
-                                        : FittedBox(
-                                            key: const ValueKey('today-value'),
-                                            fit: BoxFit.scaleDown,
-                                            alignment: Alignment.centerLeft,
-                                            child: Text(
-                                                Fmt.currency(stats.revenue),
-                                                style: AppTextStyles.metricLarge
-                                                    .copyWith(
-                                                        color: c.success)),
-                                          ),
-                                  ),
-                                ],
-                              ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Tổng phí các đơn trong ngày',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.caption.copyWith(
+                              color: c.textSecondary,
                             ),
-                            const SizedBox(width: AppSpacing.md),
-                            _CompletionRing(progress: progress),
-                          ]),
-                          const SizedBox(height: AppSpacing.lg),
-                          Row(children: [
-                            Expanded(
-                              child: _TodayMetric(
-                                icon: Icons.inventory_2_rounded,
-                                value: '${stats.orders}',
-                                label: 'Tổng đơn',
-                                color: c.primary,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: _TodayMetric(
-                                icon: Icons.local_shipping_rounded,
-                                value: '${stats.active}',
-                                label: 'Đang xử lý',
-                                color: c.info,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: _TodayMetric(
-                                icon: Icons.check_circle_rounded,
-                                value: '${stats.completed}',
-                                label: 'Hoàn thành',
-                                color: c.success,
-                              ),
-                            ),
-                          ]),
-                        ]),
-                  ),
-                ]),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ]);
+                  final amount = SizedBox(
+                    key: const ValueKey('today-shipping-fee'),
+                    width: revenueConstraints.maxWidth * .42,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          loading ? '—' : Fmt.currency(stats.revenue),
+                          maxLines: 1,
+                          textAlign: TextAlign.right,
+                          style: AppTextStyles.screenTitle.copyWith(
+                            color: c.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                  return Row(children: [
+                    Expanded(child: label),
+                    const SizedBox(width: 10),
+                    Flexible(child: amount),
+                  ]);
+                }),
               ),
-            ),
+              const SizedBox(height: 14),
+              if (compact)
+                for (var i = 0; i < metrics.length; i++) ...[
+                  metrics[i],
+                  if (i < metrics.length - 1)
+                    Divider(height: 13, indent: 42, color: c.divider),
+                ]
+              else
+                IntrinsicHeight(
+                  child: Row(children: [
+                    Expanded(child: metrics[0]),
+                    VerticalDivider(width: 17, color: c.divider),
+                    Expanded(child: metrics[1]),
+                    VerticalDivider(width: 17, color: c.divider),
+                    Expanded(child: metrics[2]),
+                  ]),
+                ),
+            ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Vòng tiến độ: tỉ lệ đơn hoàn thành trong ngày.
-class _CompletionRing extends StatelessWidget {
-  final double progress;
-  const _CompletionRing({required this.progress});
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return SizedBox(
-      width: 64,
-      height: 64,
-      child: Stack(alignment: Alignment.center, children: [
-        SizedBox.expand(
-          child: CircularProgressIndicator(
-            value: progress,
-            strokeWidth: 7,
-            strokeCap: StrokeCap.round,
-            color: c.success,
-            backgroundColor: c.success.withValues(alpha: .18),
-          ),
-        ),
-        Text('${(progress * 100).round()}%',
-            style: AppTextStyles.bodyStrong.copyWith(color: c.textPrimary)),
-      ]),
+        );
+      }),
     );
   }
 }
@@ -300,35 +412,57 @@ class _TodayMetric extends StatelessWidget {
   final String value;
   final String label;
   final Color color;
+  final bool compact;
 
   const _TodayMetric({
     required this.icon,
     required this.value,
     required this.label,
     required this.color,
+    required this.compact,
   });
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-          vertical: AppSpacing.md, horizontal: AppSpacing.sm),
+    final iconBox = Container(
+      width: 32,
+      height: 32,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: context.isDark ? .16 : .10),
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: color.withValues(alpha: .22)),
+        color: color.withValues(alpha: .10),
+        borderRadius: BorderRadius.circular(10),
       ),
-      child: Column(children: [
-        Icon(icon, size: AppSize.iconMd, color: color),
-        const SizedBox(height: AppSpacing.xs),
-        Text(value, style: AppTextStyles.metric.copyWith(color: c.textPrimary)),
-        const SizedBox(height: AppSpacing.xxs),
-        Text(label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.caption.copyWith(color: c.textSecondary)),
-      ]),
+      child: Icon(icon, size: 17, color: color),
     );
+    final amount = Text(
+      value,
+      maxLines: 1,
+      style: AppTextStyles.screenTitle.copyWith(
+        color: color,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+    final caption = Text(
+      label,
+      maxLines: compact ? 2 : 1,
+      overflow: TextOverflow.ellipsis,
+      style: AppTextStyles.caption.copyWith(color: c.textSecondary),
+    );
+    if (compact) {
+      return Row(children: [
+        iconBox,
+        const SizedBox(width: 10),
+        Expanded(child: caption),
+        const SizedBox(width: 8),
+        amount,
+      ]);
+    }
+    return Column(children: [
+      iconBox,
+      const SizedBox(height: 8),
+      amount,
+      const SizedBox(height: 3),
+      caption,
+    ]);
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/app_decor_widgets.dart';
+import '../../core/widgets/app_form_widgets.dart';
 import '../order/models/cargo_type.dart';
 import 'stats_repository.dart';
 
@@ -33,41 +34,60 @@ class StatsScreen extends ConsumerWidget {
     final statsAsync = ref.watch(_statsProvider(period));
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: c.background,
       body: Column(
         children: [
-          GlassHeader(
-            padding: EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              MediaQuery.paddingOf(context).top + AppSpacing.md,
-              AppSpacing.lg,
-              AppSpacing.lg,
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: context.isDark ? c.primarySoft : const Color(0xFFFFE9DE),
             ),
-            child: Row(children: [
-              AppIconBadge(
-                  icon: Icons.bar_chart_rounded, color: c.primary, size: 44),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                  child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Thống kê',
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text.rich(
+                      TextSpan(children: [
+                        const TextSpan(text: 'Thống '),
+                        TextSpan(
+                          text: 'kê',
+                          style: TextStyle(color: c.primary),
+                        ),
+                      ]),
                       style: AppTextStyles.screenTitle.copyWith(
                         color: c.textPrimary,
-                        fontWeight: FontWeight.w800,
-                      )),
-                  const SizedBox(height: AppSpacing.xxs),
-                  Text('Tổng quan hoạt động cửa hàng',
-                      style:
-                          AppTextStyles.label.copyWith(color: c.textSecondary)),
-                ],
-              )),
-            ]),
-          ),
-          _PeriodTabs(
-            selected: period,
-            onChanged: (value) =>
-                ref.read(_statsPeriodProvider.notifier).state = value,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Row(children: [
+                      Icon(Icons.insights_rounded, size: 15, color: c.primary),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Theo dõi hiệu quả hoạt động của cửa hàng',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.caption.copyWith(
+                            color: c.textSecondary,
+                            height: 1.35,
+                          ),
+                        ),
+                      ),
+                    ]),
+                    const SizedBox(height: 14),
+                    _PeriodTabs(
+                      selected: period,
+                      onChanged: (value) =>
+                          ref.read(_statsPeriodProvider.notifier).state = value,
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
 
           // ── Content ─────────────────────────────────────────────────
@@ -135,58 +155,49 @@ class _PeriodTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.lg),
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.xs),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: context.isDark ? .08 : .6),
-          borderRadius: BorderRadius.circular(AppRadius.full),
-          border: Border.all(
-              color: Colors.white.withValues(alpha: context.isDark ? .2 : .9),
-              width: 1.2),
-        ),
-        child: Row(
-          children: _periods.map((period) {
-            final active = selected == period.$1;
-            return Expanded(
-              child: Semantics(
-                button: true,
-                selected: active,
-                child: InkWell(
-                  onTap: () => onChanged(period.$1),
-                  borderRadius: BorderRadius.circular(AppRadius.full),
-                  child: AnimatedContainer(
-                    duration: AppDuration.normal,
-                    alignment: Alignment.center,
-                    padding:
-                        const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                    decoration: BoxDecoration(
-                      color: active ? c.primary : Colors.transparent,
-                      borderRadius: BorderRadius.circular(AppRadius.full),
-                      boxShadow: active
-                          ? [
-                              BoxShadow(
-                                color: c.primary.withValues(alpha: .35),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ]
-                          : null,
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: c.surface.withValues(alpha: .86),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFFD1BF)),
+      ),
+      child: Row(
+        children: _periods.map((period) {
+          final active = selected == period.$1;
+          return Expanded(
+            child: Semantics(
+              button: true,
+              selected: active,
+              child: InkWell(
+                onTap: () => onChanged(period.$1),
+                borderRadius: BorderRadius.circular(11),
+                child: AnimatedContainer(
+                  duration: AppDuration.normal,
+                  alignment: Alignment.center,
+                  constraints: const BoxConstraints(minHeight: 40),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: active ? c.primary : Colors.transparent,
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Text(
+                    period.$2,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.caption.copyWith(
+                      color: active ? Colors.white : c.textSecondary,
+                      fontWeight: active ? FontWeight.w600 : FontWeight.w500,
                     ),
-                    child: Text(period.$2,
-                        style: AppTextStyles.label.copyWith(
-                          color: active ? Colors.white : c.textSecondary,
-                          fontWeight:
-                              active ? FontWeight.w800 : FontWeight.w500,
-                        )),
                   ),
                 ),
               ),
-            );
-          }).toList(),
-        ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -213,38 +224,48 @@ class _StatsContent extends StatelessWidget {
     final cargoTotal =
         cargoMap.values.fold<int>(0, (sum, value) => sum + Fmt.toInt(value));
     final daily = stats['daily'] is List ? stats['daily'] as List : <dynamic>[];
-
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.xl4),
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppBottomNav.reservedHeight(context) + 16,
+      ),
       children: [
         // ── Phí ship + tỷ lệ hoàn thành ───────────────────────────────
         _card(
           context,
-          glow: c.success,
           Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                AppIconBadge(
-                    icon: Icons.payments_rounded, color: c.success, size: 40),
+                _FlatIcon(
+                  icon: Icons.payments_rounded,
+                  color: c.primary,
+                  size: 40,
+                ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Text('Tổng phí ship',
-                      style: AppTextStyles.sectionTitle
-                          .copyWith(color: c.textPrimary)),
+                      style: AppTextStyles.sectionTitle.copyWith(
+                        color: c.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      )),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
                   decoration: BoxDecoration(
-                    color: c.successSoft,
+                    color: c.surface.withValues(alpha: .8),
                     borderRadius: BorderRadius.circular(AppRadius.full),
                   ),
                   child: Text('$completed đơn',
-                      style: AppTextStyles.caption.copyWith(color: c.success)),
+                      style: AppTextStyles.caption.copyWith(
+                        color: c.primary,
+                        fontWeight: FontWeight.w600,
+                      )),
                 ),
               ]),
               const SizedBox(height: AppSpacing.lg),
@@ -252,8 +273,10 @@ class _StatsContent extends StatelessWidget {
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: Text(Fmt.currency(revenue),
-                    style:
-                        AppTextStyles.metricLarge.copyWith(color: c.success)),
+                    style: AppTextStyles.metricLarge.copyWith(
+                      color: c.primary,
+                      fontWeight: FontWeight.w700,
+                    )),
               ),
               const SizedBox(height: AppSpacing.xs),
               Text('Tổng chi phí giao hàng trong kỳ đã chọn',
@@ -264,8 +287,10 @@ class _StatsContent extends StatelessWidget {
               Row(children: [
                 Expanded(
                   child: Text('Tỷ lệ hoàn thành',
-                      style: AppTextStyles.bodyStrong
-                          .copyWith(color: c.textPrimary)),
+                      style: AppTextStyles.bodyStrong.copyWith(
+                        color: c.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      )),
                 ),
                 Text(
                     total == 0
@@ -290,6 +315,7 @@ class _StatsContent extends StatelessWidget {
                   style: AppTextStyles.label.copyWith(color: c.textSecondary)),
             ]),
           ),
+          warm: true,
         ),
         const SizedBox(height: AppSpacing.xl2),
 
@@ -358,15 +384,20 @@ class _StatsContent extends StatelessWidget {
     );
   }
 
-  Widget _card(BuildContext context, Widget child, {Color? glow}) => SizedBox(
-        width: double.infinity,
-        child: GlassCard(
-          blur: false,
-          glow: glow,
-          padding: EdgeInsets.zero,
-          child: child,
+  Widget _card(BuildContext context, Widget child, {bool warm = false}) {
+    final c = context.colors;
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: warm ? c.primarySoft : c.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: warm ? const Color(0xFFFFD1BF) : c.divider,
         ),
-      );
+      ),
+      child: child,
+    );
+  }
 }
 
 // ─── Section Title ────────────────────────────────────────────────────────────
@@ -383,15 +414,37 @@ class _SectionTitle extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Row(children: [
-        AppIconBadge(icon: icon, color: c.primary, size: 28),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: Text(label,
-              style: AppTextStyles.sectionTitle.copyWith(color: c.textPrimary)),
+        Container(
+          width: 4,
+          height: 30,
+          decoration: BoxDecoration(
+            color: c.primary,
+            borderRadius: BorderRadius.circular(4),
+          ),
         ),
-        if (subtitle != null)
-          Text(subtitle!,
-              style: AppTextStyles.label.copyWith(color: c.textTertiary)),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            label,
+            style: AppTextStyles.sectionTitle.copyWith(
+              color: c.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        if (subtitle != null) ...[
+          Icon(icon, size: 15, color: c.primary),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              subtitle!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.right,
+              style: AppTextStyles.caption.copyWith(color: c.textSecondary),
+            ),
+          ),
+        ],
       ]),
     );
   }
@@ -414,12 +467,16 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return GlassCard(
-      blur: false,
-      glow: color,
+    return Container(
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: c.divider),
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          AppIconBadge(icon: icon, color: color, size: 36),
+          _FlatIcon(icon: icon, color: color, size: 36),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(label,
@@ -430,7 +487,10 @@ class _StatCard extends StatelessWidget {
         ]),
         const SizedBox(height: AppSpacing.md),
         Text(value,
-            style: AppTextStyles.metricLarge.copyWith(color: c.textPrimary)),
+            style: AppTextStyles.metricLarge.copyWith(
+              color: c.textPrimary,
+              fontWeight: FontWeight.w700,
+            )),
       ]),
     );
   }
@@ -460,19 +520,34 @@ class _CargoRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Row(children: [
-        AppIconBadge(icon: icon, color: color, size: 36),
+        _FlatIcon(icon: icon, color: color, size: 36),
         const SizedBox(width: AppSpacing.md),
         Expanded(
             child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
-              Text(label,
-                  style:
-                      AppTextStyles.bodyStrong.copyWith(color: c.textPrimary)),
-              const Spacer(),
-              Text('$count đơn · ${(pct * 100).toStringAsFixed(0)}%',
-                  style: AppTextStyles.label.copyWith(color: c.textSecondary)),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.bodyStrong.copyWith(
+                    color: c.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  '$count đơn · ${(pct * 100).toStringAsFixed(0)}%',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: AppTextStyles.label.copyWith(color: c.textSecondary),
+                ),
+              ),
             ]),
             const SizedBox(height: AppSpacing.sm),
             ClipRRect(
@@ -489,6 +564,30 @@ class _CargoRow extends StatelessWidget {
       ]),
     );
   }
+}
+
+class _FlatIcon extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final double size;
+
+  const _FlatIcon({
+    required this.icon,
+    required this.color,
+    this.size = 36,
+  });
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: .10),
+          borderRadius: BorderRadius.circular(11),
+        ),
+        child: Icon(icon, size: size * .52, color: color),
+      );
 }
 
 // ─── Daily Chart ──────────────────────────────────────────────────────────────

@@ -23,7 +23,7 @@ class _OrderInfoCard extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         _CardHeader(
             icon: Icons.receipt_long_rounded,
-            label: 'Chi tiết đơn',
+            label: 'Chi tiết thanh toán',
             iconColor: c.primary),
         const SizedBox(height: AppSpacing.lg),
         _CompactInfoRow(
@@ -37,6 +37,23 @@ class _OrderInfoCard extends StatelessWidget {
               icon: Icons.straighten_rounded,
               label: 'Khoảng cách',
               value: '${order.distanceKm!.toStringAsFixed(1)} km'),
+        ],
+        if ((order.codAmount ?? 0) > 0) ...[
+          const SizedBox(height: AppSpacing.md),
+          _CompactInfoRow(
+            icon: Icons.payments_outlined,
+            label: 'Tiền thu hộ',
+            value: Fmt.currency(order.codAmount!),
+          ),
+        ],
+        if (order.discountAmount > 0) ...[
+          const SizedBox(height: AppSpacing.md),
+          _CompactInfoRow(
+            icon: Icons.discount_outlined,
+            iconColor: c.success,
+            label: 'Ưu đãi',
+            value: '-${Fmt.currency(order.discountAmount)}',
+          ),
         ],
         if (order.nightSurcharge > 0) ...[
           const SizedBox(height: AppSpacing.md),
@@ -55,11 +72,34 @@ class _OrderInfoCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppRadius.md),
           ),
           child: Row(children: [
-            Text('Phí giao hàng',
-                style: AppTextStyles.bodyStrong.copyWith(color: c.textPrimary)),
-            const Spacer(),
-            Text(Fmt.currency(order.shippingFee),
-                style: AppTextStyles.metric.copyWith(color: c.primary)),
+            Expanded(
+              child: Text(
+                'Phí giao hàng',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.bodyStrong.copyWith(
+                  color: c.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    Fmt.currency(order.shippingFee),
+                    textAlign: TextAlign.right,
+                    style: AppTextStyles.sectionTitle.copyWith(
+                      color: c.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ]),
         ),
       ]),
@@ -89,8 +129,22 @@ class _CompactInfoRow extends StatelessWidget {
         child: Text(label,
             style: AppTextStyles.body.copyWith(color: c.textSecondary)),
       ),
-      Text(value,
-          style: AppTextStyles.bodyStrong.copyWith(color: c.textPrimary)),
+      const SizedBox(width: AppSpacing.md),
+      Flexible(
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: AppTextStyles.bodyStrong.copyWith(
+              color: c.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
     ]);
   }
 }

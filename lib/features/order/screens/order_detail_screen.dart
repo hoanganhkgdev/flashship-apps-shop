@@ -327,6 +327,8 @@ class _State extends ConsumerState<OrderDetailScreen>
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: .28),
       builder: (_) => _RatingSheet(
         orderCode: widget.orderCode,
         driverName: _order!.driver?.name ?? '',
@@ -384,59 +386,93 @@ class _State extends ConsumerState<OrderDetailScreen>
         statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
       ),
       child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Column(children: [
-          AppPageHeader(
-            title: widget.orderCode.startsWith('#')
-                ? widget.orderCode
-                : '#${widget.orderCode}',
-            subtitle: _order == null
-                ? null
-                : 'Đặt lúc ${Fmt.dateTime(_order!.createdAt)}',
-            onBack: () =>
-                context.canPop() ? context.pop() : context.go('/home'),
-            onTitleLongPress: _order == null ? null : _copyInfo,
-            trailing: _order == null
-                ? null
-                : Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Fmt.statusColor(_order!.status)
-                          .withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(AppRadius.full),
-                    ),
-                    child: Text(
-                        _order!.status == 'processing'
-                            ? 'Đã lấy hàng'
-                            : Fmt.orderStatus(_order!.status),
-                        style: AppTextStyles.label.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: Fmt.statusColor(_order!.status))),
-                  ),
-          ),
-          Expanded(
-            child: ColoredBox(
-              color: Colors.transparent,
-              child: _loading
-                  ? Center(child: CircularProgressIndicator(color: c.primary))
-                  : _error != null
-                      ? _ErrorView(onRetry: _fetchOrder)
-                      : _order == null
-                          ? const Center(child: Text('Không tìm thấy đơn hàng'))
-                          : _Body(
-                              order: _order!,
-                              realtimeLat: _realtimeLat,
-                              realtimeLng: _realtimeLng,
-                              cancelling: _cancelling,
-                              ratingDone: _ratingDone,
-                              onRefresh: _fetchSilent,
-                              onCancel: _cancelOrder,
-                              onRate: _showRating,
-                            ),
+        backgroundColor: c.background,
+        appBar: AppBar(
+          toolbarHeight: 64,
+          backgroundColor:
+              context.isDark ? c.primarySoft : const Color(0xFFFFE9DE),
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          centerTitle: false,
+          titleSpacing: 12,
+          leadingWidth: 64,
+          leading: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 0, 8),
+            child: IconButton(
+              tooltip: 'Quay lại',
+              onPressed: () =>
+                  context.canPop() ? context.pop() : context.go('/home'),
+              style: IconButton.styleFrom(
+                backgroundColor: c.surface,
+                side: BorderSide(color: c.divider),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: 18,
+                color: c.textPrimary,
+              ),
             ),
           ),
-        ]),
+          title: Text.rich(
+            TextSpan(children: [
+              const TextSpan(text: 'Chi tiết '),
+              TextSpan(
+                text: 'đơn hàng',
+                style: TextStyle(color: c.primary),
+              ),
+            ]),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.sectionTitle.copyWith(
+              color: c.textPrimary,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0,
+            ),
+          ),
+          actions: [
+            if (_order != null)
+              Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: IconButton(
+                  tooltip: 'Sao chép thông tin đơn',
+                  onPressed: _copyInfo,
+                  style: IconButton.styleFrom(
+                    fixedSize: const Size.square(44),
+                    backgroundColor: c.surface,
+                    side: BorderSide(color: c.divider),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: Icon(
+                    Icons.copy_rounded,
+                    size: 19,
+                    color: c.primary,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        body: _loading
+            ? Center(child: CircularProgressIndicator(color: c.primary))
+            : _error != null
+                ? _ErrorView(onRetry: _fetchOrder)
+                : _order == null
+                    ? const Center(child: Text('Không tìm thấy đơn hàng'))
+                    : _Body(
+                        order: _order!,
+                        realtimeLat: _realtimeLat,
+                        realtimeLng: _realtimeLng,
+                        cancelling: _cancelling,
+                        ratingDone: _ratingDone,
+                        onRefresh: _fetchSilent,
+                        onCancel: _cancelOrder,
+                        onRate: _showRating,
+                      ),
       ),
     );
   }

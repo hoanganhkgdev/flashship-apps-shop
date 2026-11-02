@@ -4,19 +4,26 @@ part of '../../screens/order_detail_screen.dart';
 
 class _FlatCard extends StatelessWidget {
   final Widget child;
-
-  /// Màu vầng sáng mờ ở góc card (vd màu trạng thái đơn).
   final Color? glow;
   const _FlatCard({required this.child, this.glow});
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-        child: SizedBox(
-          width: double.infinity,
-          child: GlassCard(blur: false, glow: glow, child: child),
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: c.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: c.divider),
         ),
-      );
+        child: child,
+      ),
+    );
+  }
 }
 
 class _CardHeader extends StatelessWidget {
@@ -30,15 +37,31 @@ class _CardHeader extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Row(children: [
-        AppIconBadge(icon: icon, color: iconColor, size: 36),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Text(label,
-              style: AppTextStyles.sectionTitle
-                  .copyWith(color: context.colors.textPrimary)),
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Row(children: [
+      Container(
+        width: 36,
+        height: 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: iconColor.withValues(alpha: .10),
+          borderRadius: BorderRadius.circular(11),
         ),
-      ]);
+        child: Icon(icon, color: iconColor, size: 19),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Text(
+          label,
+          style: AppTextStyles.sectionTitle.copyWith(
+            color: c.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    ]);
+  }
 }
 
 class _ErrorView extends StatelessWidget {

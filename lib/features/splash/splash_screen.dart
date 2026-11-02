@@ -1,11 +1,10 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/glass_decor.dart';
 import '../version/providers/app_version_provider.dart';
 
 /// TẠM THỜI: true = giữ nguyên ở màn splash để chỉnh giao diện (không tự chuyển
@@ -22,65 +21,49 @@ class SplashScreen extends ConsumerStatefulWidget {
 class _SplashScreenState extends ConsumerState<SplashScreen>
     with TickerProviderStateMixin {
   bool _dialogShown = false;
-
-  // Tấm kính + logo: scale (overshoot nhẹ) + fade khi vào màn hình.
-  late final AnimationController _logoCtrl;
-  late final Animation<double> _logoScale;
-  late final Animation<double> _logoFade;
-
-  // Nội dung phụ (thanh tải): fade sau logo một nhịp.
-  late final Animation<double> _textFade;
-
-  // Nhịp "thở" của tấm kính và các viên kính nổi, lặp vô hạn.
-  late final AnimationController _pulseCtrl;
-
-  // Các đốm sáng phía sau trôi chậm qua lại để kính có thứ để "khúc xạ".
-  late final AnimationController _driftCtrl;
-
-  // Vệt sáng quét chéo qua mặt kính.
-  late final AnimationController _sheenCtrl;
+  late final AnimationController _introController;
+  late final AnimationController _pulseController;
+  late final Animation<double> _fade;
+  late final Animation<double> _scale;
 
   @override
   void initState() {
     super.initState();
-
-    _logoCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 900));
-    _logoScale = Tween<double>(begin: 0.85, end: 1.0)
-        .animate(CurvedAnimation(parent: _logoCtrl, curve: Curves.easeOutBack));
-    _logoFade = CurvedAnimation(
-        parent: _logoCtrl,
-        curve: const Interval(0.0, 0.7, curve: Curves.easeOut));
-    _textFade = CurvedAnimation(
-        parent: _logoCtrl,
-        curve: const Interval(0.35, 1.0, curve: Curves.easeOut));
-    _logoCtrl.forward();
-
-    _pulseCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 2800))
-      ..repeat();
-    _driftCtrl = AnimationController(
-        vsync: this, duration: const Duration(seconds: 9))
-      ..repeat(reverse: true);
-    _sheenCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 3400))
-      ..repeat();
+    _introController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 720),
+    )..forward();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _fade = CurvedAnimation(
+      parent: _introController,
+      curve: const Interval(0, .72, curve: Curves.easeOut),
+    );
+    _scale = Tween<double>(begin: .88, end: 1).animate(
+      CurvedAnimation(parent: _introController, curve: Curves.easeOutBack),
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) => _initialize());
   }
 
   Future<void> _initialize() async {
-    await ref.read(appVersionProvider.notifier).check();
+    await Future.wait([
+      ref.read(appVersionProvider.notifier).check(),
+      Future<void>.delayed(const Duration(milliseconds: 1500)),
+    ]);
     if (!mounted || kHoldSplashForDesign) return;
-    ref.read(splashReadyProvider.notifier).state = true;
+    final version = ref.read(appVersionProvider);
+    if (!version.needsForceUpdate) {
+      ref.read(splashReadyProvider.notifier).state = true;
+    }
   }
 
   @override
   void dispose() {
-    _logoCtrl.dispose();
-    _pulseCtrl.dispose();
-    _driftCtrl.dispose();
-    _sheenCtrl.dispose();
+    _introController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -88,157 +71,103 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   Widget build(BuildContext context) {
     final version = ref.watch(appVersionProvider);
 
-    if (version.isChecked && !_dialogShown) {
-      if (version.needsForceUpdate) {
-        _dialogShown = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _showForceUpdateDialog(context, version);
-        });
-      }
+    if (version.isChecked && version.needsForceUpdate && !_dialogShown) {
+      _dialogShown = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showForceUpdateDialog(context, version);
+      });
     }
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: SystemUiOverlayStyle.dark,
       child: Scaffold(
+        backgroundColor: _SplashPalette.peach,
         body: Stack(
           children: [
-            // ── Nền gradient cam thương hiệu ───────────────────────────────
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.primaryGradientStart,
-                    AppColors.primaryGradientMiddle,
-                    AppColors.primaryGradientEnd,
-                  ],
-                ),
+            const Positioned(
+              top: -110,
+              right: -82,
+              child: _DecorativeCircle(
+                size: 260,
+                color: _SplashPalette.orange,
+                opacity: .08,
               ),
             ),
-
-            // ── Đốm sáng mềm phía sau, trôi chậm ───────────────────────────
-            AnimatedBuilder(
-              animation: _driftCtrl,
-              builder: (context, _) {
-                final t = Curves.easeInOut.transform(_driftCtrl.value);
-                final size = MediaQuery.sizeOf(context);
-                return Stack(children: [
-                  _Glow(
-                    color: const Color(0xFFFFE08A),
-                    diameter: 360,
-                    left: -120 + 70 * t,
-                    top: size.height * 0.08 + 40 * t,
-                    alpha: 0.55,
-                  ),
-                  _Glow(
-                    color: const Color(0xFFFF5A2A),
-                    diameter: 420,
-                    right: -160 + 60 * (1 - t),
-                    bottom: size.height * 0.04 + 30 * t,
-                    alpha: 0.55,
-                  ),
-                  _Glow(
-                    color: const Color(0xFF3DBE6B),
-                    diameter: 260,
-                    right: -50 + 50 * t,
-                    top: size.height * 0.18 + 60 * (1 - t),
-                    alpha: 0.45,
-                  ),
-                ]);
-              },
+            const Positioned(
+              top: 126,
+              right: 34,
+              child: _DecorativeCircle(
+                size: 28,
+                color: _SplashPalette.green,
+                opacity: .16,
+              ),
             ),
-
-            // ── Vài viên kính nhỏ nổi xung quanh ───────────────────────────
-            AnimatedBuilder(
-              animation: _pulseCtrl,
-              builder: (context, _) {
-                final breathe =
-                    0.5 + 0.5 * math.sin(_pulseCtrl.value * 2 * math.pi);
-                final size = MediaQuery.sizeOf(context);
-                final top = MediaQuery.paddingOf(context).top;
-                return Stack(children: [
-                  Positioned(
-                      top: top + 70 + 6 * breathe,
-                      left: 34,
-                      child: const GlassOrb(size: 54)),
-                  Positioned(
-                      top: size.height * 0.30 - 8 * breathe,
-                      right: 26,
-                      child: const GlassOrb(size: 34)),
-                  Positioned(
-                      bottom: size.height * 0.22 + 8 * breathe,
-                      left: 28,
-                      child: const GlassOrb(size: 40)),
-                  Positioned(
-                      bottom: size.height * 0.10 - 6 * breathe,
-                      right: 52,
-                      child: const GlassOrb(size: 64)),
-                ]);
-              },
+            const Positioned(
+              bottom: 72,
+              left: -72,
+              child: _DecorativeCircle(
+                size: 184,
+                color: _SplashPalette.orange,
+                opacity: .07,
+              ),
             ),
-
-            // ── Tấm kính mờ chứa logo + thanh tải ───────────────────────────
-            Positioned.fill(
-              child: SafeArea(
-                child: Center(
-                  child: AnimatedBuilder(
-                    animation: Listenable.merge([_logoCtrl, _pulseCtrl]),
-                    builder: (_, child) {
-                      final breathe =
-                          0.5 + 0.5 * math.sin(_pulseCtrl.value * 2 * math.pi);
-                      return Opacity(
-                        opacity: _logoFade.value,
-                        child: Transform.translate(
-                          offset: Offset(0, -4 * breathe),
-                          child: Transform.scale(
-                              scale: _logoScale.value, child: child),
-                        ),
-                      );
-                    },
-                    child: GlassPanel(
-                      sheen: _sheenCtrl,
-                      margin: const EdgeInsets.symmetric(horizontal: 36),
+            Positioned(
+              left: 32,
+              top: MediaQuery.paddingOf(context).top + 72,
+              child: const _Spark(size: 8),
+            ),
+            Positioned(
+              right: 52,
+              bottom: MediaQuery.paddingOf(context).bottom + 142,
+              child: const _Spark(size: 11),
+            ),
+            SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final compact = constraints.maxHeight < 650;
+                  return SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    child: ConstrainedBox(
+                      constraints:
+                          BoxConstraints(minHeight: constraints.maxHeight),
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(28, 34, 28, 30),
-                        child: Column(mainAxisSize: MainAxisSize.min, children: [
-                          Image.asset(
-                            'assets/images/logo-vertical.png',
-                            width: 210,
-                            fit: BoxFit.contain,
-                          ),
-                          const SizedBox(height: AppSpace.lg),
-                          // Tải: phản ánh thời gian khởi tạo thật.
-                          AnimatedBuilder(
-                            animation: _textFade,
-                            builder: (_, child) =>
-                                Opacity(opacity: _textFade.value, child: child),
-                            child: Column(children: [
-                              SizedBox(
-                                width: 150,
-                                height: 5,
-                                child: ClipRRect(
-                                  borderRadius:
-                                      BorderRadius.circular(AppRadius.full),
-                                  child: LinearProgressIndicator(
-                                    backgroundColor:
-                                        AppColors.primary.withValues(alpha: .16),
-                                    valueColor: const AlwaysStoppedAnimation(
-                                        AppColors.primary),
+                        padding: EdgeInsets.fromLTRB(
+                          24,
+                          compact ? 18 : 30,
+                          24,
+                          compact ? 16 : 26,
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const _ShopBadge(),
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                vertical: compact ? 22 : 36,
+                              ),
+                              child: FadeTransition(
+                                opacity: _fade,
+                                child: ScaleTransition(
+                                  scale: _scale,
+                                  child: _BrandContent(
+                                    compact: compact,
+                                    pulse: _pulseController,
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: AppSpace.md),
-                              Text('Đang khởi động...',
-                                  style: AppTextStyles.label.copyWith(
-                                      color: AppColors.textSecondary)),
-                            ]),
-                          ),
-                        ]),
+                            ),
+                            FadeTransition(
+                              opacity: _fade,
+                              child: _LoadingStatus(
+                                animation: _pulseController,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
           ],
@@ -247,7 +176,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     );
   }
 
-  void _showForceUpdateDialog(BuildContext context, AppVersionState v) {
+  void _showForceUpdateDialog(BuildContext context, AppVersionState version) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -255,22 +184,61 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         canPop: false,
         child: AlertDialog(
           backgroundColor: Colors.white,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          title: const Text('Cập nhật bắt buộc',
-              style: TextStyle(
-                  fontSize: AppFontSize.xl, fontWeight: FontWeight.w800)),
-          content: Text(v.message,
-              style: const TextStyle(
-                  fontSize: AppFontSize.md,
-                  color: AppColors.textSecondary,
-                  height: 1.5)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.xl),
+          ),
+          title: Row(children: [
+            Container(
+              width: 44,
+              height: 44,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: _SplashPalette.peach,
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: Image.asset(
+                'assets/images/logo.png',
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(width: 11),
+            const Expanded(
+              child: Text(
+                'Cập nhật bắt buộc',
+                style: TextStyle(
+                  fontSize: AppFontSize.bodyLarge,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+          ]),
+          content: Text(
+            version.message,
+            style: const TextStyle(
+              fontSize: AppFontSize.body,
+              color: AppColors.textSecondary,
+              height: 1.5,
+            ),
+          ),
           actions: [
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: () => _openStore(v.storeUrl),
-                child: const Text('Cập nhật ngay'),
+                onPressed: () => _openStore(version.storeUrl),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _SplashPalette.orange,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Cập nhật ngay',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           ],
@@ -288,29 +256,291 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 }
 
-/// Đốm sáng nền có vị trí (bọc [SoftGlow] trong Positioned).
-class _Glow extends StatelessWidget {
-  final Color color;
-  final double diameter;
-  final double alpha;
-  final double? left, right, top, bottom;
+abstract final class _SplashPalette {
+  static const peach = Color(0xFFFFEDE4);
+  static const orange = AppColors.primary;
+  static const green = Color(0xFF169447);
+  static const ink = AppColors.textPrimary;
+  static const muted = AppColors.textSecondary;
+}
 
-  const _Glow({
-    required this.color,
-    required this.diameter,
-    required this.alpha,
-    this.left,
-    this.right,
-    this.top,
-    this.bottom,
-  });
+class _BrandContent extends StatelessWidget {
+  const _BrandContent({required this.compact, required this.pulse});
+
+  final bool compact;
+  final Animation<double> pulse;
 
   @override
-  Widget build(BuildContext context) => Positioned(
-        left: left,
-        right: right,
-        top: top,
-        bottom: bottom,
-        child: SoftGlow(color: color, diameter: diameter, alpha: alpha),
+  Widget build(BuildContext context) {
+    final logoSize = compact ? 104.0 : 124.0;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 460),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedBuilder(
+            animation: pulse,
+            builder: (context, child) => Transform.translate(
+              offset: Offset(0, -2.5 * pulse.value),
+              child: Transform.scale(
+                scale: .99 + (.02 * pulse.value),
+                child: child,
+              ),
+            ),
+            child: Container(
+              width: logoSize,
+              height: logoSize,
+              padding: EdgeInsets.all(compact ? 15 : 18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(compact ? 30 : 36),
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: _SplashPalette.orange.withValues(alpha: .12),
+                    blurRadius: 32,
+                    offset: const Offset(0, 14),
+                  ),
+                ],
+              ),
+              child: Image.asset(
+                'assets/images/logo.png',
+                fit: BoxFit.contain,
+                semanticLabel: 'Flash Ship',
+              ),
+            ),
+          ),
+          SizedBox(height: compact ? 20 : 26),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text.rich(
+              TextSpan(
+                style: TextStyle(
+                  fontFamily: AppTypography.fontFamily,
+                  fontSize: compact ? 33 : 38,
+                  height: 1.05,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -1,
+                  color: _SplashPalette.ink,
+                ),
+                children: const [
+                  TextSpan(text: 'Flash '),
+                  TextSpan(
+                    text: 'Ship',
+                    style: TextStyle(color: _SplashPalette.orange),
+                  ),
+                ],
+              ),
+              maxLines: 1,
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Giao hàng nhanh, vận hành cửa hàng nhẹ nhàng',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: AppTypography.fontFamily,
+              fontSize: AppFontSize.bodyLarge,
+              height: 1.35,
+              fontWeight: FontWeight.w500,
+              color: _SplashPalette.muted,
+            ),
+          ),
+          SizedBox(height: compact ? 16 : 22),
+          const _FeatureLine(),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShopBadge extends StatelessWidget {
+  const _ShopBadge();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: .72),
+          borderRadius: BorderRadius.circular(AppRadius.full),
+          border: Border.all(color: Colors.white),
+        ),
+        child: const Row(
+          children: [
+            Icon(
+              Icons.storefront_outlined,
+              size: 17,
+              color: _SplashPalette.orange,
+            ),
+            SizedBox(width: 7),
+            Expanded(
+              child: Text(
+                'Dành cho đối tác cửa hàng',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: AppTypography.fontFamily,
+                  fontSize: AppFontSize.caption,
+                  fontWeight: FontWeight.w600,
+                  color: _SplashPalette.ink,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _FeatureLine extends StatelessWidget {
+  const _FeatureLine();
+
+  @override
+  Widget build(BuildContext context) => const Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          _FeatureChip(icon: Icons.bolt_rounded, label: 'Tạo đơn nhanh'),
+          _FeatureChip(icon: Icons.route_outlined, label: 'Theo dõi dễ'),
+          _FeatureChip(icon: Icons.insights_rounded, label: 'Quản lý gọn'),
+        ],
+      );
+}
+
+class _FeatureChip extends StatelessWidget {
+  const _FeatureChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: .74),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white),
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: _SplashPalette.orange),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontFamily: AppTypography.fontFamily,
+                  fontSize: AppFontSize.caption,
+                  fontWeight: FontWeight.w600,
+                  color: _SplashPalette.muted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _LoadingStatus extends StatelessWidget {
+  const _LoadingStatus({required this.animation});
+
+  final Animation<double> animation;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        constraints: const BoxConstraints(maxWidth: 350),
+        padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: .76),
+          borderRadius: BorderRadius.circular(AppRadius.full),
+          border: Border.all(color: Colors.white),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedBuilder(
+              animation: animation,
+              builder: (context, _) {
+                final active = (animation.value * 2.99).floor();
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(3, (index) {
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 170),
+                      width: index == active ? 15 : 6,
+                      height: 6,
+                      margin: const EdgeInsets.only(right: 4),
+                      decoration: BoxDecoration(
+                        color: _SplashPalette.orange.withValues(
+                          alpha: index == active ? 1 : .2,
+                        ),
+                        borderRadius: BorderRadius.circular(AppRadius.full),
+                      ),
+                    );
+                  }),
+                );
+              },
+            ),
+            const SizedBox(width: 8),
+            const Flexible(
+              child: Text(
+                'Đang chuẩn bị không gian bán hàng',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: AppTypography.fontFamily,
+                  fontSize: AppFontSize.caption,
+                  fontWeight: FontWeight.w600,
+                  color: _SplashPalette.muted,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _DecorativeCircle extends StatelessWidget {
+  const _DecorativeCircle({
+    required this.size,
+    required this.color,
+    required this.opacity,
+  });
+
+  final double size;
+  final Color color;
+  final double opacity;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color.withValues(alpha: opacity),
+        ),
+      );
+}
+
+class _Spark extends StatelessWidget {
+  const _Spark({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Transform.rotate(
+        angle: .78,
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: _SplashPalette.orange.withValues(alpha: .26),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
       );
 }

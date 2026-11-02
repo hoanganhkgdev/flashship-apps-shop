@@ -14,6 +14,8 @@ Future<CityItem?> showCityPicker(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withValues(alpha: .28),
     builder: (sheetCtx) => ConstrainedBox(
       constraints:
           BoxConstraints(maxHeight: MediaQuery.sizeOf(sheetCtx).height * 0.8),

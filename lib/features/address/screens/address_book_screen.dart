@@ -1,4 +1,3 @@
-import '../../../core/widgets/app_decor_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
@@ -15,52 +14,45 @@ class AddressBookScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(addressProvider);
+    final items = async.valueOrNull;
+    final c = context.colors;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: const AppPageHeader(title: 'Địa chỉ thường giao'),
-      body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => Center(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Text('Không tải được danh sách',
-                style: TextStyle(color: AppColors.textSecondary)),
-            const SizedBox(height: 12),
-            TextButton.icon(
-              onPressed: () => ref.read(addressProvider.notifier).fetch(),
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Thử lại'),
-            ),
-          ]),
-        ),
-        data: (items) => items.isEmpty
-            ? _EmptyState(onAdd: () => _showAddDialog(context, ref))
-            : RefreshIndicator(
-                color: AppColors.primary,
-                onRefresh: () => ref.read(addressProvider.notifier).fetch(),
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-                  itemCount: items.length,
-                  separatorBuilder: (_, __) =>
-                      const SizedBox(height: AppSpacing.md),
-                  itemBuilder: (ctx, i) => _AddressCard(
-                    entry: items[i],
-                    onEdit: () => _showEditDialog(context, ref, items[i]),
-                    onDelete: () => _confirmDelete(context, ref, items[i]),
-                  ),
-                ),
-              ),
-      ),
-      floatingActionButton: async.valueOrNull?.isNotEmpty == true
-          ? FloatingActionButton.extended(
-              onPressed: () => _showAddDialog(context, ref),
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Thêm địa chỉ',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
-            )
+      backgroundColor: c.background,
+      bottomNavigationBar: items?.isNotEmpty == true
+          ? _AddAddressBar(onAdd: () => _showAddDialog(context, ref))
           : null,
+      body: Column(children: [
+        _AddressHeader(count: items?.length),
+        Expanded(
+          child: async.when(
+            loading: () => Center(
+              child:
+                  CircularProgressIndicator(color: c.primary, strokeWidth: 2),
+            ),
+            error: (_, __) => _AddressError(
+              onRetry: () => ref.read(addressProvider.notifier).fetch(),
+            ),
+            data: (items) => items.isEmpty
+                ? _EmptyState(onAdd: () => _showAddDialog(context, ref))
+                : RefreshIndicator(
+                    color: c.primary,
+                    onRefresh: () => ref.read(addressProvider.notifier).fetch(),
+                    child: ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                      itemCount: items.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (ctx, i) => _AddressCard(
+                        entry: items[i],
+                        onEdit: () => _showEditDialog(context, ref, items[i]),
+                        onDelete: () => _confirmDelete(context, ref, items[i]),
+                      ),
+                    ),
+                  ),
+          ),
+        ),
+      ]),
     );
   }
 
@@ -88,7 +80,7 @@ class AddressBookScreen extends ConsumerWidget {
             borderRadius: BorderRadius.circular(AppRadius.lg)),
         title: const Text('Xoá địa chỉ?',
             style: TextStyle(
-                fontSize: AppFontSize.xl, fontWeight: FontWeight.w800)),
+                fontSize: AppFontSize.xl, fontWeight: FontWeight.w600)),
         content: Text('Xoá "${entry.displayName}" khỏi sổ địa chỉ?',
             style: const TextStyle(
                 fontSize: AppFontSize.md, color: AppColors.textSecondary)),
@@ -114,6 +106,145 @@ class AddressBookScreen extends ConsumerWidget {
   }
 }
 
+class _AddressHeader extends StatelessWidget {
+  final int? count;
+  const _AddressHeader({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: context.isDark ? c.primarySoft : const Color(0xFFFFE9DE),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          child: Row(children: [
+            IconButton(
+              tooltip: 'Quay lại',
+              onPressed: () => Navigator.maybePop(context),
+              style: IconButton.styleFrom(
+                fixedSize: const Size.square(44),
+                backgroundColor: c.surface,
+                side: BorderSide(color: c.divider),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: 18,
+                color: c.textPrimary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text.rich(
+                    TextSpan(children: [
+                      const TextSpan(text: 'Địa chỉ '),
+                      TextSpan(
+                        text: 'thường giao',
+                        style: TextStyle(color: c.primary),
+                      ),
+                    ]),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.sectionTitle.copyWith(
+                      color: c.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    count == null
+                        ? 'Quản lý các địa điểm giao quen thuộc'
+                        : '$count địa chỉ · Chạm để chỉnh sửa',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.caption.copyWith(
+                      color: c.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _AddAddressBar extends StatelessWidget {
+  final VoidCallback onAdd;
+  const _AddAddressBar({required this.onAdd});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: c.surface,
+        border: Border(top: BorderSide(color: c.divider)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          child: FilledButton.icon(
+            onPressed: onAdd,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(double.infinity, 50),
+              backgroundColor: c.primary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            icon: const Icon(Icons.add_rounded, size: 21),
+            label: const Text(
+              'Thêm địa chỉ mới',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AddressError extends StatelessWidget {
+  final VoidCallback onRetry;
+  const _AddressError({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: AppEmptyState(
+          icon: Icons.wifi_off_rounded,
+          iconColor: c.textSecondary,
+          title: 'Không tải được danh sách',
+          subtitle: 'Kiểm tra kết nối rồi thử lại.',
+          action: TextButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('Thử lại'),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ── Card ─────────────────────────────────────────────────────────────────────
 
 class _AddressCard extends StatelessWidget {
@@ -123,108 +254,126 @@ class _AddressCard extends StatelessWidget {
   const _AddressCard(
       {required this.entry, required this.onEdit, required this.onDelete});
 
+  IconData get _icon => switch (entry.label?.trim().toLowerCase()) {
+        'nhà' || 'nhà riêng' => Icons.home_rounded,
+        'công ty' || 'cơ quan' => Icons.business_center_outlined,
+        _ => Icons.location_on_rounded,
+      };
+
   @override
-  Widget build(BuildContext context) => Container(
-        decoration: BoxDecoration(
-          color: context.colors.glass,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(color: context.colors.glassBorder, width: 1.2),
-          boxShadow: context.isDark ? null : AppShadows.soft,
-        ),
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Material(
+      color: c.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: c.divider),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onEdit,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          child: Row(children: [
+          padding: const EdgeInsets.fromLTRB(14, 14, 6, 14),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Container(
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
+                color: c.primarySoft,
+                borderRadius: BorderRadius.circular(13),
               ),
-              child: const Icon(Icons.person_outline_rounded,
-                  size: 22, color: AppColors.primary),
+              child: Icon(_icon, size: 21, color: c.primary),
             ),
             const SizedBox(width: 12),
             Expanded(
                 child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(children: [
-                  Flexible(
-                    child: Text(entry.displayName,
-                        style: const TextStyle(
-                            fontSize: AppFontSize.md,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
+                Text(
+                  entry.displayName,
+                  style: AppTextStyles.bodyStrong.copyWith(
+                    color: c.textPrimary,
+                    fontWeight: FontWeight.w600,
                   ),
-                  if (entry.label != null &&
-                      entry.label!.isNotEmpty &&
-                      entry.label != entry.name) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 5),
+                Row(children: [
+                  Icon(Icons.person_outline_rounded,
+                      size: 14, color: c.textTertiary),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      entry.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.caption.copyWith(
+                        color: c.textPrimary,
+                        fontWeight: FontWeight.w500,
                       ),
-                      child: Text(entry.name,
-                          style: const TextStyle(
-                              fontSize: AppFontSize.xs,
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w500)),
                     ),
-                  ],
+                  ),
                 ]),
-                const SizedBox(height: 2),
-                Text(entry.phone,
-                    style: const TextStyle(
-                        fontSize: AppFontSize.sm,
-                        color: AppColors.textSecondary)),
-                const SizedBox(height: 2),
-                Text(entry.address,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: AppFontSize.sm,
-                        color: AppColors.textSecondary)),
+                const SizedBox(height: 4),
+                Row(children: [
+                  Icon(Icons.phone_outlined, size: 14, color: c.textTertiary),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      entry.phone,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.caption.copyWith(
+                        color: c.textSecondary,
+                      ),
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 4),
+                Text(
+                  entry.address,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.caption.copyWith(
+                    color: c.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
               ],
             )),
             const SizedBox(width: 4),
             PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert_rounded,
-                  size: 20, color: AppColors.textSecondary),
+              tooltip: 'Tùy chọn địa chỉ',
+              icon: Icon(Icons.more_horiz_rounded,
+                  size: 21, color: c.textSecondary),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+                  borderRadius: BorderRadius.circular(12)),
+              color: c.surface,
               onSelected: (v) => v == 'edit' ? onEdit() : onDelete(),
-              itemBuilder: (_) => const [
+              itemBuilder: (_) => [
                 PopupMenuItem(
                     value: 'edit',
                     child: Row(children: [
-                      Icon(Icons.edit_outlined,
-                          size: 18, color: AppColors.textPrimary),
-                      SizedBox(width: 10),
-                      Text('Chỉnh sửa',
-                          style: TextStyle(fontSize: AppFontSize.md)),
+                      Icon(Icons.edit_outlined, size: 18, color: c.textPrimary),
+                      const SizedBox(width: 10),
+                      const Text('Chỉnh sửa'),
                     ])),
-                PopupMenuItem(
+                const PopupMenuItem(
                     value: 'delete',
                     child: Row(children: [
                       Icon(Icons.delete_outline_rounded,
                           size: 18, color: AppColors.danger),
                       SizedBox(width: 10),
-                      Text('Xoá',
-                          style: TextStyle(
-                              fontSize: AppFontSize.md,
-                              color: AppColors.danger)),
+                      Text('Xoá', style: TextStyle(color: AppColors.danger)),
                     ])),
               ],
             ),
           ]),
         ),
-      );
+      ),
+    );
+  }
 }
 
 // ── Empty state ───────────────────────────────────────────────────────────────
@@ -235,26 +384,31 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: AppEmptyState(
-          icon: Icons.contact_page_outlined,
-          title: 'Chưa có địa chỉ nào',
-          titleColor: AppColors.textPrimary,
-          subtitle: 'Lưu địa chỉ để tạo đơn nhanh hơn',
-          boxSize: 80,
-          boxShape: BoxShape.circle,
-          boxColor: AppColors.primary.withValues(alpha: 0.08),
-          iconColor: AppColors.primary,
-          iconSize: 40,
-          action: ElevatedButton.icon(
-            onPressed: onAdd,
-            icon: const Icon(Icons.add_rounded, size: 18),
-            label: const Text('Thêm địa chỉ đầu tiên'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: AppEmptyState(
+            icon: Icons.location_on_outlined,
+            title: 'Chưa có địa chỉ nào',
+            titleColor: AppColors.textPrimary,
+            subtitle: 'Lưu địa chỉ quen thuộc để tạo đơn nhanh hơn.',
+            boxSize: 76,
+            boxColor: AppColors.primary.withValues(alpha: 0.08),
+            iconColor: AppColors.primary,
+            iconSize: 34,
+            action: FilledButton.icon(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('Thêm địa chỉ đầu tiên'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(0, 48),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
           ),
         ),
@@ -370,7 +524,7 @@ class _AddAddressDialogScreenState
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         title: Text(widget.initial == null ? 'Thêm địa chỉ' : 'Chỉnh sửa',
             style: const TextStyle(
-                fontSize: AppFontSize.xl, fontWeight: FontWeight.w800)),
+                fontSize: AppFontSize.xl, fontWeight: FontWeight.w600)),
         content: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             _field(_label, 'Tên gợi nhớ (vd: Khách A)', required: false),
@@ -419,8 +573,9 @@ class _AddAddressDialogScreenState
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFFF5F5F5),
-            borderRadius: BorderRadius.circular(8),
+            color: context.colors.surfaceAlt,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: context.colors.divider),
           ),
           child: Row(children: [
             Expanded(
@@ -462,12 +617,21 @@ class _AddAddressDialogScreenState
           hintStyle: const TextStyle(
               fontSize: AppFontSize.base, color: AppColors.textSecondary),
           filled: true,
-          fillColor: const Color(0xFFF5F5F5),
+          fillColor: context.colors.surfaceAlt,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide.none),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: context.colors.divider),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: context.colors.divider),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: context.colors.primary),
+          ),
         ),
       );
 }

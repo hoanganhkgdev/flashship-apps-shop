@@ -1,11 +1,12 @@
-import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show Clipboard, ClipboardData;
+import 'package:flutter/services.dart'
+    show Clipboard, ClipboardData, SystemUiOverlayStyle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/support_links.dart';
 import '../../../core/widgets/app_decor_widgets.dart';
 import '../../../core/utils/store_launcher.dart';
 import '../../../core/widgets/app_form_widgets.dart';
@@ -18,10 +19,10 @@ import '../../order/models/order_model.dart';
 import '../../order/models/shop_order_type.dart';
 import '../../order/providers/order_provider.dart';
 import '../../order/utils/order_reorder.dart';
-import '../../order/widgets/order_driver_row.dart';
-import '../../order/widgets/order_route_lines.dart';
 import '../../order/screens/order_list_screen.dart';
 import '../../profile/screens/profile_screen.dart';
+import '../../profile/models/support_config_item.dart';
+import '../../profile/providers/support_config_provider.dart';
 import '../../stats/stats_screen.dart';
 import '../providers/today_stats_provider.dart';
 import '../../version/providers/app_version_provider.dart';
@@ -29,6 +30,7 @@ import '../../voucher/voucher_model.dart';
 import '../../voucher/voucher_provider.dart';
 import '../../voucher/widgets/voucher_card.dart';
 import '../widgets/create_order_card.dart';
+import '../widgets/home_section_heading.dart';
 
 part '../widgets/dashboard_tab.dart';
 part '../widgets/dashboard_header.dart';
@@ -37,6 +39,7 @@ part '../widgets/frequent_address_section.dart';
 part '../widgets/dashboard_order_card.dart';
 part '../widgets/quick_reorder_section.dart';
 part '../widgets/dashboard_voucher_section.dart';
+part '../widgets/dashboard_support_section.dart';
 
 final _tabProvider = StateProvider<int>((ref) => 0);
 
@@ -95,8 +98,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         activeIcon: Icons.home_rounded,
         label: 'Trang chủ'),
     AppNavItem(
-        icon: Icons.inventory_2_outlined,
-        activeIcon: Icons.inventory_2_rounded,
+        icon: Icons.receipt_long_outlined,
+        activeIcon: Icons.receipt_long_rounded,
         label: 'Đơn hàng'),
     AppNavItem(
         icon: Icons.bar_chart_outlined,
@@ -105,7 +108,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     AppNavItem(
         icon: Icons.person_outline_rounded,
         activeIcon: Icons.person_rounded,
-        label: 'Hồ sơ'),
+        label: 'Tài khoản'),
   ];
 
   static const _pages = [
@@ -119,7 +122,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final tab = ref.watch(_tabProvider);
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      extendBody: true,
+      backgroundColor: context.colors.background,
       body: IndexedStack(index: tab, children: _pages),
       bottomNavigationBar: AppBottomNav(
         selectedIndex: tab,

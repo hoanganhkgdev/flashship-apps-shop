@@ -1,4 +1,3 @@
-import '../../../core/widgets/app_decor_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,7 +14,7 @@ import '../models/cargo_type.dart';
 import '../data/order_repository.dart';
 import '../providers/order_provider.dart';
 import '../utils/create_batch_order_validator.dart';
-import '../widgets/destination_sheet.dart';
+import '../utils/pricing_totals.dart';
 import '../../../core/router/app_route.dart';
 
 // ─── Stop model (local) ───────────────────────────────────────────────────────
@@ -32,8 +31,6 @@ class _Stop {
   double? lat, lng;
   int? fee;
   double? distanceKm;
-  // Khu vực giao shop chọn cho điểm này (giá cố định); null = tính theo km.
-  DestinationPrice? destination;
   bool estimating = false;
 
   _Stop()
@@ -79,6 +76,7 @@ class _CreateBatchOrderScreenState
   String? _voucherCode;
   String? _voucherLabel;
   int? _voucherDiscount;
+  int _nightSurcharge = 0;
 
   final List<_Stop> _stops = [_Stop()];
   // Id của _Stop đang mở rộng để nhập liệu — null nghĩa là tất cả đang thu gọn.
@@ -203,38 +201,17 @@ class _CreateBatchOrderScreenState
     _estimateAll();
   }
 
-  Future<void> _pickStopDestination(int i) async {
-    final options = ref.read(destinationPricesProvider).valueOrNull ?? const [];
-    if (options.isEmpty) return;
-    final stop = _stops[i];
-    final choice = await showDestinationSheet(
-      context,
-      options: options,
-      selectedId: stop.destination?.id,
-    );
-    if (choice == null || !mounted) return;
-    setState(() {
-      stop.destination = choice.destination;
-      // Hiện ngay giá khu vực khi điểm chưa có địa chỉ để báo giá; khi đã có,
-      // _estimateAll() thay bằng giá server.
-      stop.fee = choice.destination?.fee;
-    });
-    await _estimateAll();
-  }
-
   // ── Estimate ────────────────────────────────────────────────────────────
 
   // Gọi 1 lần /shop/pricing/estimate-batch cho toàn bộ điểm giao thay vì lặp
   // /shop/pricing/estimate cho từng điểm — khớp với cách OrderController::
   // storeBatch tính phí (1 lượt tính cho cả đơn), tránh N request rời rạc.
-  Future<void> _estimateAll() async {
+  Future<bool> _estimateAll() async {
     final pickupAddr = _pickupAddrCtrl.text.trim();
-    if (pickupAddr.isEmpty) return;
-    final validStops = _stops
-        .where((s) =>
-            s.addressCtrl.text.trim().isNotEmpty || s.destination != null)
-        .toList();
-    if (validStops.isEmpty) return;
+    if (pickupAddr.isEmpty) return false;
+    final validStops =
+        _stops.where((s) => s.addressCtrl.text.trim().isNotEmpty).toList();
+    if (validStops.isEmpty) return false;
 
     // Lưu tổng phí cũ TRƯỚC khi set fee = null cho trạng thái loading — dùng
     // so sánh xem phí có thực sự đổi để quyết định có cần gỡ voucher không.
@@ -243,8 +220,7 @@ class _CreateBatchOrderScreenState
     setState(() {
       for (final s in validStops) {
         s.estimating = true;
-        // Điểm đã chọn khu vực giữ giá khu vực khi chờ hoặc khi báo giá lỗi.
-        s.fee = s.destination?.fee;
+        s.fee = null;
       }
     });
 
@@ -260,7 +236,6 @@ class _CreateBatchOrderScreenState
                       lat: stop.lat,
                       lng: stop.lng,
                       cargoWeight: _cargoWeight,
-                      destinationId: stop.destination?.id,
                     ))
                 .toList(growable: false),
           );
@@ -274,10 +249,12 @@ class _CreateBatchOrderScreenState
           for (var i = 0;
               i < validStops.length && i < estimate.stops.length;
               i++) {
-            validStops[i].fee = estimate.stops[i].fee;
-            validStops[i].distanceKm = estimate.stops[i].distanceKm;
+            final stopEstimate = estimate.stops[i];
+            validStops[i].fee = stopEstimate.fee;
+            validStops[i].distanceKm = stopEstimate.distanceKm;
             validStops[i].estimating = false;
           }
+          _nightSurcharge = estimate.nightSurcharge;
           if (shouldRemoveVoucher) _removeVoucher();
         });
 
@@ -288,14 +265,18 @@ class _CreateBatchOrderScreenState
           ));
         }
       }
+      return true;
     } catch (_) {
       if (mounted) {
         setState(() {
+          _nightSurcharge = 0;
           for (final s in validStops) {
+            s.fee = null;
             s.estimating = false;
           }
         });
       }
+      return false;
     }
   }
 
@@ -329,17 +310,20 @@ class _CreateBatchOrderScreenState
     });
   }
 
-  int get _totalFee => _stops.fold(0, (s, st) => s + (st.fee ?? 0));
+  int get _deliveryFee => _stops.fold(0, (s, st) => s + (st.fee ?? 0));
 
-  int get _finalFee =>
-      (_totalFee - (_voucherDiscount ?? 0)).clamp(0, _totalFee);
+  int get _totalFee => _deliveryFee + _nightSurcharge;
+
+  int get _finalFee => feeAfterDiscount(
+        totalFee: _totalFee,
+        discount: _voucherDiscount ?? 0,
+      );
 
   // ── Exit confirmation ────────────────────────────────────────────────────
 
   bool get _hasUnsavedData =>
       _stops.length > 1 ||
       _stops.any((s) =>
-          s.destination != null ||
           s.addressCtrl.text.trim().isNotEmpty ||
           s.phoneCtrl.text.trim().isNotEmpty ||
           s.nameCtrl.text.trim().isNotEmpty ||
@@ -401,11 +385,8 @@ class _CreateBatchOrderScreenState
 
   Future<void> _openVoucherSheet() async {
     if (_totalFee == 0) return;
-    final result = await showModalBottomSheet<Map<String, dynamic>>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (_) => VoucherSheet(fee: _totalFee),
+    final result = await Navigator.of(context).push<Map<String, dynamic>>(
+      appRoute(VoucherPickerScreen(fee: _totalFee)),
     );
     if (result != null && mounted) {
       setState(() {
@@ -436,16 +417,21 @@ class _CreateBatchOrderScreenState
                 phone: stop.phoneCtrl.text,
                 lat: stop.lat,
                 lng: stop.lng,
-                hasDestination: stop.destination != null,
               ))
           .toList(growable: false),
-      areasAvailable:
-          ref.read(destinationPricesProvider).valueOrNull?.isNotEmpty ?? false,
     );
     if (validationError != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(validationError)),
       );
+      return;
+    }
+
+    if (!await _estimateAll()) {
+      if (mounted) {
+        AppSnackbar.error(
+            context, 'Không thể xác nhận phí giao hàng. Vui lòng thử lại.');
+      }
       return;
     }
 
@@ -463,7 +449,6 @@ class _CreateBatchOrderScreenState
           lat: s.lat,
           lng: s.lng,
           codAmount: cod.isEmpty ? null : int.tryParse(cod),
-          destinationId: s.destination?.id,
         );
       }).toList(growable: false);
 
@@ -498,16 +483,12 @@ class _CreateBatchOrderScreenState
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final isDark = context.isDark;
     final hasFee = _stops.any((s) => s.fee != null);
     final shop = ref.watch(authProvider).user;
-    final destinations =
-        ref.watch(destinationPricesProvider).valueOrNull ?? const [];
     BoxDecoration cardDeco() => BoxDecoration(
-          color: c.glass,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(color: c.glassBorder, width: 1.2),
-          boxShadow: isDark ? null : AppShadows.soft,
+          color: c.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: c.divider),
         );
 
     return PopScope(
@@ -517,23 +498,23 @@ class _CreateBatchOrderScreenState
         _handleBackPress();
       },
       child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppPageHeader(
-          title: 'Đơn gộp nhiều điểm',
-          subtitle: 'Một tài xế giao nhiều điểm trong một đơn',
+        backgroundColor: c.background,
+        appBar: _BatchOrderHeader(
           onBack: _handleBackPress,
-          backIcon: Icons.close_rounded,
         ),
         body: ListView(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.fromLTRB(
               AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.xl2),
           children: [
+            _BatchGuideCard(stopCount: _stops.length),
+            const SizedBox(height: 20),
             // ── 01 Điểm lấy hàng (mặc định theo cửa hàng) ──────────────
-            const AppSectionHeading(
+            const _BatchSectionTitle(
               number: '01',
               title: 'Điểm lấy hàng',
               subtitle: 'Mặc định là cửa hàng của bạn',
+              icon: Icons.storefront_outlined,
             ),
             Container(
               width: double.infinity,
@@ -575,35 +556,49 @@ class _CreateBatchOrderScreenState
                     ],
                   ]),
             ),
-            const SizedBox(height: AppSpacing.xl2 - AppSpacing.xs),
+            const SizedBox(height: 20),
 
             // ── 02 Loại hàng ───────────────────────────────────────────
-            const AppSectionHeading(
+            const _BatchSectionTitle(
               number: '02',
               title: 'Loại hàng',
               subtitle: 'Áp dụng chung cho cả đơn, thêm dặn dò cho tài xế',
+              icon: Icons.inventory_2_outlined,
             ),
             Container(
               decoration: cardDeco(),
               child: Column(children: [
                 Padding(
                   padding: const EdgeInsets.all(AppSpacing.md),
-                  child: Row(children: [
-                    for (final cargo in cargoTypes) ...[
-                      Expanded(
-                        child: CargoTile(
-                          cargo: cargo,
-                          selected: _cargoType == cargo.key,
-                          onTap: () {
-                            setState(() => _cargoType = cargo.key);
-                            _estimateAll();
-                          },
-                        ),
-                      ),
-                      if (cargo.key != cargoTypes.last.key)
-                        const SizedBox(width: AppSpacing.sm),
-                    ],
-                  ]),
+                  child: LayoutBuilder(builder: (context, constraints) {
+                    const spacing = 8.0;
+                    final columns = constraints.maxWidth < 300 ||
+                            MediaQuery.textScalerOf(context).scale(12) > 16
+                        ? 2
+                        : 3;
+                    final tileWidth =
+                        (constraints.maxWidth - spacing * (columns - 1)) /
+                            columns;
+                    return Wrap(
+                      spacing: spacing,
+                      runSpacing: spacing,
+                      children: [
+                        for (final cargo in cargoTypes)
+                          SizedBox(
+                            width: tileWidth,
+                            height: 88,
+                            child: CargoTile(
+                              cargo: cargo,
+                              selected: _cargoType == cargo.key,
+                              onTap: () {
+                                setState(() => _cargoType = cargo.key);
+                                _estimateAll();
+                              },
+                            ),
+                          ),
+                      ],
+                    );
+                  }),
                 ),
                 if (cargoTypeOf(_cargoType).hasWeight) ...[
                   Divider(height: 1, color: c.divider),
@@ -626,13 +621,14 @@ class _CreateBatchOrderScreenState
                 ),
               ]),
             ),
-            const SizedBox(height: AppSpacing.xl2 - AppSpacing.xs),
+            const SizedBox(height: 20),
 
             // ── 03 Các điểm giao ───────────────────────────────────────
-            AppSectionHeading(
+            _BatchSectionTitle(
               number: '03',
               title: 'Các điểm giao hàng',
               subtitle: '${_stops.length}/10 điểm · kéo để đổi thứ tự giao',
+              icon: Icons.route_outlined,
             ),
             ReorderableListView.builder(
               shrinkWrap: true,
@@ -653,8 +649,6 @@ class _CreateBatchOrderScreenState
                         _expandedStopId == stop.id ? null : stop.id;
                   }),
                   onPickAddress: () => _pickStopAddress(i),
-                  hasDestinations: destinations.isNotEmpty,
-                  onPickDestination: () => _pickStopDestination(i),
                   onAddressChanged: (_) => _estimateAll(),
                   onRemove: () => _removeStop(i),
                 );
@@ -669,20 +663,22 @@ class _CreateBatchOrderScreenState
                   backgroundColor: c.primarySoft,
                   foregroundColor: c.primary,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md)),
+                      borderRadius: BorderRadius.circular(12)),
                   minimumSize:
                       const Size(double.infinity, AppSize.buttonHeight),
+                  elevation: 0,
                 ),
               ),
-            const SizedBox(height: AppSpacing.xl2 - AppSpacing.xs),
+            const SizedBox(height: 20),
 
             // ── 04 Chi phí ─────────────────────────────────────────────
-            AppSectionHeading(
+            _BatchSectionTitle(
               number: '04',
               title: 'Chi phí ước tính',
               subtitle: _stops.any((s) => s.estimating)
                   ? 'Đang tính phí…'
                   : 'Tổng phí của tất cả điểm giao',
+              icon: Icons.receipt_long_outlined,
             ),
             Container(
               clipBehavior: Clip.antiAlias,
@@ -699,7 +695,16 @@ class _CreateBatchOrderScreenState
                     _SummaryRow(
                         icon: Icons.two_wheeler_rounded,
                         label: 'Phí giao hàng',
-                        value: hasFee ? Fmt.currency(_totalFee) : '—'),
+                        value: hasFee ? Fmt.currency(_deliveryFee) : '—'),
+                    if (_nightSurcharge > 0) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      _SummaryRow(
+                        icon: Icons.nightlight_round,
+                        label: 'Phụ phí đêm',
+                        value: '+${Fmt.currency(_nightSurcharge)}',
+                        color: c.warning,
+                      ),
+                    ],
                     if (_voucherCode != null) ...[
                       const SizedBox(height: AppSpacing.md),
                       _SummaryRow(
@@ -766,38 +771,44 @@ class _CreateBatchOrderScreenState
             ),
           ],
         ),
-        bottomNavigationBar: Container(
-          decoration: BoxDecoration(
-            color: c.glassStrong,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-            boxShadow: isDark ? null : AppShadows.raised,
-          ),
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.md),
-              child: Row(children: [
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Tổng cộng',
-                        style: AppTextStyles.caption
-                            .copyWith(color: c.textTertiary)),
-                    const SizedBox(height: AppSpacing.xxs),
-                    Text(hasFee ? Fmt.currency(_finalFee) : '—',
-                        style: AppTextStyles.metric.copyWith(color: c.primary)),
-                  ],
-                ),
-                const SizedBox(width: AppSpacing.lg),
-                Expanded(
-                  child: FilledButton(
+        bottomNavigationBar: Material(
+          color: c.surface,
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: c.divider)),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.md),
+                child: LayoutBuilder(builder: (context, constraints) {
+                  final stacked = constraints.maxWidth < 330 ||
+                      MediaQuery.textScalerOf(context).scale(14) > 18;
+                  final total = Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Tổng cộng',
+                          style: AppTextStyles.caption
+                              .copyWith(color: c.textTertiary)),
+                      const SizedBox(height: AppSpacing.xxs),
+                      Text(hasFee ? Fmt.currency(_finalFee) : '—',
+                          style:
+                              AppTextStyles.metric.copyWith(color: c.primary)),
+                    ],
+                  );
+                  final button = FilledButton(
                     onPressed: _submitting ? null : _submit,
                     style: FilledButton.styleFrom(
-                        minimumSize:
-                            const Size.fromHeight(AppSize.buttonHeight)),
+                      minimumSize: const Size.fromHeight(AppSize.buttonHeight),
+                      backgroundColor: c.primary,
+                      foregroundColor: c.onPrimary,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                     child: _submitting
                         ? const SizedBox(
                             width: 20,
@@ -807,19 +818,227 @@ class _CreateBatchOrderScreenState
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text('Đặt ${_stops.length} điểm giao'),
+                              Flexible(
+                                child: Text(
+                                  'Đặt ${_stops.length} điểm giao',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                               const SizedBox(width: AppSpacing.sm),
                               const Icon(Icons.arrow_forward_rounded,
                                   size: AppSize.iconMd),
                             ],
                           ),
-                  ),
-                ),
-              ]),
+                  );
+                  if (stacked) {
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [total, const SizedBox(height: 10), button],
+                    );
+                  }
+                  return Row(children: [
+                    Expanded(child: total),
+                    const SizedBox(width: AppSpacing.lg),
+                    Expanded(child: button),
+                  ]);
+                }),
+              ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _BatchOrderHeader extends StatelessWidget implements PreferredSizeWidget {
+  final VoidCallback onBack;
+
+  const _BatchOrderHeader({required this.onBack});
+
+  @override
+  Size get preferredSize => const Size.fromHeight(70);
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return AppBar(
+      backgroundColor: context.isDark ? c.primarySoft : const Color(0xFFFFE9DE),
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      toolbarHeight: 70,
+      leadingWidth: 72,
+      centerTitle: false,
+      titleSpacing: 0,
+      leading: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+        child: IconButton(
+          tooltip: 'Đóng',
+          onPressed: onBack,
+          style: IconButton.styleFrom(
+            backgroundColor: c.surface,
+            side: BorderSide(color: c.divider),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          icon: Icon(Icons.close_rounded, size: 20, color: c.textPrimary),
+        ),
+      ),
+      title: Padding(
+        padding: const EdgeInsets.only(right: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text.rich(
+              TextSpan(children: [
+                const TextSpan(text: 'Tạo '),
+                TextSpan(text: 'đơn gộp', style: TextStyle(color: c.primary)),
+              ]),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.sectionTitle.copyWith(
+                color: c.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              'Một tài xế giao nhiều điểm trong một đơn',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.caption.copyWith(color: c.textSecondary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BatchGuideCard extends StatelessWidget {
+  final int stopCount;
+
+  const _BatchGuideCard({required this.stopCount});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: c.primarySoft,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: c.primary.withValues(alpha: .20)),
+      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          width: 42,
+          height: 42,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: c.surface,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(Icons.route_rounded, size: 22, color: c.primary),
+        ),
+        const SizedBox(width: 11),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Giao nhiều nơi, tạo một lần',
+                style: AppTextStyles.bodyStrong.copyWith(
+                  color: c.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                'Hiện có $stopCount điểm giao. Bạn có thể thêm, xóa hoặc kéo để sắp xếp thứ tự.',
+                style: AppTextStyles.caption.copyWith(
+                  color: c.textSecondary,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+class _BatchSectionTitle extends StatelessWidget {
+  final String number;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+
+  const _BatchSectionTitle({
+    required this.number,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          width: 32,
+          height: 32,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: c.primary,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            number,
+            style: AppTextStyles.caption.copyWith(
+              color: c.onPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: AppTextStyles.bodyStrong.copyWith(
+                  color: c.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Row(children: [
+                Icon(icon, size: 14, color: c.textSecondary),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.caption.copyWith(
+                      color: c.textSecondary,
+                    ),
+                  ),
+                ),
+              ]),
+            ],
+          ),
+        ),
+      ]),
     );
   }
 }
@@ -958,8 +1177,6 @@ class _StopCard extends StatelessWidget {
   final bool isExpanded;
   final VoidCallback onToggle;
   final VoidCallback onPickAddress;
-  final bool hasDestinations;
-  final VoidCallback onPickDestination;
   final ValueChanged<String> onAddressChanged;
   final VoidCallback onRemove;
 
@@ -971,8 +1188,6 @@ class _StopCard extends StatelessWidget {
     required this.isExpanded,
     required this.onToggle,
     required this.onPickAddress,
-    required this.hasDestinations,
-    required this.onPickDestination,
     required this.onAddressChanged,
     required this.onRemove,
   });
@@ -987,7 +1202,7 @@ class _StopCard extends StatelessWidget {
       );
 
   bool get _complete =>
-      (stop.addressCtrl.text.trim().isNotEmpty || stop.destination != null) &&
+      stop.addressCtrl.text.trim().isNotEmpty &&
       stop.phoneCtrl.text.trim().isNotEmpty;
 
   Widget _indexBadge(BuildContext context) {
@@ -998,24 +1213,23 @@ class _StopCard extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: _complete ? c.success : c.primarySoft,
-        shape: BoxShape.circle,
+        borderRadius: BorderRadius.circular(9),
       ),
       child: _complete
           ? const Icon(Icons.check_rounded, size: 16, color: Colors.white)
           : Text('${index + 1}',
               style: AppTextStyles.label
-                  .copyWith(fontWeight: FontWeight.w800, color: c.primary)),
+                  .copyWith(fontWeight: FontWeight.w600, color: c.primary)),
     );
   }
 
   BoxDecoration _deco(BuildContext context, {required bool active}) {
     final c = context.colors;
     return BoxDecoration(
-      color: c.glass,
-      borderRadius: BorderRadius.circular(AppRadius.card),
+      color: c.surface,
+      borderRadius: BorderRadius.circular(16),
       border: Border.all(
           color: active ? c.primary : c.divider, width: active ? 1.4 : 1),
-      boxShadow: context.isDark ? null : AppShadows.soft,
     );
   }
 
@@ -1039,7 +1253,7 @@ class _StopCard extends StatelessWidget {
       ),
       child: Text(Fmt.currency(stop.fee!),
           style: AppTextStyles.label
-              .copyWith(fontWeight: FontWeight.w800, color: c.primary)),
+              .copyWith(fontWeight: FontWeight.w600, color: c.primary)),
     );
   }
 
@@ -1052,7 +1266,6 @@ class _StopCard extends StatelessWidget {
     final c = context.colors;
     final hasAddress = stop.addressCtrl.text.isNotEmpty;
     final subParts = [
-      if (stop.destination != null) stop.destination!.name,
       if (stop.nameCtrl.text.isNotEmpty) stop.nameCtrl.text,
       if (stop.phoneCtrl.text.isNotEmpty) stop.phoneCtrl.text,
       if (stop.codCtrl.text.isNotEmpty) 'Tiền lấy hàng ${stop.codCtrl.text}',
@@ -1080,13 +1293,12 @@ class _StopCard extends StatelessWidget {
                   Text(
                     hasAddress
                         ? stop.addressCtrl.text
-                        : stop.destination?.name ??
-                            'Điểm ${index + 1} · chưa nhập địa chỉ',
+                        : 'Điểm ${index + 1} · chưa nhập địa chỉ',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.bodyStrong.copyWith(
                         fontWeight:
-                            hasAddress ? FontWeight.w700 : FontWeight.w500,
+                            hasAddress ? FontWeight.w600 : FontWeight.w500,
                         color: hasAddress ? c.textPrimary : c.textTertiary),
                   ),
                   if (subParts.isNotEmpty)
@@ -1129,8 +1341,8 @@ class _StopCard extends StatelessWidget {
               _indexBadge(context),
               const SizedBox(width: AppSpacing.md),
               Text('Điểm ${index + 1}',
-                  style: AppTextStyles.sectionTitle
-                      .copyWith(color: c.textPrimary)),
+                  style: AppTextStyles.bodyStrong.copyWith(
+                      color: c.textPrimary, fontWeight: FontWeight.w600)),
               if (stop.distanceKm != null) ...[
                 const SizedBox(width: AppSpacing.sm),
                 Text('${stop.distanceKm!.toStringAsFixed(1)} km',
@@ -1165,16 +1377,12 @@ class _StopCard extends StatelessWidget {
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Text(
-                  hasAddress
-                      ? stop.addressCtrl.text
-                      : stop.destination != null
-                          ? 'Địa chỉ chi tiết (không bắt buộc)'
-                          : 'Chọn địa chỉ giao hàng',
+                  hasAddress ? stop.addressCtrl.text : 'Chọn địa chỉ giao hàng',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.bodyStrong.copyWith(
                       fontWeight:
-                          hasAddress ? FontWeight.w700 : FontWeight.w600,
+                          hasAddress ? FontWeight.w600 : FontWeight.w500,
                       color: hasAddress ? c.textPrimary : c.textTertiary),
                 ),
               ),
@@ -1187,35 +1395,6 @@ class _StopCard extends StatelessWidget {
             ]),
           ),
         ),
-        if (hasDestinations) ...[
-          Divider(height: 1, color: c.divider),
-          InkWell(
-            onTap: onPickDestination,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-              child: Row(children: [
-                Icon(Icons.sell_outlined,
-                    size: AppSize.iconSm + 2, color: c.primary),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Text(
-                    stop.destination == null
-                        ? 'Khu vực giao: tự tính theo quãng đường'
-                        : 'Khu vực giao: ${stop.destination!.name} · ${Fmt.currency(stop.destination!.fee)}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.body.copyWith(
-                        color: stop.destination == null
-                            ? c.textSecondary
-                            : c.textPrimary),
-                  ),
-                ),
-                Icon(Icons.chevron_right_rounded, color: c.textTertiary),
-              ]),
-            ),
-          ),
-        ],
         Divider(height: 1, color: c.divider),
         _BareField(
           controller: stop.phoneCtrl,

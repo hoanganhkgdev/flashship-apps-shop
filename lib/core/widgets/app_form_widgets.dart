@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
@@ -343,20 +341,13 @@ class AppLogoBox extends StatelessWidget {
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              context.colors.primary,
-              AppColors.primaryGradientEnd,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: context.colors.surface,
           borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: context.colors.divider),
           boxShadow: context.isDark ? null : AppShadows.soft,
         ),
         padding: const EdgeInsets.all(10),
-        child: Image.asset('assets/images/logo.png',
-            fit: BoxFit.contain, color: Colors.white),
+        child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
       );
 }
 
@@ -417,65 +408,61 @@ class AppBottomNav extends StatelessWidget {
     required this.onTap,
   });
 
-  /// Thanh menu liquid glass dạng viên thuốc nổi: kính mờ, viền sáng, bóng nhẹ;
-  /// tab đang chọn là viên kính nhuốm màu cam với icon và nhãn màu cam.
+  static bool _wrapLabels(BuildContext context) =>
+      MediaQuery.textScalerOf(context).scale(1) > 1.4 ||
+      (MediaQuery.sizeOf(context).width < 360 &&
+          MediaQuery.textScalerOf(context).scale(1) > 1.2);
+
+  static double _barHeight(BuildContext context) {
+    final labelHeight =
+        MediaQuery.textScalerOf(context).scale(AppFontSize.caption) *
+            1.15 *
+            (_wrapLabels(context) ? 2 : 1);
+    final height = 32 + 4 + labelHeight + 16;
+    return height < 72 ? 72 : height;
+  }
+
+  static double reservedHeight(BuildContext context) =>
+      _barHeight(context) + 16 + MediaQuery.paddingOf(context).bottom;
+
+  /// Card điều hướng nổi, đồng bộ với bottom nav của app customer.
   @override
   Widget build(BuildContext context) {
-    final dark = context.isDark;
-    const radius = 30.0;
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg, AppSpacing.xs, AppSpacing.lg, AppSpacing.md),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(radius),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: dark ? .35 : .12),
-                blurRadius: 24,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(radius),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(radius),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: dark
-                        ? [
-                            Colors.white.withValues(alpha: .18),
-                            Colors.white.withValues(alpha: .08),
-                          ]
-                        : [
-                            Colors.white.withValues(alpha: .85),
-                            Colors.white.withValues(alpha: .55),
-                          ],
+    final c = context.colors;
+    return Material(
+      type: MaterialType.transparency,
+      child: SafeArea(
+        top: false,
+        minimum: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+          child: Container(
+            height: _barHeight(context),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            decoration: BoxDecoration(
+              color: c.surface,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: c.divider),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(
+                    alpha: context.isDark ? .18 : .05,
                   ),
-                  border: Border.all(
-                      color: Colors.white.withValues(alpha: dark ? .25 : .9),
-                      width: 1.2),
+                  blurRadius: 18,
+                  offset: const Offset(0, 4),
                 ),
-                child: Row(children: [
-                  for (var i = 0; i < items.length; i++)
-                    Expanded(
-                      child: _NavTab(
-                        item: items[i],
-                        selected: i == selectedIndex,
-                        onTap: () => onTap(i),
-                      ),
-                    ),
-                ]),
-              ),
+              ],
             ),
+            child: Row(children: [
+              for (var i = 0; i < items.length; i++)
+                Expanded(
+                  child: _NavTab(
+                    item: items[i],
+                    selected: i == selectedIndex,
+                    onTap: () => onTap(i),
+                  ),
+                ),
+            ]),
           ),
         ),
       ),
@@ -499,37 +486,53 @@ class _NavTab extends StatelessWidget {
       button: true,
       selected: selected,
       label: item.label,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: AppDuration.normal,
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            color: selected
-                ? c.primary.withValues(alpha: 0.14)
-                : Colors.transparent,
-            border: Border.all(
-              color: selected
-                  ? c.primary.withValues(alpha: 0.35)
-                  : Colors.transparent,
-              width: 1.2,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: SizedBox(
+            height: double.infinity,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
+                  width: 48,
+                  height: 32,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: selected ? c.primarySoft : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    selected ? item.activeIcon : item.icon,
+                    size: 24,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                AnimatedDefaultTextStyle(
+                  duration: AppDuration.fast,
+                  style: AppTextStyles.caption.copyWith(
+                    fontSize: AppFontSize.caption,
+                    height: 1.15,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                    color: color,
+                  ),
+                  child: Text(
+                    item.label,
+                    maxLines: AppBottomNav._wrapLabels(context) ? 2 : 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
             ),
           ),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(selected ? item.activeIcon : item.icon,
-                size: AppSize.iconLg, color: color),
-            const SizedBox(height: 2),
-            Text(item.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.caption.copyWith(
-                    fontSize: AppFontSize.sm,
-                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                    color: color)),
-          ]),
         ),
       ),
     );

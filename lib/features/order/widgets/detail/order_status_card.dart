@@ -59,15 +59,50 @@ class _StatusCard extends StatelessWidget {
       glow: tone,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          AppIconBadge(icon: icon, color: tone, size: 52),
+          Expanded(
+            child: Text(
+              order.code.startsWith('#') ? order.code : '#${order.code}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.label.copyWith(
+                color: c.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(Icons.schedule_rounded, size: 14, color: c.textTertiary),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              Fmt.dateTime(order.createdAt),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.right,
+              style: AppTextStyles.caption.copyWith(color: c.textSecondary),
+            ),
+          ),
+        ]),
+        const SizedBox(height: 12),
+        Row(children: [
+          Container(
+            width: 50,
+            height: 50,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: tone.withValues(alpha: .10),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Icon(icon, color: tone, size: 26),
+          ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: AppTextStyles.screenTitle.copyWith(
-                        color: c.textPrimary, fontWeight: FontWeight.w800)),
+                    style: AppTextStyles.sectionTitle.copyWith(
+                        color: c.textPrimary, fontWeight: FontWeight.w600)),
                 const SizedBox(height: AppSpacing.xxs),
                 Text(subtitle,
                     style:
@@ -110,7 +145,7 @@ class _StatusCard extends StatelessWidget {
                         maxLines: 2,
                         style: AppTextStyles.caption.copyWith(
                           fontWeight:
-                              isDone ? FontWeight.w700 : FontWeight.w500,
+                              isDone ? FontWeight.w600 : FontWeight.w500,
                           color: isCurrent
                               ? c.primary
                               : isDone

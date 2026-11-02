@@ -164,12 +164,13 @@ class _FlashShipShopAppState extends ConsumerState<FlashShipShopApp>
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: c.primary,
+                  color: c.surface,
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: c.divider),
                 ),
                 padding: const EdgeInsets.all(7),
-                child: Image.asset('assets/images/logo.png',
-                    color: Colors.white, fit: BoxFit.contain),
+                child:
+                    Image.asset('assets/images/logo.png', fit: BoxFit.contain),
               ),
               const SizedBox(width: 10),
               Text('Cập nhật bắt buộc',

@@ -81,6 +81,8 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: .28),
       builder: (ctx) {
         final c = ctx.colors;
         return AppSheet(
@@ -138,122 +140,180 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
     final rewards = ref.watch(pointRewardsProvider);
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: const AppPageHeader(
-        title: 'Giới thiệu & tích điểm',
-        subtitle: 'Mời shop bạn bè, nhận điểm đổi voucher',
-      ),
-      body: RefreshIndicator(
-        color: c.primary,
-        onRefresh: _refresh,
-        child: info.when(
-          loading: () => Center(
-              child:
-                  CircularProgressIndicator(color: c.primary, strokeWidth: 2)),
-          error: (_, __) => ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              const SizedBox(height: 120),
-              Center(
-                  child: AppIconBadge(
-                      icon: Icons.wifi_off_rounded,
-                      color: c.textSecondary,
-                      size: 64)),
-              const SizedBox(height: AppSpacing.lg),
-              Center(
-                child: Text('Không tải được dữ liệu',
-                    style: AppTextStyles.bodyStrong
-                        .copyWith(color: c.textPrimary)),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Center(
-                child: FilledButton.tonal(
-                  onPressed: _refresh,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(140, AppSize.buttonHeight),
-                    backgroundColor: c.primarySoft,
-                    foregroundColor: c.primary,
+      backgroundColor: c.background,
+      body: Column(children: [
+        const _ReferralHeader(),
+        Expanded(
+          child: RefreshIndicator(
+            color: c.primary,
+            onRefresh: _refresh,
+            child: info.when(
+              loading: () => Center(
+                  child: CircularProgressIndicator(
+                      color: c.primary, strokeWidth: 2)),
+              error: (_, __) => ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(24),
+                children: [
+                  const SizedBox(height: 80),
+                  AppEmptyState(
+                    icon: Icons.wifi_off_rounded,
+                    iconColor: c.primary,
+                    boxColor: c.primarySoft,
+                    title: 'Không tải được dữ liệu',
+                    subtitle: 'Kiểm tra kết nối rồi thử lại.',
+                    action: TextButton.icon(
+                      onPressed: _refresh,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Thử lại'),
+                    ),
                   ),
-                  child: const Text('Thử lại'),
-                ),
+                ],
               ),
-            ],
-          ),
-          data: (data) => ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.xl4),
-            children: [
-              _PointsCard(info: data),
-              const SizedBox(height: AppSpacing.md),
-              _CodeCard(
-                info: data,
-                onCopyCode: () =>
-                    _copy(data.code, 'Đã sao chép mã ${data.code}'),
-                onCopyInvite: () => _copy(
-                  'Đăng ký FlashShip để giao hàng nhanh như chớp! '
-                      'Nhập mã giới thiệu ${data.code} khi đăng ký để nhận '
-                      '${data.program.welcomeAmount > 0 ? 'voucher ${Fmt.currency(data.program.welcomeAmount)} ' : 'ưu đãi '}'
-                      'sau khi hoàn thành ${data.program.minOrders} đơn đầu tiên.',
-                  'Đã sao chép lời mời, dán gửi cho bạn bè',
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xl2),
-              _Title(Icons.lightbulb_rounded, 'Cách hoạt động'),
-              _HowItWorks(program: data.program),
-              const SizedBox(height: AppSpacing.xl2),
-              _Title(Icons.redeem_rounded, 'Đổi điểm lấy voucher'),
-              rewards.when(
-                loading: () => const Padding(
-                  padding: EdgeInsets.all(AppSpacing.lg),
-                  child:
-                      Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                ),
-                error: (_, __) => _Note('Không tải được danh mục đổi điểm'),
-                data: (items) => items.isEmpty
-                    ? _Note('Chưa có phần quà nào để đổi')
-                    : Column(children: [
-                        for (final item in items) ...[
-                          _RewardTile(
-                            reward: item,
-                            points: data.points,
-                            loading: _redeemingId == item.id,
-                            onRedeem: () => _redeem(item),
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                        ],
-                      ]),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              _Title(Icons.group_rounded, 'Shop đã mời (${data.total})'),
-              data.referrals.isEmpty
-                  ? _Note('Bạn chưa mời shop nào. Gửi mã của bạn để bắt đầu!')
-                  : GlassCard(
-                      blur: false,
+              data: (data) => ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg,
+                    AppSpacing.lg, AppSpacing.xl4),
+                children: [
+                  _PointsCard(info: data),
+                  const SizedBox(height: AppSpacing.md),
+                  _CodeCard(
+                    info: data,
+                    onCopyCode: () =>
+                        _copy(data.code, 'Đã sao chép mã ${data.code}'),
+                    onCopyInvite: () => _copy(
+                      'Đăng ký FlashShip để giao hàng nhanh như chớp! '
+                          'Nhập mã giới thiệu ${data.code} khi đăng ký để nhận '
+                          '${data.program.welcomeAmount > 0 ? 'voucher ${Fmt.currency(data.program.welcomeAmount)} ' : 'ưu đãi '}'
+                          'sau khi hoàn thành ${data.program.minOrders} đơn đầu tiên.',
+                      'Đã sao chép lời mời, dán gửi cho bạn bè',
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl2),
+                  _Title(Icons.lightbulb_rounded, 'Cách hoạt động'),
+                  _HowItWorks(program: data.program),
+                  const SizedBox(height: AppSpacing.xl2),
+                  _Title(Icons.redeem_rounded, 'Đổi điểm lấy voucher'),
+                  rewards.when(
+                    loading: () => const Padding(
+                      padding: EdgeInsets.all(AppSpacing.lg),
+                      child: Center(
+                          child: CircularProgressIndicator(strokeWidth: 2)),
+                    ),
+                    error: (_, __) => _Note('Không tải được danh mục đổi điểm'),
+                    data: (items) => items.isEmpty
+                        ? _Note('Chưa có phần quà nào để đổi')
+                        : Column(children: [
+                            for (final item in items) ...[
+                              _RewardTile(
+                                reward: item,
+                                points: data.points,
+                                loading: _redeemingId == item.id,
+                                onRedeem: () => _redeem(item),
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                            ],
+                          ]),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  _Title(Icons.group_rounded, 'Shop đã mời (${data.total})'),
+                  data.referrals.isEmpty
+                      ? _Note(
+                          'Bạn chưa mời shop nào. Gửi mã của bạn để bắt đầu!')
+                      : _FlatCard(
+                          padding: EdgeInsets.zero,
+                          child: Column(children: [
+                            for (var i = 0; i < data.referrals.length; i++) ...[
+                              if (i > 0) Divider(height: 1, color: c.divider),
+                              _ReferralRow(entry: data.referrals[i]),
+                            ],
+                          ]),
+                        ),
+                  if (data.transactions.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.xl2),
+                    _Title(Icons.history_rounded, 'Lịch sử điểm'),
+                    _FlatCard(
                       padding: EdgeInsets.zero,
                       child: Column(children: [
-                        for (var i = 0; i < data.referrals.length; i++) ...[
+                        for (var i = 0; i < data.transactions.length; i++) ...[
                           if (i > 0) Divider(height: 1, color: c.divider),
-                          _ReferralRow(entry: data.referrals[i]),
+                          _TransactionRow(tx: data.transactions[i]),
                         ],
                       ]),
                     ),
-              if (data.transactions.isNotEmpty) ...[
-                const SizedBox(height: AppSpacing.xl2),
-                _Title(Icons.history_rounded, 'Lịch sử điểm'),
-                GlassCard(
-                  blur: false,
-                  padding: EdgeInsets.zero,
-                  child: Column(children: [
-                    for (var i = 0; i < data.transactions.length; i++) ...[
-                      if (i > 0) Divider(height: 1, color: c.divider),
-                      _TransactionRow(tx: data.transactions[i]),
-                    ],
-                  ]),
-                ),
-              ],
-            ],
+                  ],
+                ],
+              ),
+            ),
           ),
+        ),
+      ]),
+    );
+  }
+}
+
+class _ReferralHeader extends StatelessWidget {
+  const _ReferralHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: context.isDark ? c.primarySoft : const Color(0xFFFFE9DE),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          child: Row(children: [
+            IconButton(
+              tooltip: 'Quay lại',
+              onPressed: () => Navigator.maybePop(context),
+              style: IconButton.styleFrom(
+                fixedSize: const Size.square(44),
+                backgroundColor: c.surface,
+                side: BorderSide(color: c.divider),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: Icon(Icons.arrow_back_ios_new_rounded,
+                  size: 18, color: c.textPrimary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text.rich(
+                    TextSpan(children: [
+                      const TextSpan(text: 'Giới thiệu & '),
+                      TextSpan(
+                        text: 'tích điểm',
+                        style: TextStyle(color: c.primary),
+                      ),
+                    ]),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.sectionTitle.copyWith(
+                      color: c.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Mời shop bạn bè, nhận điểm đổi voucher',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.caption.copyWith(
+                      color: c.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ]),
         ),
       ),
     );
@@ -261,6 +321,59 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
 }
 
 // ─── Thành phần ───────────────────────────────────────────────────────────────
+
+class _FlatCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final bool warm;
+
+  const _FlatCard({
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
+    this.warm = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      width: double.infinity,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: warm ? c.primarySoft : c.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: warm ? const Color(0xFFFFD1BF) : c.divider,
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _FlatIcon extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final double size;
+
+  const _FlatIcon({
+    required this.icon,
+    required this.color,
+    this.size = 36,
+  });
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: .10),
+          borderRadius: BorderRadius.circular(11),
+        ),
+        child: Icon(icon, size: size * .52, color: color),
+      );
+}
 
 class _Title extends StatelessWidget {
   final IconData icon;
@@ -273,11 +386,23 @@ class _Title extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Row(children: [
-        AppIconBadge(icon: icon, color: c.primary, size: 28),
-        const SizedBox(width: AppSpacing.sm),
+        Container(
+          width: 4,
+          height: 28,
+          decoration: BoxDecoration(
+            color: c.primary,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(width: 10),
         Expanded(
-          child: Text(text,
-              style: AppTextStyles.sectionTitle.copyWith(color: c.textPrimary)),
+          child: Text(
+            text,
+            style: AppTextStyles.sectionTitle.copyWith(
+              color: c.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ]),
     );
@@ -289,8 +414,7 @@ class _Note extends StatelessWidget {
   const _Note(this.text);
 
   @override
-  Widget build(BuildContext context) => GlassCard(
-        blur: false,
+  Widget build(BuildContext context) => _FlatCard(
         child: Text(text,
             textAlign: TextAlign.center,
             style: AppTextStyles.body
@@ -305,47 +429,52 @@ class _PointsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return SizedBox(
-      width: double.infinity,
-      child: GlassCard(
-        glow: c.primary,
-        child: Row(children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('ĐIỂM CỦA BẠN',
-                    style: AppTextStyles.caption
-                        .copyWith(color: c.textTertiary, letterSpacing: .6)),
-                const SizedBox(height: AppSpacing.xs),
-                Row(
+    return _FlatCard(
+      warm: true,
+      child: Row(children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('ĐIỂM CỦA BẠN',
+                  style: AppTextStyles.caption
+                      .copyWith(color: c.textTertiary, letterSpacing: .6)),
+              const SizedBox(height: AppSpacing.xs),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text('${info.points}',
-                        style: AppTextStyles.metricLarge
-                            .copyWith(color: c.primary)),
+                        style: AppTextStyles.metricLarge.copyWith(
+                          color: c.primary,
+                          fontWeight: FontWeight.w700,
+                        )),
                     const SizedBox(width: AppSpacing.xs),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 4),
                       child: Text('điểm',
-                          style: AppTextStyles.bodyStrong
-                              .copyWith(color: c.textSecondary)),
+                          style: AppTextStyles.bodyStrong.copyWith(
+                            color: c.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          )),
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                    info.program.pointsPerReferral > 0
-                        ? 'Mỗi shop mới hoạt động bạn nhận +${info.program.pointsPerReferral} điểm'
-                        : 'Chương trình tích điểm đang tạm dừng',
-                    style:
-                        AppTextStyles.label.copyWith(color: c.textSecondary)),
-              ],
-            ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                  info.program.pointsPerReferral > 0
+                      ? 'Mỗi shop mới hoạt động bạn nhận +${info.program.pointsPerReferral} điểm'
+                      : 'Chương trình tích điểm đang tạm dừng',
+                  style: AppTextStyles.label.copyWith(color: c.textSecondary)),
+            ],
           ),
-          AppIconBadge(icon: Icons.stars_rounded, color: c.warning, size: 56),
-        ]),
-      ),
+        ),
+        _FlatIcon(icon: Icons.stars_rounded, color: c.primary, size: 54),
+      ]),
     );
   }
 }
@@ -363,40 +492,58 @@ class _CodeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return SizedBox(
-      width: double.infinity,
-      child: GlassCard(
-        glow: c.accent2,
-        child: Column(children: [
-          Text('MÃ GIỚI THIỆU CỦA BẠN',
-              style: AppTextStyles.caption
-                  .copyWith(color: c.textTertiary, letterSpacing: .6)),
-          const SizedBox(height: AppSpacing.sm),
-          Text(info.code.isEmpty ? '—' : info.code,
-              style: AppTextStyles.metricLarge
-                  .copyWith(color: c.textPrimary, letterSpacing: 6)),
-          const SizedBox(height: AppSpacing.lg),
-          Row(children: [
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: info.code.isEmpty ? null : onCopyCode,
-                icon: const Icon(Icons.copy_rounded, size: AppSize.iconMd),
-                label: const Text('Sao chép mã'),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: info.code.isEmpty ? null : onCopyInvite,
-                style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(0, AppSize.buttonHeight)),
-                icon: const Icon(Icons.send_rounded, size: AppSize.iconMd),
-                label: const Text('Chép lời mời'),
-              ),
-            ),
-          ]),
-        ]),
+    final compact = MediaQuery.sizeOf(context).width < 360 ||
+        MediaQuery.textScalerOf(context).scale(12) > 16;
+    final copyButton = FilledButton.icon(
+      onPressed: info.code.isEmpty ? null : onCopyCode,
+      icon: const Icon(Icons.copy_rounded, size: AppSize.iconMd),
+      label: const Text('Sao chép mã'),
+    );
+    final inviteButton = OutlinedButton.icon(
+      onPressed: info.code.isEmpty ? null : onCopyInvite,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, AppSize.buttonHeight),
       ),
+      icon: const Icon(Icons.send_rounded, size: AppSize.iconMd),
+      label: const Text('Chép lời mời'),
+    );
+    return _FlatCard(
+      child: Column(children: [
+        Text('MÃ GIỚI THIỆU CỦA BẠN',
+            style: AppTextStyles.caption
+                .copyWith(color: c.textTertiary, letterSpacing: .6)),
+        const SizedBox(height: AppSpacing.sm),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            color: c.surfaceAlt,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              info.code.isEmpty ? '—' : info.code,
+              style: AppTextStyles.metric.copyWith(
+                color: c.textPrimary,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 4,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        if (compact) ...[
+          SizedBox(width: double.infinity, child: copyButton),
+          const SizedBox(height: 8),
+          SizedBox(width: double.infinity, child: inviteButton),
+        ] else
+          Row(children: [
+            Expanded(child: copyButton),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(child: inviteButton),
+          ]),
+      ]),
     );
   }
 }
@@ -426,8 +573,7 @@ class _HowItWorks extends StatelessWidget {
         'Dùng điểm tích luỹ để đổi voucher giảm phí giao hàng ở bên dưới.'
       ),
     ];
-    return GlassCard(
-      blur: false,
+    return _FlatCard(
       child: Column(children: [
         for (var i = 0; i < steps.length; i++) ...[
           if (i > 0) const SizedBox(height: AppSpacing.lg),
@@ -436,10 +582,15 @@ class _HowItWorks extends StatelessWidget {
               width: 32,
               height: 32,
               alignment: Alignment.center,
-              decoration: glassIconDecoration(context, c.primary, circle: true),
+              decoration: BoxDecoration(
+                color: c.primarySoft,
+                shape: BoxShape.circle,
+              ),
               child: Text('${i + 1}',
-                  style: AppTextStyles.label
-                      .copyWith(color: c.primary, fontWeight: FontWeight.w900)),
+                  style: AppTextStyles.label.copyWith(
+                    color: c.primary,
+                    fontWeight: FontWeight.w600,
+                  )),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
@@ -447,13 +598,15 @@ class _HowItWorks extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(steps[i].$2,
-                      style: AppTextStyles.bodyStrong
-                          .copyWith(color: c.textPrimary)),
+                      style: AppTextStyles.bodyStrong.copyWith(
+                        color: c.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      )),
                   const SizedBox(height: AppSpacing.xxs),
                   Text(steps[i].$3,
                       style: AppTextStyles.label.copyWith(
                           color: c.textSecondary,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w400,
                           height: 1.4)),
                 ],
               ),
@@ -492,48 +645,70 @@ class _RewardTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final enough = points >= reward.pointsCost;
-    return GlassCard(
-      blur: false,
-      glow: enough ? c.success : null,
-      child: Row(children: [
-        AppIconBadge(
+    final color = enough ? c.success : c.textTertiary;
+    final button = FilledButton(
+      onPressed: enough && !loading ? onRedeem : null,
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(0, 42),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      ),
+      child: loading
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: Colors.white))
+          : Text('${reward.pointsCost} điểm'),
+    );
+    return _FlatCard(
+      child: LayoutBuilder(builder: (context, constraints) {
+        final compact = constraints.maxWidth < 300 ||
+            MediaQuery.textScalerOf(context).scale(12) > 16;
+        final detail =
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _FlatIcon(
             icon: Icons.local_activity_rounded,
-            color: enough ? c.success : c.textTertiary,
-            size: 44),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(reward.name,
-                  style:
-                      AppTextStyles.bodyStrong.copyWith(color: c.textPrimary)),
-              const SizedBox(height: AppSpacing.xxs),
-              Text(_subtitle,
+            color: color,
+            size: 44,
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  reward.name,
+                  style: AppTextStyles.bodyStrong.copyWith(
+                    color: c.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  _subtitle,
                   style: AppTextStyles.caption.copyWith(
-                      fontWeight: FontWeight.w500, color: c.textSecondary)),
-            ],
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        SizedBox(
-          height: 40,
-          child: FilledButton(
-            onPressed: enough && !loading ? onRedeem : null,
-            style: FilledButton.styleFrom(
-              minimumSize: const Size(0, 40),
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    fontWeight: FontWeight.w400,
+                    color: c.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+              ],
             ),
-            child: loading
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white))
-                : Text('${reward.pointsCost} điểm'),
           ),
-        ),
-      ]),
+        ]);
+        if (compact) {
+          return Column(children: [
+            detail,
+            const SizedBox(height: 10),
+            SizedBox(width: double.infinity, child: button),
+          ]);
+        }
+        return Row(children: [
+          Expanded(child: detail),
+          const SizedBox(width: AppSpacing.sm),
+          button,
+        ]);
+      }),
     );
   }
 }
@@ -557,13 +732,16 @@ class _ReferralRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg, vertical: AppSpacing.md),
       child: Row(children: [
-        AppIconBadge(icon: Icons.storefront_rounded, color: color, size: 36),
+        _FlatIcon(icon: Icons.storefront_rounded, color: color, size: 36),
         const SizedBox(width: AppSpacing.md),
         Expanded(
           child: Text(entry.shopName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.bodyStrong.copyWith(color: c.textPrimary)),
+              style: AppTextStyles.bodyStrong.copyWith(
+                color: c.textPrimary,
+                fontWeight: FontWeight.w600,
+              )),
         ),
         Container(
           padding: const EdgeInsets.symmetric(
@@ -574,7 +752,7 @@ class _ReferralRow extends StatelessWidget {
           ),
           child: Text(label,
               style: AppTextStyles.caption
-                  .copyWith(color: color, fontWeight: FontWeight.w800)),
+                  .copyWith(color: color, fontWeight: FontWeight.w600)),
         ),
       ]),
     );
@@ -594,7 +772,7 @@ class _TransactionRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg, vertical: AppSpacing.md),
       child: Row(children: [
-        AppIconBadge(
+        _FlatIcon(
             icon: plus ? Icons.add_rounded : Icons.remove_rounded,
             color: color,
             size: 36),
@@ -606,8 +784,10 @@ class _TransactionRow extends StatelessWidget {
               Text(tx.description,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style:
-                      AppTextStyles.bodyStrong.copyWith(color: c.textPrimary)),
+                  style: AppTextStyles.bodyStrong.copyWith(
+                    color: c.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  )),
               if (tx.createdAt != null)
                 Text(_ReferralScreenState._date(tx.createdAt!),
                     style: AppTextStyles.caption.copyWith(

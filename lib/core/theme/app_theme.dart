@@ -9,18 +9,18 @@ export 'app_typography.dart';
 /// Bảng màu "tươi trẻ, thân thiện" (retail/e-commerce) — cam san hô làm chủ
 /// đạo, xanh ngọc làm điểm nhấn phụ. Thay cho tông "công cụ vận hành" cũ.
 class AppColors {
-  // Bảng màu đồng bộ với app tài xế.
-  static const primary = Color(0xFFFF6035);
+  // Đồng bộ với các bề mặt HomeStyle của app customer.
+  static const primary = Color(0xFFFF5A1F);
   static const primaryDark = Color(0xFFD83A05);
   static const primaryGradientStart = Color(0xFFCC5A08);
   static const primaryGradientMiddle = Color(0xFFE8720C);
   static const primaryGradientEnd = Color(0xFFF59E30);
   static const accent2 = Color(0xFF008F92);
-  static const background = Color(0xFFF2F3F5);
-  static const surface = Color(0xFFFFFEFD);
-  static const textPrimary = Color(0xFF1B1411);
-  static const textSecondary = Color(0xFF6A605C);
-  static const divider = Color(0xFFE5DDD9);
+  static const background = Color(0xFFF6F7F9);
+  static const surface = Colors.white;
+  static const textPrimary = Color(0xFF172033);
+  static const textSecondary = Color(0xFF667085);
+  static const divider = Color(0xFFE7EAF0);
   static const success = Color(0xFF229650);
   static const danger = Color(0xFFD52E36);
   static const warning = Color(0xFFBE7900);
@@ -83,23 +83,43 @@ abstract final class AppDuration {
 
 abstract final class AppTextStyles {
   static const screenTitle = TextStyle(
-      fontSize: AppFontSize.xl, height: 1.2, fontWeight: FontWeight.w600);
+      fontFamily: AppTypography.fontFamily,
+      fontSize: AppFontSize.xl,
+      height: 1.2,
+      fontWeight: FontWeight.w600);
   static const sectionTitle = TextStyle(
-      fontSize: AppFontSize.md, height: 1.25, fontWeight: FontWeight.w800);
+      fontFamily: AppTypography.fontFamily,
+      fontSize: AppFontSize.title,
+      height: 1.25,
+      fontWeight: FontWeight.w700);
   static const body = TextStyle(
-      fontSize: AppFontSize.base, height: 1.4, fontWeight: FontWeight.w500);
+      fontFamily: AppTypography.fontFamily,
+      fontSize: AppFontSize.base,
+      height: 1.4,
+      fontWeight: FontWeight.w400);
   static const bodyStrong = TextStyle(
-      fontSize: AppFontSize.base, height: 1.35, fontWeight: FontWeight.w700);
+      fontFamily: AppTypography.fontFamily,
+      fontSize: AppFontSize.base,
+      height: 1.35,
+      fontWeight: FontWeight.w700);
   static const label = TextStyle(
-      fontSize: AppFontSize.sm, height: 1.3, fontWeight: FontWeight.w600);
+      fontFamily: AppTypography.fontFamily,
+      fontSize: AppFontSize.body,
+      height: 1.3,
+      fontWeight: FontWeight.w500);
   static const caption = TextStyle(
-      fontSize: AppFontSize.xs, height: 1.3, fontWeight: FontWeight.w600);
+      fontFamily: AppTypography.fontFamily,
+      fontSize: AppFontSize.caption,
+      height: 1.3,
+      fontWeight: FontWeight.w400);
   static const metric = TextStyle(
+      fontFamily: AppTypography.fontFamily,
       fontSize: AppFontSize.xl,
       height: 1.1,
       fontWeight: FontWeight.w900,
       letterSpacing: -0.2);
   static const metricLarge = TextStyle(
+      fontFamily: AppTypography.fontFamily,
       fontSize: AppFontSize.display2,
       height: 1.05,
       fontWeight: FontWeight.w900,
@@ -184,15 +204,15 @@ class Palette extends ThemeExtension<Palette> {
   static const light = Palette(
     primary: AppColors.primary,
     onPrimary: Colors.white,
-    primarySoft: Color(0xFFFFEAE3),
+    primarySoft: Color(0xFFFFEDE6),
     accent2: AppColors.accent2,
     accent2Soft: Color(0xFFE3F5F4),
     background: AppColors.background,
     surface: AppColors.surface,
-    surfaceAlt: Color(0xFFF5F5F5),
+    surfaceAlt: Color(0xFFF8F9FB),
     textPrimary: AppColors.textPrimary,
     textSecondary: AppColors.textSecondary,
-    textTertiary: Color(0xFF938A86),
+    textTertiary: Color(0xFF98A2B3),
     divider: AppColors.divider,
     success: AppColors.success,
     successSoft: Color(0xFFE7F8F1),
@@ -203,9 +223,9 @@ class Palette extends ThemeExtension<Palette> {
     info: AppColors.info,
     infoSoft: Color(0xFFEFF5FF),
     shadow: Color(0x1A1B1411),
-    glass: Color(0xA8FFFFFF),
-    glassStrong: Color(0xD6FFFFFF),
-    glassBorder: Color(0xE6FFFFFF),
+    glass: AppColors.surface,
+    glassStrong: AppColors.surface,
+    glassBorder: AppColors.divider,
   );
 
   static const dark = Palette(
@@ -230,9 +250,9 @@ class Palette extends ThemeExtension<Palette> {
     info: Color(0xFF5B9BFF),
     infoSoft: Color(0xFF19212F),
     shadow: Color(0x66000000),
-    glass: Color(0x14FFFFFF),
-    glassStrong: Color(0x26FFFFFF),
-    glassBorder: Color(0x2EFFFFFF),
+    glass: Color(0xFF1E1A18),
+    glassStrong: Color(0xFF1E1A18),
+    glassBorder: Color(0xFF332C28),
   );
 
   /// Bóng mềm dùng chung cho mọi thẻ — đồng bộ AppShadows.soft của app tài xế
@@ -285,53 +305,6 @@ extension PaletteX on BuildContext {
   bool get isDark => Theme.of(this).brightness == Brightness.dark;
 }
 
-/// Vệt sáng kính phủ lên nút đặc: sáng ở nửa trên, trong dần xuống dưới. Phủ
-/// trong suốt nên màu gốc của nút (cam, đỏ, vàng, cam nhạt...) vẫn giữ nguyên.
-Widget _glassGloss(BuildContext context, Set<WidgetState> states, Widget? child) {
-  final k = states.contains(WidgetState.disabled) ? .5 : 1.0;
-  return DecoratedBox(
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Colors.white.withValues(alpha: .34 * k),
-          Colors.white.withValues(alpha: .07 * k),
-          Colors.white.withValues(alpha: 0),
-        ],
-        stops: const [0, .55, 1],
-      ),
-    ),
-    child: child,
-  );
-}
-
-Widget _glassFill(Set<WidgetState> states, Widget? child, List<Color> colors) {
-  final k = states.contains(WidgetState.disabled) ? .6 : 1.0;
-  return DecoratedBox(
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [for (final c in colors) c.withValues(alpha: c.a * k)],
-      ),
-    ),
-    child: child,
-  );
-}
-
-Widget _glassFillLight(BuildContext context, Set<WidgetState> states, Widget? child) =>
-    _glassFill(states, child, [
-      Colors.white.withValues(alpha: .78),
-      Colors.white.withValues(alpha: .34),
-    ]);
-
-Widget _glassFillDark(BuildContext context, Set<WidgetState> states, Widget? child) =>
-    _glassFill(states, child, [
-      Colors.white.withValues(alpha: .12),
-      Colors.white.withValues(alpha: .04),
-    ]);
-
 class AppTheme {
   static ThemeData get light => _build(Palette.light, Brightness.light);
   static ThemeData get dark => _build(Palette.dark, Brightness.dark);
@@ -355,9 +328,12 @@ class AppTheme {
       brightness: brightness,
       colorScheme: colorScheme,
       textTheme: textTheme,
+      primaryTextTheme: AppTypography.textTheme(
+        ThemeData(colorScheme: colorScheme).primaryTextTheme,
+        color: p.onPrimary,
+      ),
       extensions: [p],
-      // Nền thật do AppBackdrop vẽ (gradient + đốm màu) để kính có thứ làm mờ.
-      scaffoldBackgroundColor: Colors.transparent,
+      scaffoldBackgroundColor: p.background,
       dividerColor: p.divider,
       dividerTheme: DividerThemeData(color: p.divider, thickness: 1, space: 1),
       appBarTheme: AppBarTheme(
@@ -378,7 +354,7 @@ class AppTheme {
               ),
         iconTheme: IconThemeData(color: p.textPrimary),
         titleTextStyle: AppTypography.style(
-          fontSize: AppFontSize.xl,
+          fontSize: AppFontSize.title,
           fontWeight: FontWeight.w600,
           color: p.textPrimary,
         ),
@@ -392,10 +368,8 @@ class AppTheme {
             borderRadius: BorderRadius.circular(AppRadius.card)),
         margin: EdgeInsets.zero,
       ),
-      // Nền sheet trong suốt: AppSheet tự vẽ lớp kính mờ, nếu để surface đặc ở
-      // đây thì phần kính bị che mất.
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: Colors.transparent,
+        backgroundColor: p.surface,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         shape: const RoundedRectangleBorder(
@@ -461,15 +435,6 @@ class AppTheme {
             fontSize: AppFontSize.md,
             fontWeight: FontWeight.w700,
           ),
-          // Kính: viền trắng mảnh đi theo hình dạng của từng nút + vệt sáng
-          // phủ lên màu gốc (nên nút đỏ/vàng/cam nhạt vẫn giữ màu của nó).
-          side: BorderSide(
-              color: Colors.white
-                  .withValues(alpha: brightness == Brightness.dark ? .22 : .55),
-              width: 1),
-        ).copyWith(
-          backgroundBuilder: _glassGloss,
-          overlayColor: WidgetStatePropertyAll(Colors.white.withValues(alpha: .14)),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -482,11 +447,6 @@ class AppTheme {
             fontSize: AppFontSize.md,
             fontWeight: FontWeight.w600,
           ),
-        ).copyWith(
-          // Kính trong: nền trắng mờ chuyển sắc bên trong viền màu.
-          backgroundBuilder: brightness == Brightness.dark
-              ? _glassFillDark
-              : _glassFillLight,
         ),
       ),
       textButtonTheme: TextButtonThemeData(

@@ -1,12 +1,8 @@
-import '../../../core/widgets/app_decor_widgets.dart';
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
-
 import '../../../core/theme/app_theme.dart';
+import 'home_section_heading.dart';
 
-/// Ba dịch vụ chính của Home (Giao hàng, Lấy hàng, Đơn gộp) ngang hàng nhau
-/// trên ba ô bằng nhau, không có nền hay tiêu đề bao quanh.
+/// Lưới dịch vụ vuông, cùng cấu trúc và nhịp thị giác với app customer.
 class CreateOrderCard extends StatelessWidget {
   final VoidCallback onDeliveryTap;
   final VoidCallback onPickupTap;
@@ -21,152 +17,154 @@ class CreateOrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    // IntrinsicHeight: Row(stretch) cần chiều cao xác định, nếu không sẽ lỗi
-    // "infinite height" khi nằm trong danh sách cuộn.
-    final row = IntrinsicHeight(
-      child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Expanded(
-          child: _ServiceTile(
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const ShopHomeSectionHeading(
+        title: 'Tạo đơn mới',
+        highlight: 'đơn mới',
+        subtitle: 'Chọn dịch vụ, tạo đơn ngay',
+        subtitleIcon: Icons.bolt_rounded,
+        padding: EdgeInsets.zero,
+      ),
+      const SizedBox(height: 14),
+      LayoutBuilder(builder: (context, constraints) {
+        const spacing = 10.0;
+        final columns = constraints.maxWidth < 328 ||
+                MediaQuery.textScalerOf(context).scale(1) > 1.3
+            ? 2
+            : 3;
+        final width =
+            (constraints.maxWidth - spacing * (columns - 1)) / columns;
+        return Wrap(spacing: spacing, runSpacing: spacing, children: [
+          _ServiceTile(
             key: const ValueKey('delivery-order-action'),
-            icon: Icons.delivery_dining_rounded,
-            asset: 'assets/images/icon-delivery.png',
+            width: width,
             title: 'Giao hàng',
-            subtitle: 'Tới khách',
-            color: c.primary,
+            subtitle: 'Giao tới khách',
+            asset: 'assets/images/icon-delivery.png',
+            color: context.colors.primary,
             onTap: onDeliveryTap,
           ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: _ServiceTile(
+          _ServiceTile(
             key: const ValueKey('pickup-order-action'),
-            icon: Icons.move_to_inbox_rounded,
-            asset: 'assets/images/icon-pickup.png',
+            width: width,
             title: 'Lấy hàng',
-            subtitle: 'Về cửa hàng',
-            color: c.accent2,
+            subtitle: 'Nhận về shop',
+            asset: 'assets/images/icon-pickup.png',
+            color: context.colors.accent2,
             onTap: onPickupTap,
           ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: _ServiceTile(
+          _ServiceTile(
             key: const ValueKey('batch-order-action'),
-            icon: Icons.route_rounded,
-            asset: 'assets/images/icon-batch.png',
+            width: width,
             title: 'Đơn gộp',
-            subtitle: 'Nhiều điểm',
-            color: c.info,
+            subtitle: 'Giao nhiều điểm',
+            asset: 'assets/images/icon-batch.png',
+            color: context.colors.info,
             onTap: onBatchTap,
           ),
-        ),
-      ]),
-    );
-
-    // Nền kính lấy từ nền chung của app (AppBackdrop), không cần khung nền riêng.
-    return row;
+        ]);
+      }),
+    ]);
   }
 }
 
-class _ServiceTile extends StatelessWidget {
-  final IconData icon;
-
-  /// Ảnh minh hoạ thay cho icon (nếu có).
-  final String? asset;
-  final String title;
-  final String subtitle;
+class _ServiceTile extends StatefulWidget {
+  final double width;
+  final String title, subtitle, asset;
   final Color color;
   final VoidCallback onTap;
 
   const _ServiceTile({
     super.key,
-    required this.icon,
-    this.asset,
+    required this.width,
     required this.title,
     required this.subtitle,
+    required this.asset,
     required this.color,
     required this.onTap,
   });
 
   @override
+  State<_ServiceTile> createState() => _ServiceTileState();
+}
+
+class _ServiceTileState extends State<_ServiceTile> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final dark = context.isDark;
-    final radius = BorderRadius.circular(AppRadius.card);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: radius,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: dark ? .35 : .10),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: radius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+    return Semantics(
+      button: true,
+      label: 'Tạo đơn ${widget.title}',
+      child: AnimatedScale(
+        scale: _pressed ? .96 : 1,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: SizedBox.square(
+          dimension: widget.width,
           child: Material(
             color: Colors.transparent,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            clipBehavior: Clip.antiAlias,
             child: InkWell(
-              onTap: onTap,
+              onTap: widget.onTap,
+              onHighlightChanged: (value) {
+                if (_pressed != value) setState(() => _pressed = value);
+              },
               child: Ink(
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  borderRadius: radius,
-                  // Kính: sáng ở góc trên-trái, trong hơn ở góc dưới-phải.
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: dark
-                        ? [
-                            Colors.white.withValues(alpha: .20),
-                            Colors.white.withValues(alpha: .06),
-                          ]
-                        : [
-                            Colors.white.withValues(alpha: .75),
-                            Colors.white.withValues(alpha: .30),
-                          ],
-                  ),
+                  color: _pressed
+                      ? widget.color.withValues(alpha: .07)
+                      : c.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                   border: Border.all(
-                      color: Colors.white.withValues(alpha: dark ? .25 : .85),
-                      width: 1.2),
+                    color: _pressed
+                        ? widget.color.withValues(alpha: .28)
+                        : c.divider,
+                  ),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      vertical: AppSpacing.lg, horizontal: AppSpacing.sm),
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    // Vùng biểu tượng cao cố định để tên các dịch vụ luôn thẳng hàng.
-                    SizedBox(
-                      height: 64,
-                      child: asset != null
-                          ? Image.asset(asset!, height: 64, fit: BoxFit.contain)
-                          : Container(
-                              width: 52,
-                              height: 52,
-                              alignment: Alignment.center,
-                              decoration: glassIconDecoration(context, color,
-                                  circle: true),
-                              child: Icon(icon, color: color, size: 28),
-                            ),
+                child: Column(children: [
+                  Expanded(
+                    child: Center(
+                      child: SizedBox.square(
+                        dimension: 72,
+                        child: Image.asset(
+                          widget.asset,
+                          fit: BoxFit.contain,
+                          cacheWidth: 216,
+                          excludeFromSemantics: true,
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: AppSpacing.md),
-                    Text(title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.bodyStrong.copyWith(
-                            color: c.textPrimary, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: AppSpacing.xxs),
-                    Text(subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.caption.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: c.textSecondary)),
-                  ]),
-                ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.caption.copyWith(
+                      height: 1.16,
+                      color: c.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    widget.subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.caption.copyWith(
+                      fontSize: 11,
+                      height: 1.15,
+                      color: c.textSecondary,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ]),
               ),
             ),
           ),

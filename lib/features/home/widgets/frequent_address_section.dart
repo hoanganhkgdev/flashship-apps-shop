@@ -2,16 +2,12 @@ part of '../screens/home_screen.dart';
 
 // ─── Địa chỉ thường dùng ────────────────────────────────────────────────────────
 
-// Vẫn giữ widget cho các luồng cần địa chỉ nhanh, nhưng mockup Home hiện tại
-// không hiển thị khối này.
-// ignore: unused_element
 class _FrequentAddressSection extends ConsumerWidget {
   const _FrequentAddressSection();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(addressProvider);
-    final c = context.colors;
 
     return async.when(
       loading: () => const SizedBox.shrink(),
@@ -22,23 +18,12 @@ class _FrequentAddressSection extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-              child: Row(children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: glassIconDecoration(context, c.info,
-                      radius: AppRadius.xs),
-                  child:
-                      Icon(Icons.location_on_rounded, size: 15, color: c.info),
-                ),
-                const SizedBox(width: 8),
-                Text('Địa chỉ thường dùng',
-                    style: TextStyle(
-                        fontSize: AppFontSize.xl,
-                        fontWeight: FontWeight.w800,
-                        color: c.textPrimary)),
-              ]),
+            const ShopHomeSectionHeading(
+              title: 'Địa chỉ thường dùng',
+              highlight: 'thường dùng',
+              subtitle: 'Chọn nhanh điểm giao đã lưu',
+              subtitleIcon: Icons.location_on_rounded,
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 10),
             ),
             SizedBox(
               height: 40,
@@ -70,9 +55,9 @@ class _AddressChip extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: c.glass,
+          color: c.surface,
           borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: c.glassBorder, width: 1.2),
+          border: Border.all(color: c.divider),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(Icons.location_on_rounded, size: 14, color: c.textSecondary),

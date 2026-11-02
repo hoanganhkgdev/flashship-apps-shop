@@ -1,4 +1,3 @@
-import 'app_decor_widgets.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +14,7 @@ import '../router/app_route.dart';
 class AddressPickerScreen extends ConsumerStatefulWidget {
   final String title;
   final String? initialQuery;
+  final bool showSaved;
 
   /// Khu vực giới hạn gợi ý; mặc định lấy khu vực của cửa hàng đang đăng nhập.
   final int? cityId;
@@ -24,6 +24,7 @@ class AddressPickerScreen extends ConsumerStatefulWidget {
     super.key,
     this.title = 'Chọn địa chỉ',
     this.initialQuery,
+    this.showSaved = false,
     this.cityId,
     this.cityName,
   });
@@ -53,7 +54,8 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+        length: 2, initialIndex: widget.showSaved ? 1 : 0, vsync: this);
     _loadHistory();
     if (widget.initialQuery != null) {
       _controller.text = widget.initialQuery!;
@@ -61,7 +63,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
         _focusNode.requestFocus();
         _onChanged(widget.initialQuery!);
       });
-    } else {
+    } else if (!widget.showSaved) {
       WidgetsBinding.instance
           .addPostFrameCallback((_) => _focusNode.requestFocus());
     }
@@ -236,10 +238,13 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
   @override
   Widget build(BuildContext context) {
     final savedEntries = ref.watch(addressProvider).valueOrNull ?? [];
+    final c = context.colors;
+    final compactTabs = MediaQuery.sizeOf(context).width < 360 ||
+        MediaQuery.textScalerOf(context).scale(12) > 16;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppPageHeader(title: widget.title),
+      backgroundColor: c.background,
+      appBar: _AddressPickerHeader(title: widget.title),
       body: Column(
         children: [
           // ── Search field ──────────────────────────────────────────────
@@ -250,10 +255,9 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
               final c = context.colors;
               return Container(
                 decoration: BoxDecoration(
-                  color: c.glass,
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  border: Border.all(color: c.glassBorder, width: 1.2),
-                  boxShadow: context.isDark ? null : AppShadows.soft,
+                  color: c.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: c.divider),
                 ),
                 child: TextField(
                   controller: _controller,
@@ -262,7 +266,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
                   style:
                       AppTextStyles.bodyStrong.copyWith(color: c.textPrimary),
                   decoration: InputDecoration(
-                    hintText: 'Tìm địa chỉ cửa hàng...',
+                    hintText: 'Tìm tên đường, địa điểm...',
                     hintStyle:
                         AppTextStyles.body.copyWith(color: c.textTertiary),
                     prefixIcon: Icon(Icons.search_rounded,
@@ -287,7 +291,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
                                 },
                               )
                             : null,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 15),
                     filled: false,
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
@@ -310,10 +314,15 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
                   AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
               child: Material(
                 color: context.colors.primarySoft,
-                borderRadius: BorderRadius.circular(AppRadius.md),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: context.colors.primary.withValues(alpha: .20),
+                  ),
+                ),
                 child: InkWell(
                   onTap: _openMap,
-                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  borderRadius: BorderRadius.circular(16),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.lg, vertical: AppSpacing.md),
@@ -322,11 +331,11 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: context.colors.primary,
-                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          color: context.colors.surface,
+                          borderRadius: BorderRadius.circular(11),
                         ),
-                        child: const Icon(Icons.map_rounded,
-                            color: Colors.white, size: 18),
+                        child: Icon(Icons.map_outlined,
+                            color: context.colors.primary, size: 19),
                       ),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
@@ -335,10 +344,11 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
                           children: [
                             Text('Chọn vị trí trên bản đồ',
                                 style: AppTextStyles.bodyStrong.copyWith(
-                                    color: context.colors.textPrimary)),
-                            Text('Ghim đúng vị trí cửa hàng của bạn',
+                                    color: context.colors.textPrimary,
+                                    fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 2),
+                            Text('Di chuyển bản đồ để đặt ghim chính xác',
                                 style: AppTextStyles.caption.copyWith(
-                                    fontWeight: FontWeight.w500,
                                     color: context.colors.textSecondary)),
                           ],
                         ),
@@ -357,8 +367,9 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
               child: Container(
                 height: 44,
                 decoration: BoxDecoration(
-                  color: context.colors.surfaceAlt,
-                  borderRadius: BorderRadius.circular(AppRadius.full),
+                  color: context.colors.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: context.colors.divider),
                 ),
                 padding: const EdgeInsets.all(AppSpacing.xs),
                 child: TabBar(
@@ -366,43 +377,55 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
                   dividerColor: Colors.transparent,
                   indicator: BoxDecoration(
                     color: context.colors.surface,
-                    borderRadius: BorderRadius.circular(AppRadius.full),
-                    boxShadow: context.isDark ? null : AppShadows.soft,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: context.colors.primary.withValues(alpha: .28),
+                    ),
                   ),
                   indicatorSize: TabBarIndicatorSize.tab,
                   labelColor: context.colors.primary,
                   unselectedLabelColor: context.colors.textSecondary,
                   labelStyle:
-                      AppTextStyles.label.copyWith(fontWeight: FontWeight.w800),
+                      AppTextStyles.label.copyWith(fontWeight: FontWeight.w600),
                   unselectedLabelStyle: AppTextStyles.label,
                   tabs: [
                     Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.history_rounded, size: 16),
-                          const SizedBox(width: 6),
-                          const Text('Gần đây'),
-                          if (_history.isNotEmpty) ...[
-                            const SizedBox(width: 6),
-                            _TabBadge(count: _history.length),
-                          ],
-                        ],
-                      ),
+                      child: compactTabs
+                          ? const FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text('Gần đây'),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.history_rounded, size: 16),
+                                const SizedBox(width: 6),
+                                const Text('Gần đây'),
+                                if (_history.isNotEmpty) ...[
+                                  const SizedBox(width: 6),
+                                  _TabBadge(count: _history.length),
+                                ],
+                              ],
+                            ),
                     ),
                     Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.bookmark_rounded, size: 16),
-                          const SizedBox(width: 6),
-                          const Text('Đã lưu'),
-                          if (savedEntries.isNotEmpty) ...[
-                            const SizedBox(width: 6),
-                            _TabBadge(count: savedEntries.length),
-                          ],
-                        ],
-                      ),
+                      child: compactTabs
+                          ? const FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text('Đã lưu'),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.bookmark_rounded, size: 16),
+                                const SizedBox(width: 6),
+                                const Text('Đã lưu'),
+                                if (savedEntries.isNotEmpty) ...[
+                                  const SizedBox(width: 6),
+                                  _TabBadge(count: savedEntries.length),
+                                ],
+                              ],
+                            ),
                     ),
                   ],
                 ),
@@ -456,13 +479,87 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen>
           ] else
             Expanded(
               child: _suggestions.isEmpty && !_searching
-                  ? const SizedBox.shrink()
+                  ? const _EmptySearch()
                   : _SearchResultList(
                       suggestions: _suggestions,
                       onSelect: _selectFromSearch,
                     ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _AddressPickerHeader extends StatelessWidget
+    implements PreferredSizeWidget {
+  final String title;
+
+  const _AddressPickerHeader({required this.title});
+
+  @override
+  Size get preferredSize => const Size.fromHeight(70);
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return AppBar(
+      backgroundColor: context.isDark ? c.primarySoft : const Color(0xFFFFE9DE),
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      toolbarHeight: 70,
+      leadingWidth: 72,
+      centerTitle: false,
+      titleSpacing: 0,
+      leading: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+        child: IconButton(
+          tooltip: 'Quay lại',
+          onPressed: () => Navigator.maybePop(context),
+          style: IconButton.styleFrom(
+            backgroundColor: c.surface,
+            side: BorderSide(color: c.divider),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              size: 18, color: c.textPrimary),
+        ),
+      ),
+      title: Padding(
+        padding: const EdgeInsets.only(right: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.sectionTitle.copyWith(
+                color: c.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Row(children: [
+              Icon(Icons.location_on_outlined,
+                  size: 14, color: c.textSecondary),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  'Tìm kiếm hoặc chọn vị trí trên bản đồ',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.caption.copyWith(
+                    color: c.textSecondary,
+                  ),
+                ),
+              ),
+            ]),
+          ],
+        ),
       ),
     );
   }
@@ -491,13 +588,21 @@ class _AddrTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: c.glass,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(color: c.glassBorder, width: 1.2),
-          boxShadow: context.isDark ? null : AppShadows.soft,
+          color: c.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: c.divider),
         ),
         child: Row(children: [
-          AppIconBadge(icon: icon, color: c.primary, size: 36),
+          Container(
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: c.primarySoft,
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(icon, color: c.primary, size: 19),
+          ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
@@ -506,19 +611,21 @@ class _AddrTile extends StatelessWidget {
                 Text(title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.bodyStrong
-                        .copyWith(color: c.textPrimary)),
+                    style: AppTextStyles.bodyStrong.copyWith(
+                        color: c.textPrimary, fontWeight: FontWeight.w600)),
                 if (subtitle != null) ...[
                   const SizedBox(height: AppSpacing.xxs),
                   Text(subtitle!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style:
-                          AppTextStyles.label.copyWith(color: c.textSecondary)),
+                      style: AppTextStyles.caption
+                          .copyWith(color: c.textSecondary)),
                 ],
               ],
             ),
           ),
+          const SizedBox(width: 8),
+          Icon(Icons.chevron_right_rounded, size: 20, color: c.textTertiary),
         ]),
       ),
     );
@@ -560,10 +667,67 @@ class _EmptyTab extends StatelessWidget {
     final c = context.colors;
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        AppIconBadge(icon: icon, color: c.textSecondary, size: 64),
+        Container(
+          width: 58,
+          height: 58,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: c.surface,
+            borderRadius: BorderRadius.circular(17),
+            border: Border.all(color: c.divider),
+          ),
+          child: Icon(icon, color: c.textSecondary, size: 28),
+        ),
         const SizedBox(height: AppSpacing.lg),
-        Text(label, style: AppTextStyles.body.copyWith(color: c.textSecondary)),
+        Text(label,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.body.copyWith(color: c.textSecondary)),
       ]),
+    );
+  }
+}
+
+class _EmptySearch extends StatelessWidget {
+  const _EmptySearch();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 28),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: c.surface,
+                borderRadius: BorderRadius.circular(17),
+                border: Border.all(color: c.divider),
+              ),
+              child: Icon(Icons.search_off_rounded,
+                  size: 28, color: c.textSecondary),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Chưa tìm thấy địa chỉ',
+              style: AppTextStyles.bodyStrong.copyWith(
+                color: c.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Thử nhập tên đường, số nhà hoặc một địa điểm gần đó.',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.caption.copyWith(color: c.textSecondary),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -587,8 +751,7 @@ class _SavedAddressTile extends StatelessWidget {
     final hasLabel = entry.label != null &&
         entry.label!.isNotEmpty &&
         entry.label != entry.name;
-    final initial =
-        entry.displayName.isNotEmpty ? entry.displayName[0].toUpperCase() : '?';
+    final initial = entry.name.isNotEmpty ? entry.name[0].toUpperCase() : '?';
 
     final tile = InkWell(
       onTap: isRetrying ? null : onTap,
@@ -596,10 +759,9 @@ class _SavedAddressTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: c.glass,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(color: c.glassBorder, width: 1.2),
-          boxShadow: context.isDark ? null : AppShadows.soft,
+          color: c.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: c.divider),
         ),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // ── Avatar ──
@@ -608,7 +770,7 @@ class _SavedAddressTile extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               color: missingCoords ? c.surfaceAlt : c.primarySoft,
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(12),
             ),
             alignment: Alignment.center,
             child: isRetrying
@@ -621,7 +783,7 @@ class _SavedAddressTile extends StatelessWidget {
                 : Text(initial,
                     style: TextStyle(
                         fontSize: AppFontSize.xl,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w600,
                         color: missingCoords ? c.textTertiary : c.primary)),
           ),
           const SizedBox(width: 12),
@@ -634,9 +796,9 @@ class _SavedAddressTile extends StatelessWidget {
                 // Dòng 1: tên + badge label
                 Row(children: [
                   Flexible(
-                    child: Text(entry.displayName,
-                        style: AppTextStyles.sectionTitle
-                            .copyWith(color: c.textPrimary),
+                    child: Text(entry.name,
+                        style: AppTextStyles.bodyStrong.copyWith(
+                            color: c.textPrimary, fontWeight: FontWeight.w600),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),
                   ),
@@ -697,6 +859,12 @@ class _SavedAddressTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis),
               ],
             ),
+          ),
+          const SizedBox(width: 8),
+          Padding(
+            padding: const EdgeInsets.only(top: 9),
+            child: Icon(Icons.chevron_right_rounded,
+                size: 20, color: c.textTertiary),
           ),
         ]),
       ),

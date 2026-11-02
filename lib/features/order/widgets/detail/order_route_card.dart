@@ -18,7 +18,7 @@ class _RouteCard extends StatelessWidget {
         _RouteStop(
           isFirst: true,
           color: c.danger,
-          label: 'LẤY HÀNG',
+          label: 'Điểm lấy',
           title: order.pickupPlaceName?.isNotEmpty == true
               ? order.pickupPlaceName
               : order.senderName?.isNotEmpty == true
@@ -30,7 +30,7 @@ class _RouteCard extends StatelessWidget {
         _RouteStop(
           isFirst: false,
           color: c.success,
-          label: 'GIAO HÀNG',
+          label: 'Điểm giao',
           title: order.deliveryPlaceName?.isNotEmpty == true
               ? order.deliveryPlaceName
               : order.receiverName?.isNotEmpty == true
@@ -99,17 +99,21 @@ class _RouteStop extends StatelessWidget {
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(label,
-                  style: AppTextStyles.caption
-                      .copyWith(color: c.textTertiary, letterSpacing: .6)),
+                  style: AppTextStyles.caption.copyWith(
+                    fontSize: 10,
+                    color: c.textTertiary,
+                  )),
               const SizedBox(height: 3),
               if (title != null && title!.isNotEmpty) ...[
                 Text(title!,
-                    style: AppTextStyles.bodyStrong
-                        .copyWith(color: c.textPrimary)),
+                    style: AppTextStyles.bodyStrong.copyWith(
+                      color: c.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    )),
                 const SizedBox(height: 1),
               ],
               Text(address,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.body.copyWith(color: c.textSecondary)),
               if (phone?.isNotEmpty == true) ...[

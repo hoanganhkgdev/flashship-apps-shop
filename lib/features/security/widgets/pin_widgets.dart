@@ -39,6 +39,7 @@ class PinKeypad extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback? onBiometric;
   final bool showBiometric;
+  final double keyHeight;
 
   const PinKeypad({
     super.key,
@@ -46,6 +47,7 @@ class PinKeypad extends StatelessWidget {
     required this.onDelete,
     this.onBiometric,
     this.showBiometric = false,
+    this.keyHeight = 68,
   });
 
   Widget _key(BuildContext context,
@@ -56,7 +58,7 @@ class PinKeypad extends StatelessWidget {
         onTap: onTap,
         customBorder: const CircleBorder(),
         child: SizedBox(
-          height: 68,
+          height: keyHeight,
           child: Center(
             child: child ??
                 Text(label ?? '',

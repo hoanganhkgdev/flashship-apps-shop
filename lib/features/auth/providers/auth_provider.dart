@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/notification_service.dart';
+import '../../../core/services/phone_auth_service.dart';
 import '../../../core/storage/token_storage.dart';
 import '../../../core/utils/device_name.dart';
 import '../models/shop_user_model.dart';
@@ -48,8 +49,9 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _repository;
   final TokenStorage _tokenStorage;
+  final PhoneAuthService _phoneAuth;
 
-  AuthNotifier(this._repository, this._tokenStorage)
+  AuthNotifier(this._repository, this._tokenStorage, this._phoneAuth)
       : super(const AuthState()) {
     _loadFromStorage();
   }
@@ -80,10 +82,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.sendOtp(phone);
+      await _phoneAuth.sendCode(phone);
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: parseApiError(e));
+      state = state.copyWith(isLoading: false, error: phoneAuthErrorMessage(e));
+      return false;
+    }
+  }
+
+  /// Gửi lại mã SMS Firebase cho số đã được backend chấp nhận ở lần gửi đầu.
+  Future<bool> resendCode(String phone) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _phoneAuth.sendCode(phone);
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: phoneAuthErrorMessage(e));
       return false;
     }
   }
@@ -99,10 +115,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
+      final idToken = await _phoneAuth.confirmCode(otp);
       final deviceName = await getDeviceName();
       final session = await _repository.register({
         'phone': phone,
-        'otp': otp,
+        'id_token': idToken,
         'name': name,
         'password': password,
         if (address != null && address.isNotEmpty) 'address': address,
@@ -114,7 +131,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _saveSession(session);
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: parseApiError(e));
+      state = state.copyWith(isLoading: false, error: phoneAuthErrorMessage(e));
       return false;
     }
   }
@@ -140,10 +157,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.sendLoginOtp(phone);
+      await _phoneAuth.sendCode(phone);
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: parseApiError(e));
+      state = state.copyWith(isLoading: false, error: phoneAuthErrorMessage(e));
       return false;
     }
   }
@@ -152,17 +170,45 @@ class AuthNotifier extends StateNotifier<AuthState> {
       {required String phone, required String otp}) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
+      final idToken = await _phoneAuth.confirmCode(otp);
       final deviceName = await getDeviceName();
       final session = await _repository.verifyLoginOtp(
         phone,
-        otp,
+        idToken,
         deviceName: deviceName,
       );
       await _saveSession(session);
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: parseApiError(e));
+      state = state.copyWith(isLoading: false, error: phoneAuthErrorMessage(e));
       return false;
+    }
+  }
+
+  /// Trả null nếu đã gửi mã, ngược lại là thông báo lỗi. Không đụng tới
+  /// state dùng chung vì màn Quên mật khẩu tự quản lý loading/lỗi của nó.
+  Future<String?> sendForgotPasswordOtp(String phone) async {
+    try {
+      await _repository.sendForgotPasswordOtp(phone);
+      await _phoneAuth.sendCode(phone);
+      return null;
+    } catch (e) {
+      return phoneAuthErrorMessage(e);
+    }
+  }
+
+  /// Trả null nếu thành công, ngược lại là thông báo lỗi.
+  Future<String?> resetPassword({
+    required String phone,
+    required String otp,
+    required String password,
+  }) async {
+    try {
+      final idToken = await _phoneAuth.confirmCode(otp);
+      await _repository.resetPassword(phone, idToken, password);
+      return null;
+    } catch (e) {
+      return phoneAuthErrorMessage(e);
     }
   }
 
@@ -216,10 +262,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.sendChangePhoneOtp(newPhone);
+      await _phoneAuth.sendCode(newPhone);
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: parseApiError(e));
+      state = state.copyWith(isLoading: false, error: phoneAuthErrorMessage(e));
       return false;
     }
   }
@@ -227,13 +274,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> verifyChangePhone(String newPhone, String otp) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final user = await _repository.verifyChangePhone(newPhone, otp);
+      final idToken = await _phoneAuth.confirmCode(otp);
+      final user = await _repository.verifyChangePhone(newPhone, idToken);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(AppConstants.userKey, jsonEncode(user.toJson()));
       state = state.copyWith(user: user, isLoading: false, isInitialized: true);
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: parseApiError(e));
+      state = state.copyWith(isLoading: false, error: phoneAuthErrorMessage(e));
       return false;
     }
   }
@@ -316,5 +364,6 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier(
     ref.read(authRepositoryProvider),
     ref.read(tokenStorageProvider),
+    ref.read(phoneAuthServiceProvider),
   );
 });

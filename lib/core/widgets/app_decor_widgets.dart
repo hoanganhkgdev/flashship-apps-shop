@@ -206,81 +206,98 @@ class AppSheet extends StatelessWidget {
     return AnimatedPadding(
       duration: AppDuration.fast,
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      // Kính mờ: làm mờ phần trang phía sau sheet, phủ lớp surface gần đặc để chữ
-      // luôn dễ đọc.
-      child: ClipRRect(
-        borderRadius:
-            const BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-          child: Container(
-            decoration: BoxDecoration(
-              // Kính: sáng ở trên, hơi trong hơn ở dưới; vẫn đủ đặc để chữ dễ đọc.
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: context.isDark
-                    ? [
-                        c.surface.withValues(alpha: .90),
-                        c.surface.withValues(alpha: .80),
-                      ]
-                    : [
-                        Colors.white.withValues(alpha: .92),
-                        Colors.white.withValues(alpha: .80),
-                      ],
-              ),
-              border: Border(
-                  top: BorderSide(
-                      color: Colors.white
-                          .withValues(alpha: context.isDark ? .28 : .95),
-                      width: 1.4)),
-            ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * .92,
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          child: Material(
+            color: c.surface,
             child: SafeArea(
               top: false,
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const SizedBox(height: AppSpacing.md),
                 Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: c.textTertiary.withValues(alpha: .45),
-                    borderRadius: BorderRadius.circular(AppRadius.full),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(AppSpacing.lg,
-                      AppSpacing.lg, AppSpacing.md, AppSpacing.md),
-                  child: Row(children: [
-                    AppIconBadge(icon: icon, color: tint, size: 44),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(title,
-                              style: AppTextStyles.screenTitle.copyWith(
-                                  color: c.textPrimary,
-                                  fontWeight: FontWeight.w800)),
-                          if (subtitle != null) ...[
-                            const SizedBox(height: AppSpacing.xxs),
-                            Text(subtitle!,
-                                style: AppTextStyles.label
-                                    .copyWith(color: c.textSecondary)),
-                          ],
-                        ],
+                  width: double.infinity,
+                  color: tint.withValues(alpha: context.isDark ? .13 : .065),
+                  child: Column(children: [
+                    const SizedBox(height: 10),
+                    Container(
+                      width: 38,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: c.textTertiary.withValues(alpha: .35),
+                        borderRadius: BorderRadius.circular(AppRadius.full),
                       ),
                     ),
-                    GlassIconButton(
-                      icon: Icons.close_rounded,
-                      iconSize: AppSize.iconMd,
-                      size: 38,
-                      color: c.textSecondary,
-                      tooltip: 'Đóng',
-                      onPressed: () => Navigator.maybePop(context),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg,
+                        14,
+                        AppSpacing.md,
+                        AppSpacing.md,
+                      ),
+                      child: Row(children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: c.surface,
+                            borderRadius: BorderRadius.circular(13),
+                            border: Border.all(
+                              color: tint.withValues(alpha: .14),
+                            ),
+                          ),
+                          child: Icon(icon, color: tint, size: 22),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTextStyles.screenTitle.copyWith(
+                                  color: c.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              if (subtitle != null) ...[
+                                const SizedBox(height: 3),
+                                Text(
+                                  subtitle!,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.caption.copyWith(
+                                    color: c.textSecondary,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        IconButton(
+                          tooltip: 'Đóng',
+                          onPressed: () => Navigator.maybePop(context),
+                          style: IconButton.styleFrom(
+                            backgroundColor: c.surface,
+                            foregroundColor: c.textSecondary,
+                            fixedSize: const Size.square(38),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(11),
+                            ),
+                          ),
+                          icon: const Icon(Icons.close_rounded, size: 20),
+                        ),
+                      ]),
                     ),
                   ]),
                 ),
-                Divider(height: 1, color: c.divider),
                 Flexible(
                   child: scrollable
                       ? SingleChildScrollView(padding: padding, child: child)
@@ -289,10 +306,23 @@ class AppSheet extends StatelessWidget {
                 if (footer != null)
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(AppSpacing.lg,
-                        AppSpacing.md, AppSpacing.lg, AppSpacing.lg),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg,
+                      AppSpacing.md,
+                      AppSpacing.lg,
+                      AppSpacing.lg,
+                    ),
                     decoration: BoxDecoration(
-                        border: Border(top: BorderSide(color: c.divider))),
+                      color: c.surface,
+                      border: Border(top: BorderSide(color: c.divider)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: .035),
+                          blurRadius: 12,
+                          offset: const Offset(0, -4),
+                        ),
+                      ],
+                    ),
                     child: footer,
                   ),
               ]),
@@ -324,29 +354,54 @@ class AppSheetOption extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Material(
-      color: selected ? c.primarySoft : c.surfaceAlt,
-      borderRadius: BorderRadius.circular(AppRadius.md),
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg, vertical: 14),
+        borderRadius: BorderRadius.circular(14),
+        child: AnimatedContainer(
+          duration: AppDuration.fast,
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
+          decoration: BoxDecoration(
+            color: selected ? c.primarySoft : c.surfaceAlt,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: selected ? c.primary.withValues(alpha: .55) : c.divider,
+            ),
+          ),
           child: Row(children: [
             if (icon != null) ...[
-              Icon(icon,
-                  size: AppSize.iconMd,
-                  color: selected ? c.primary : c.textSecondary),
-              const SizedBox(width: AppSpacing.md),
+              Container(
+                width: 34,
+                height: 34,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: selected
+                      ? c.surface
+                      : c.textSecondary.withValues(alpha: .08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon,
+                    size: 18, color: selected ? c.primary : c.textSecondary),
+              ),
+              const SizedBox(width: 11),
             ],
             Expanded(
-              child: Text(label,
-                  style: AppTextStyles.bodyStrong
-                      .copyWith(color: selected ? c.primary : c.textPrimary)),
+              child: Text(
+                label,
+                style: AppTextStyles.bodyStrong.copyWith(
+                  color: selected ? c.primary : c.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
-            if (selected)
-              Icon(Icons.check_circle_rounded,
-                  size: AppSize.iconMd, color: c.primary),
+            Icon(
+              selected
+                  ? Icons.check_circle_rounded
+                  : Icons.radio_button_unchecked_rounded,
+              size: 20,
+              color: selected ? c.primary : c.textTertiary,
+            ),
           ]),
         ),
       ),

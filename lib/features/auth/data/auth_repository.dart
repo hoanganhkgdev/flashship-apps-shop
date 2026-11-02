@@ -45,25 +45,27 @@ class LoginDevice {
   }
 }
 
+/// Các hàm send*Otp chỉ hỏi backend xem số có được phép xác minh không (đã
+/// đăng ký / chưa đăng ký...) — mã SMS do Firebase gửi từ app, không đi qua backend.
 abstract interface class AuthRepository {
   Future<void> sendOtp(String phone);
   Future<AuthSession> register(Map<String, dynamic> data);
   Future<AuthSession> login(String phone, String password,
       {String? deviceName});
   Future<void> sendLoginOtp(String phone);
-  Future<AuthSession> verifyLoginOtp(String phone, String otp,
+  Future<AuthSession> verifyLoginOtp(String phone, String idToken,
       {String? deviceName});
   Future<ShopUserModel> me();
   Future<ShopUserModel> updateProfile(Map<String, dynamic> data);
   Future<ShopUserModel> uploadAvatar(String filePath);
   Future<void> changePassword(String current, String next);
   Future<void> sendChangePhoneOtp(String phone);
-  Future<ShopUserModel> verifyChangePhone(String phone, String otp);
+  Future<ShopUserModel> verifyChangePhone(String phone, String idToken);
   Future<void> updateFcmToken(String token);
   Future<void> logout();
   Future<void> deleteAccount();
   Future<void> sendForgotPasswordOtp(String phone);
-  Future<void> resetPassword(String phone, String otp, String password);
+  Future<void> resetPassword(String phone, String idToken, String password);
   Future<List<LoginDevice>> devices();
   Future<void> revokeDevice(int id);
   Future<void> revokeOtherDevices();
@@ -106,11 +108,11 @@ class ApiAuthRepository implements AuthRepository {
       _api.post('/shop/auth/login/send-otp', data: {'phone': phone});
 
   @override
-  Future<AuthSession> verifyLoginOtp(String phone, String otp,
+  Future<AuthSession> verifyLoginOtp(String phone, String idToken,
           {String? deviceName}) async =>
       _session(await _api.post('/shop/auth/login/verify-otp', data: {
         'phone': phone,
-        'otp': otp,
+        'id_token': idToken,
         if (deviceName != null) 'device_name': deviceName,
       }));
 
@@ -136,10 +138,10 @@ class ApiAuthRepository implements AuthRepository {
   Future<void> sendChangePhoneOtp(String phone) async =>
       _api.post('/shop/auth/change-phone/send-otp', data: {'new_phone': phone});
   @override
-  Future<ShopUserModel> verifyChangePhone(String phone, String otp) async =>
+  Future<ShopUserModel> verifyChangePhone(String phone, String idToken) async =>
       _user(await _api.post('/shop/auth/change-phone/verify', data: {
         'new_phone': phone,
-        'otp': otp,
+        'id_token': idToken,
       }));
   @override
   Future<void> updateFcmToken(String token) async =>
@@ -152,10 +154,11 @@ class ApiAuthRepository implements AuthRepository {
   Future<void> sendForgotPasswordOtp(String phone) async =>
       _api.post('/shop/auth/forgot-password', data: {'phone': phone});
   @override
-  Future<void> resetPassword(String phone, String otp, String password) async =>
+  Future<void> resetPassword(
+          String phone, String idToken, String password) async =>
       _api.post('/shop/auth/reset-password', data: {
         'phone': phone,
-        'otp': otp,
+        'id_token': idToken,
         'password': password,
         'password_confirmation': password,
       });

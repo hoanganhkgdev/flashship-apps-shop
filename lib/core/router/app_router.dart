@@ -49,7 +49,7 @@ Page<void> appPage({
       child: AppBackdrop(child: child),
     );
 
-// Splash chỉ chờ các tác vụ khởi tạo thật, không giữ màn hình theo timer.
+// Splash chờ khởi tạo và một nhịp hiển thị thương hiệu ngắn trước khi điều hướng.
 final splashReadyProvider = StateProvider<bool>((ref) => false);
 
 class _AuthListenable extends ChangeNotifier {
@@ -71,7 +71,17 @@ final routerProvider = Provider<GoRouter>((ref) {
     navigatorKey: appNavigatorKey,
     initialLocation: '/splash',
     refreshListenable: listenable,
+    // Firebase Phone Auth (reCAPTCHA/APNs) mở lại app bằng deep link
+    // `<scheme>://firebaseauth/link...`; plugin tự xử lý, router bỏ qua để
+    // người dùng ở nguyên màn đang xác minh số (cùng cách làm với app customer).
+    onException: (context, state, router) {
+      if (state.uri.host == 'firebaseauth') return;
+      router.go('/splash');
+    },
     redirect: (context, state) {
+      // Không redirect link Firebase — nếu không, nhánh "chưa đăng nhập" bên
+      // dưới sẽ đẩy về /login ngay giữa lúc đang gửi mã xác minh.
+      if (state.uri.host == 'firebaseauth') return null;
       final auth = ref.read(authProvider);
       final version = ref.read(appVersionProvider);
       final pin = ref.read(pinProvider);

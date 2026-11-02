@@ -4,13 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../core/widgets/app_decor_widgets.dart';
 import '../../../core/widgets/app_form_widgets.dart';
 import '../models/order_model.dart';
 import '../providers/order_provider.dart';
 import '../utils/order_reorder.dart';
-import '../widgets/order_driver_row.dart';
-import '../widgets/order_route_lines.dart';
 
 final _filterProvider = StateProvider<String>((ref) => 'all');
 final _searchQueryProvider = StateProvider<String>((ref) => '');
@@ -18,6 +15,8 @@ final _searchQueryProvider = StateProvider<String>((ref) => '');
 bool _matchesSearch(OrderModel order, String query) {
   if (query.isEmpty) return true;
   return order.code.toLowerCase().contains(query) ||
+      order.pickupAddress.toLowerCase().contains(query) ||
+      order.deliveryAddress.toLowerCase().contains(query) ||
       order.deliveryPhone.toLowerCase().contains(query) ||
       order.receiverName?.toLowerCase().contains(query) == true;
 }
@@ -40,11 +39,13 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
 
   final _scrollCtrl = ScrollController();
   final _searchCtrl = TextEditingController();
+  bool _searching = false;
 
   @override
   void initState() {
     super.initState();
     _searchCtrl.text = ref.read(_searchQueryProvider);
+    _searching = _searchCtrl.text.isNotEmpty;
     _scrollCtrl.addListener(() {
       if (_scrollCtrl.position.pixels >=
           _scrollCtrl.position.maxScrollExtent - 300) {
@@ -63,6 +64,14 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
   Future<void> _refresh() =>
       ref.read(orderListProvider.notifier).fetch(refresh: true);
 
+  void _toggleSearch() {
+    setState(() => _searching = !_searching);
+    if (!_searching) {
+      _searchCtrl.clear();
+      ref.read(_searchQueryProvider.notifier).state = '';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(orderListProvider);
@@ -80,7 +89,6 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
       'completed': all.where((o) => o.isCompleted).length,
       'cancelled': all.where((o) => o.isCancelled).length,
     };
-
     final displayed = switch (filter) {
       'pending' => all.where((o) => o.status == 'pending'),
       'processing' =>
@@ -93,15 +101,17 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
         .toList();
 
     return ColoredBox(
-      color: Colors.transparent,
+      color: c.background,
       child: Column(children: [
         _OrderListHeader(
           controller: _searchCtrl,
+          searching: _searching,
           query: query,
           selectedFilter: filter,
           filters: _filters,
           counts: counts,
           loading: state.isLoading,
+          onToggleSearch: _toggleSearch,
           onSearchChanged: (value) =>
               ref.read(_searchQueryProvider.notifier).state = value,
           onClearSearch: () {
@@ -140,7 +150,11 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                 else ...[
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 0),
+                      AppSpacing.lg,
+                      AppSpacing.lg,
+                      AppSpacing.lg,
+                      0,
+                    ),
                     sliver: SliverList.separated(
                       itemCount: displayed.length,
                       separatorBuilder: (_, __) =>
@@ -162,8 +176,12 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
   }
 
   Widget _buildLoadMore(OrderListState state) => Padding(
-        padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.xl3),
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.lg,
+          AppSpacing.lg,
+          AppBottomNav.reservedHeight(context) + 16,
+        ),
         child: Column(children: [
           if (state.isLoading)
             const CircularProgressIndicator(strokeWidth: 2)
@@ -187,11 +205,13 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
 
 class _OrderListHeader extends StatelessWidget {
   final TextEditingController controller;
+  final bool searching;
   final String query;
   final String selectedFilter;
   final List<(String, String)> filters;
   final Map<String, int> counts;
   final bool loading;
+  final VoidCallback onToggleSearch;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onClearSearch;
   final ValueChanged<String> onFilterChanged;
@@ -199,11 +219,13 @@ class _OrderListHeader extends StatelessWidget {
 
   const _OrderListHeader({
     required this.controller,
+    required this.searching,
     required this.query,
     required this.selectedFilter,
     required this.filters,
     required this.counts,
     required this.loading,
+    required this.onToggleSearch,
     required this.onSearchChanged,
     required this.onClearSearch,
     required this.onFilterChanged,
@@ -213,308 +235,555 @@ class _OrderListHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return GlassHeader(
-      padding: EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        MediaQuery.paddingOf(context).top + AppSpacing.md,
-        AppSpacing.lg,
-        AppSpacing.md,
-      ),
-      child: Column(children: [
-        Row(children: [
-          AppIconBadge(
-              icon: Icons.receipt_long_rounded, color: c.primary, size: 44),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Đơn hàng',
-                    style: AppTextStyles.screenTitle.copyWith(
-                        color: c.textPrimary, fontWeight: FontWeight.w800)),
-                const SizedBox(height: AppSpacing.xxs),
-                Text('${counts['all'] ?? 0} đơn đã tải',
-                    style:
-                        AppTextStyles.label.copyWith(color: c.textSecondary)),
-              ],
-            ),
-          ),
-          if (loading)
-            const Padding(
-              padding: EdgeInsets.only(right: AppSpacing.sm),
-              child: SizedBox.square(
-                  dimension: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2)),
-            ),
-          // Nút tạo đơn: viên thuốc cam gradient, đổ bóng cam, kèm nhãn rõ nghĩa.
-          Semantics(
-            button: true,
-            label: 'Tạo đơn mới',
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppRadius.full),
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [AppColors.primary, AppColors.primaryGradientEnd],
+    final headerColor =
+        context.isDark ? c.primarySoft : const Color(0xFFFFE9DE);
+    final filterHeight = 42 +
+        (MediaQuery.textScalerOf(context).scale(12) - 12)
+            .clamp(0.0, double.infinity);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(color: headerColor),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text.rich(
+                        TextSpan(children: [
+                          const TextSpan(text: 'Đơn '),
+                          TextSpan(
+                            text: 'hàng',
+                            style: TextStyle(color: c.primary),
+                          ),
+                        ]),
+                        style: AppTextStyles.screenTitle.copyWith(
+                          color: c.textPrimary,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        'Theo dõi đơn và đặt lại khi cần',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.caption.copyWith(
+                          color: c.textSecondary,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                border: Border.all(
-                    color: Colors.white.withValues(alpha: .55), width: 1.2),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: .35),
-                    blurRadius: 14,
-                    offset: const Offset(0, 6),
+                if (loading) ...[
+                  const SizedBox(width: 6),
+                  SizedBox.square(
+                    dimension: 44,
+                    child: Center(
+                      child: SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: c.primary,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
+                const SizedBox(width: 8),
+                _HeaderAction(
+                  tooltip: 'Tạo đơn mới',
+                  icon: Icons.add_rounded,
+                  foreground: c.primary,
+                  background: c.surface,
+                  border: const Color(0xFFFFD1BF),
                   onTap: onCreate,
-                  borderRadius: BorderRadius.circular(AppRadius.full),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md + 2, vertical: 10),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      const Icon(Icons.add_rounded,
-                          color: Colors.white, size: AppSize.iconMd),
-                      const SizedBox(width: AppSpacing.xs),
-                      Text('Tạo đơn',
-                          style: AppTextStyles.bodyStrong.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800)),
-                    ]),
+                ),
+                const SizedBox(width: 8),
+                _HeaderAction(
+                  tooltip: searching ? 'Đóng tìm kiếm' : 'Tìm đơn',
+                  icon: searching ? Icons.close_rounded : Icons.search_rounded,
+                  foreground: Colors.white,
+                  background: c.primary,
+                  onTap: onToggleSearch,
+                ),
+              ]),
+              if (searching) ...[
+                const SizedBox(height: 12),
+                AppField(
+                  controller: controller,
+                  hint: 'Tìm mã đơn, địa chỉ, tên hoặc SĐT',
+                  fillColor: c.surface,
+                  outlined: true,
+                  prefixIcon: Icon(
+                    Icons.search_rounded,
+                    size: AppSize.iconMd,
+                    color: c.textTertiary,
                   ),
+                  suffixIcon: query.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Xóa tìm kiếm',
+                          onPressed: onClearSearch,
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                  onChanged: onSearchChanged,
+                ),
+              ],
+              const SizedBox(height: 14),
+              SizedBox(
+                height: filterHeight,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: filters.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (_, index) {
+                    final filter = filters[index];
+                    final selected = selectedFilter == filter.$1;
+                    return ChoiceChip(
+                      selected: selected,
+                      showCheckmark: false,
+                      onSelected: (_) => onFilterChanged(filter.$1),
+                      avatar: selected
+                          ? null
+                          : Text(
+                              '${counts[filter.$1] ?? 0}',
+                              style: AppTextStyles.caption.copyWith(
+                                color: c.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                      label: Text(
+                        selected
+                            ? '${filter.$2}  ${counts[filter.$1] ?? 0}'
+                            : filter.$2,
+                      ),
+                      labelStyle: AppTextStyles.caption.copyWith(
+                        color: selected ? Colors.white : c.textSecondary,
+                        fontWeight:
+                            selected ? FontWeight.w600 : FontWeight.w500,
+                      ),
+                      selectedColor: c.primary,
+                      backgroundColor: c.surface.withValues(alpha: .86),
+                      side: BorderSide(
+                        color: selected ? c.primary : const Color(0xFFFFD1BF),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    );
+                  },
                 ),
               ),
-            ),
-          ),
-        ]),
-        const SizedBox(height: AppSpacing.md),
-        AppField(
-          controller: controller,
-          hint: 'Tìm mã đơn, tên hoặc SĐT người nhận',
-          fillColor: Colors.white.withValues(alpha: context.isDark ? .08 : .6),
-          prefixIcon: Icon(Icons.search_rounded,
-              size: AppSize.iconMd, color: c.textTertiary),
-          suffixIcon: query.isEmpty
-              ? null
-              : IconButton(
-                  tooltip: 'Xóa tìm kiếm',
-                  onPressed: onClearSearch,
-                  icon: const Icon(Icons.close_rounded),
-                ),
-          onChanged: onSearchChanged,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        SizedBox(
-          height: 38,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: filters.length,
-            separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.sm),
-            itemBuilder: (_, index) {
-              final filter = filters[index];
-              final selected = selectedFilter == filter.$1;
-              return Material(
-                color: selected
-                    ? c.primary
-                    : Colors.white.withValues(alpha: context.isDark ? .08 : .6),
-                shape: StadiumBorder(
-                  side: BorderSide(
-                      color: selected
-                          ? c.primary
-                          : Colors.white
-                              .withValues(alpha: context.isDark ? .2 : .9),
-                      width: 1.2),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: () => onFilterChanged(filter.$1),
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                    child: Row(children: [
-                      Text(filter.$2,
-                          style: AppTextStyles.label.copyWith(
-                            color: selected ? Colors.white : c.textSecondary,
-                            fontWeight:
-                                selected ? FontWeight.w800 : FontWeight.w600,
-                          )),
-                      const SizedBox(width: AppSpacing.xs),
-                      Container(
-                        constraints: const BoxConstraints(minWidth: 18),
-                        height: 18,
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: selected
-                              ? Colors.white.withValues(alpha: .2)
-                              : c.primary.withValues(alpha: .10),
-                          borderRadius: BorderRadius.circular(AppRadius.full),
-                        ),
-                        child: Text('${counts[filter.$1] ?? 0}',
-                            style: AppTextStyles.caption.copyWith(
-                              fontSize: AppFontSize.xs,
-                              height: 1,
-                              color: selected ? Colors.white : c.textTertiary,
-                            )),
-                      ),
-                    ]),
-                  ),
-                ),
-              );
-            },
+            ],
           ),
         ),
-      ]),
+      ),
     );
   }
+}
+
+class _HeaderAction extends StatelessWidget {
+  final String tooltip;
+  final IconData icon;
+  final Color foreground;
+  final Color background;
+  final Color? border;
+  final VoidCallback onTap;
+
+  const _HeaderAction({
+    required this.tooltip,
+    required this.icon,
+    required this.foreground,
+    required this.background,
+    required this.onTap,
+    this.border,
+  });
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+        tooltip: tooltip,
+        onPressed: onTap,
+        style: IconButton.styleFrom(
+          fixedSize: const Size.square(44),
+          foregroundColor: foreground,
+          backgroundColor: background,
+          side: border == null ? null : BorderSide(color: border!),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        icon: Icon(icon, size: 22),
+      );
 }
 
 class _OrderCard extends StatelessWidget {
   final OrderModel order;
+
   const _OrderCard({super.key, required this.order});
 
-  Color _accent(Palette c) {
-    if (order.isCompleted) return c.success;
-    if (order.isCancelled) return c.danger;
-    if (order.status == 'pending') return c.warning;
-    if (order.status == 'assigned') return c.info;
-    return c.primary;
+  String get _serviceTitle {
+    if (order.isBatch) return 'Đơn gộp';
+    return order.shopServiceType == 'shop_pickup' ? 'Lấy hàng' : 'Giao hàng';
   }
 
-  String _timeLabel() {
-    final local = order.createdAt.toLocal();
-    final now = DateTime.now();
-    final sameDay = local.year == now.year &&
-        local.month == now.month &&
-        local.day == now.day;
-    if (sameDay) {
-      return '${local.hour.toString().padLeft(2, '0')}:'
-          '${local.minute.toString().padLeft(2, '0')}';
-    }
-    return Fmt.timeAgo(local);
+  String get _serviceAsset {
+    if (order.isBatch) return 'assets/images/icon-batch.png';
+    return order.shopServiceType == 'shop_pickup'
+        ? 'assets/images/icon-pickup.png'
+        : 'assets/images/icon-delivery.png';
   }
+
+  String get _recipient {
+    final name = order.receiverName?.trim() ?? '';
+    final phone = order.deliveryPhone.trim();
+    if (name.isNotEmpty && phone.isNotEmpty) return '$name · $phone';
+    if (name.isNotEmpty) return name;
+    if (phone.isNotEmpty) return phone;
+    return order.isBatch ? '${order.stops.length} điểm giao' : 'Người nhận';
+  }
+
+  String get _deliveryAddress {
+    if (!order.isBatch || order.stops.isEmpty) return order.deliveryAddress;
+    final first = '${order.stops.first['address'] ?? order.deliveryAddress}';
+    final remaining = order.stops.length - 1;
+    return remaining > 0 ? '$first · và $remaining điểm khác' : first;
+  }
+
+  ({String label, Color color}) _status(Palette c) => switch (order.status) {
+        'pending' => (label: 'Đang tìm tài xế', color: c.primary),
+        'assigned' => (label: 'Tài xế đang đến', color: c.info),
+        'processing' => (label: 'Đang giao', color: c.success),
+        'completed' => (label: 'Hoàn thành', color: c.success),
+        'cancelled' => (label: 'Đã huỷ', color: c.danger),
+        _ => (label: Fmt.orderStatus(order.status), color: c.textSecondary),
+      };
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final accent = _accent(c);
+    final status = _status(c);
+    final serviceColor = order.isBatch
+        ? c.info
+        : order.shopServiceType == 'shop_pickup'
+            ? c.accent2
+            : c.primary;
     final code = order.code.startsWith('#') ? order.code : '#${order.code}';
-    final delivery = order.isBatch && order.stops.isNotEmpty
-        ? '${order.stops.length} điểm giao · '
-            '${order.stops.first['address'] ?? ''}'
-        : order.deliveryAddress;
-    final showDriver = order.driver != null &&
-        (order.status == 'assigned' || order.status == 'processing');
     final canReorder = order.isCompleted || order.isCancelled;
+    void open() => context.push('/order/${order.code}');
 
-    return GlassCard(
-      blur: false,
-      glow: order.isCancelled ? null : accent,
-      onTap: () => context.push('/order/${order.code}'),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          AppIconBadge(
-            icon: order.isBatch
-                ? Icons.call_split_rounded
-                : Icons.inventory_2_rounded,
-            color: accent,
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
+    return Semantics(
+      button: true,
+      label: '$_serviceTitle $code, ${status.label}',
+      child: Material(
+        color: c.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: c.divider),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: open,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(order.isBatch ? 'Đơn gộp' : code,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.bodyStrong.copyWith(
-                        color: c.textPrimary, fontWeight: FontWeight.w800)),
-                const SizedBox(height: AppSpacing.xxs),
-                Text(order.isBatch ? '$code · ${_timeLabel()}' : _timeLabel(),
-                    style: AppTextStyles.label.copyWith(color: c.textTertiary)),
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: serviceColor.withValues(alpha: .09),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Image.asset(
+                      _serviceAsset,
+                      fit: BoxFit.contain,
+                      cacheWidth: 132,
+                      excludeFromSemantics: true,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _serviceTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.bodyStrong.copyWith(
+                            color: c.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '$code · ${Fmt.timeAgo(order.createdAt.toLocal())}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.caption.copyWith(
+                            color: c.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth:
+                          MediaQuery.sizeOf(context).width < 360 ? 104 : 132,
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: status.color.withValues(alpha: .10),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        status.label,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.caption.copyWith(
+                          color: status.color,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 13),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 11,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: c.surfaceAlt,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(children: [
+                    _RouteRow(
+                      icon: Icons.radio_button_checked_rounded,
+                      color: serviceColor,
+                      label: 'Điểm lấy',
+                      title: order.storeName?.trim().isNotEmpty == true
+                          ? order.storeName!.trim()
+                          : 'Cửa hàng',
+                      address: order.pickupAddress,
+                    ),
+                    const SizedBox(height: 10),
+                    _RouteRow(
+                      icon: Icons.location_on_rounded,
+                      color: c.danger,
+                      label: order.isBatch ? 'Các điểm giao' : 'Điểm giao',
+                      title: _recipient,
+                      address: _deliveryAddress,
+                    ),
+                  ]),
+                ),
+                if (order.driver != null && order.isActive) ...[
+                  const SizedBox(height: 10),
+                  Row(children: [
+                    Icon(Icons.person_rounded, size: 17, color: serviceColor),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Tài xế: ${order.driver!.name}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.caption.copyWith(
+                          color: c.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ]),
+                ],
+                const SizedBox(height: 12),
+                Divider(height: 1, color: c.divider),
+                const SizedBox(height: 9),
+                _OrderFooter(
+                  order: order,
+                  color: serviceColor,
+                  canReorder: canReorder,
+                  onOpen: open,
+                ),
               ],
             ),
           ),
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text(Fmt.currency(order.shippingFee),
-                style: AppTextStyles.sectionTitle.copyWith(color: accent)),
-            const SizedBox(height: AppSpacing.xxs),
-            _StatusPill(
-              label: order.status == 'processing'
-                  ? 'Đang giao'
-                  : Fmt.orderStatus(order.status),
-              color: accent,
-            ),
-          ]),
-        ]),
-        const SizedBox(height: AppSpacing.md),
-        Divider(height: 1, color: c.divider),
-        const SizedBox(height: AppSpacing.md),
-        OrderRouteLines(
-          pickup: order.pickupAddress,
-          delivery: delivery,
-          dimmed: order.isCancelled,
         ),
-        if (showDriver) ...[
-          const SizedBox(height: AppSpacing.md),
-          OrderDriverRow(driver: order.driver!),
-        ],
-        const SizedBox(height: AppSpacing.md),
-        Row(children: [
-          Icon(Icons.payments_outlined,
-              size: AppSize.iconSm, color: c.textTertiary),
-          const SizedBox(width: AppSpacing.xs),
-          Expanded(
-            child: Text(
-              order.isCancelled
-                  ? 'Đơn đã huỷ'
-                  : 'Tiền lấy hàng ${Fmt.currency(order.codAmount ?? 0)}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.label.copyWith(color: c.textSecondary),
-            ),
-          ),
-          if (canReorder)
-            TextButton.icon(
-              onPressed: () => reorderOrder(context, order),
-              icon: const Icon(Icons.replay_rounded, size: AppSize.iconSm),
-              label: const Text('Đặt lại'),
-            )
-          else ...[
-            Text('Chi tiết',
-                style: AppTextStyles.label
-                    .copyWith(color: c.primary, fontWeight: FontWeight.w800)),
-            const SizedBox(width: AppSpacing.xs),
-            Icon(Icons.chevron_right_rounded,
-                size: AppSize.iconMd, color: c.primary),
-          ],
-        ]),
-      ]),
+      ),
     );
   }
 }
 
-class _StatusPill extends StatelessWidget {
-  final String label;
+class _RouteRow extends StatelessWidget {
+  final IconData icon;
   final Color color;
-  const _StatusPill({required this.label, required this.color});
+  final String label;
+  final String title;
+  final String address;
+
+  const _RouteRow({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.title,
+    required this.address,
+  });
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Container(
+        width: 28,
+        height: 28,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: color.withValues(alpha: .12),
-          borderRadius: BorderRadius.circular(AppRadius.full),
+          color: color.withValues(alpha: .10),
+          borderRadius: BorderRadius.circular(9),
         ),
-        child: Text(label,
-            style: AppTextStyles.caption
-                .copyWith(color: color, fontWeight: FontWeight.w800)),
-      );
+        child: Icon(icon, size: 15, color: color),
+      ),
+      const SizedBox(width: 9),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: AppTextStyles.caption.copyWith(
+                fontSize: 10,
+                color: c.textTertiary,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.label.copyWith(
+                color: c.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              address,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.caption.copyWith(color: c.textSecondary),
+            ),
+          ],
+        ),
+      ),
+    ]);
+  }
+}
+
+class _OrderFooter extends StatelessWidget {
+  final OrderModel order;
+  final Color color;
+  final bool canReorder;
+  final VoidCallback onOpen;
+
+  const _OrderFooter({
+    required this.order,
+    required this.color,
+    required this.canReorder,
+    required this.onOpen,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final cod = order.codAmount ?? 0;
+    final detail = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          cod > 0 ? 'Thu hộ ${Fmt.currency(cod)}' : 'Không thu hộ',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppTextStyles.caption.copyWith(color: c.textSecondary),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'Phí ship',
+          style: AppTextStyles.caption.copyWith(
+            fontSize: 10,
+            color: c.textTertiary,
+          ),
+        ),
+      ],
+    );
+    final fee = Text(
+      Fmt.currency(order.shippingFee),
+      maxLines: 1,
+      textAlign: TextAlign.right,
+      style: AppTextStyles.label.copyWith(
+        color: c.textPrimary,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+    final action = TextButton.icon(
+      onPressed: canReorder ? () => reorderOrder(context, order) : onOpen,
+      style: TextButton.styleFrom(
+        foregroundColor: color,
+        backgroundColor: color.withValues(alpha: .10),
+        minimumSize: const Size(0, 40),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+      icon: Icon(
+        canReorder ? Icons.replay_rounded : Icons.arrow_forward_rounded,
+        size: 16,
+      ),
+      label: Text(canReorder ? 'Đặt lại' : 'Chi tiết'),
+    );
+
+    return LayoutBuilder(builder: (context, constraints) {
+      final compact = constraints.maxWidth < 340 ||
+          MediaQuery.textScalerOf(context).scale(12) > 15;
+      if (compact) {
+        return Column(children: [
+          Row(children: [
+            Expanded(child: detail),
+            const SizedBox(width: 10),
+            fee,
+          ]),
+          const SizedBox(height: 8),
+          SizedBox(width: double.infinity, child: action),
+        ]);
+      }
+      return Row(children: [
+        Expanded(child: detail),
+        const SizedBox(width: 8),
+        fee,
+        const SizedBox(width: 10),
+        action,
+      ]);
+    });
+  }
 }
 
 class _EmptyContent extends StatelessWidget {
@@ -566,12 +835,18 @@ class _EmptyContent extends StatelessWidget {
             _ => 'Chưa có đơn hàng nào',
           };
     return Center(
-      child: AppEmptyState(
-        icon: Icons.receipt_long_outlined,
-        title: title,
-        action: searching || filter != 'all'
-            ? TextButton(onPressed: onReset, child: const Text('Xóa bộ lọc'))
-            : null,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl2),
+        child: AppEmptyState(
+          icon: Icons.receipt_long_outlined,
+          title: title,
+          subtitle: searching || filter != 'all'
+              ? 'Thử thay đổi từ khoá hoặc bộ lọc trạng thái.'
+              : 'Các đơn đã tạo sẽ xuất hiện tại đây.',
+          action: searching || filter != 'all'
+              ? TextButton(onPressed: onReset, child: const Text('Xóa bộ lọc'))
+              : null,
+        ),
       ),
     );
   }

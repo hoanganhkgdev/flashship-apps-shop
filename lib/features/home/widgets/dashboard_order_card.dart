@@ -1,392 +1,362 @@
 part of '../screens/home_screen.dart';
 
+/// Card đơn đang thực hiện: loại dịch vụ, trạng thái, tuyến đường, tài xế và phí.
 class _OrderCard extends StatelessWidget {
   final OrderModel order;
+
   const _OrderCard({super.key, required this.order});
 
-  int get _progressStep => switch (order.status) {
-        'assigned' => 0,
-        'processing' => 1,
-        'completed' => 2,
-        _ => -1,
-      };
+  String get _serviceTitle {
+    if (order.isBatch) return 'Đơn gộp';
+    return order.shopServiceType == 'shop_pickup' ? 'Lấy hàng' : 'Giao hàng';
+  }
+
+  String get _serviceAsset {
+    if (order.isBatch) return 'assets/images/icon-batch.png';
+    return order.shopServiceType == 'shop_pickup'
+        ? 'assets/images/icon-pickup.png'
+        : 'assets/images/icon-delivery.png';
+  }
+
+  String get _recipient {
+    final name = order.receiverName?.trim() ?? '';
+    final phone = order.deliveryPhone.trim();
+    if (name.isNotEmpty && phone.isNotEmpty) return '$name · $phone';
+    if (name.isNotEmpty) return name;
+    if (phone.isNotEmpty) return phone;
+    return order.isBatch ? '${order.stops.length} điểm giao' : 'Người nhận';
+  }
+
+  String get _deliveryAddress {
+    if (!order.isBatch || order.stops.isEmpty) return order.deliveryAddress;
+    final first = '${order.stops.first['address'] ?? order.deliveryAddress}';
+    final remaining = order.stops.length - 1;
+    return remaining > 0 ? '$first · và $remaining điểm khác' : first;
+  }
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final status = switch (order.status) {
+      'pending' => (label: 'Đang tìm tài xế', color: c.primary),
+      'assigned' => (label: 'Tài xế đang đến lấy', color: c.info),
+      'processing' => (label: 'Đang trên đường giao', color: c.success),
+      _ => (label: Fmt.orderStatus(order.status), color: c.textSecondary),
+    };
+    final serviceColor = order.isBatch
+        ? c.info
+        : order.shopServiceType == 'shop_pickup'
+            ? c.accent2
+            : c.primary;
     final code = order.code.startsWith('#') ? order.code : '#${order.code}';
-    final receiver = order.receiverName?.trim();
-    final destination = order.isBatch && order.stops.isNotEmpty
-        ? '${order.stops.length} điểm giao'
-        : receiver == null || receiver.isEmpty
-            ? order.deliveryAddress
-            : '$receiver · ${order.deliveryAddress}';
-    final showDriver = order.driver != null &&
-        (order.status == 'assigned' || order.status == 'processing');
-    final status = _statusMeta(c);
 
-    final dark = context.isDark;
-    final radius = BorderRadius.circular(AppRadius.card);
+    void open() => context.push('/order/${order.code}');
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: radius,
-        boxShadow: dark ? null : AppShadows.soft,
-      ),
-      child: ClipRRect(
-        borderRadius: radius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () => context.push('/order/${order.code}'),
-              child: Ink(
-                decoration: BoxDecoration(
-                  borderRadius: radius,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: dark
-                        ? [
-                            Colors.white.withValues(alpha: .14),
-                            Colors.white.withValues(alpha: .05),
-                          ]
-                        : [
-                            Colors.white.withValues(alpha: .85),
-                            Colors.white.withValues(alpha: .45),
-                          ],
-                  ),
-                  border: Border.all(
-                      color: Colors.white.withValues(alpha: dark ? .22 : .9),
-                      width: 1.2),
-                ),
-                child: Stack(children: [
-                  // Vầng sáng theo màu trạng thái ở góc phải.
-                  Positioned(
-                    top: -50,
-                    right: -40,
-                    child: Container(
-                      width: 190,
-                      height: 190,
+    return Semantics(
+      button: true,
+      label: '$_serviceTitle $code, ${status.label}',
+      child: Material(
+        color: c.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: c.divider),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: open,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(colors: [
-                          status.color.withValues(alpha: dark ? .25 : .22),
-                          status.color.withValues(alpha: 0),
-                        ]),
+                        color: serviceColor.withValues(alpha: .09),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Image.asset(
+                        _serviceAsset,
+                        fit: BoxFit.contain,
+                        cacheWidth: 132,
+                        excludeFromSemantics: true,
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    child: Column(
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      // Trạng thái hiện tại — thứ chủ shop cần thấy đầu tiên.
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: AppSpacing.md,
-                                            vertical: AppSpacing.xs + 2),
-                                        decoration: BoxDecoration(
-                                          color: status.color
-                                              .withValues(alpha: .12),
-                                          borderRadius: BorderRadius.circular(
-                                              AppRadius.full),
-                                        ),
-                                        child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Container(
-                                                width: 8,
-                                                height: 8,
-                                                decoration: BoxDecoration(
-                                                    color: status.color,
-                                                    shape: BoxShape.circle),
-                                              ),
-                                              const SizedBox(
-                                                  width: AppSpacing.sm),
-                                              Flexible(
-                                                child: Text(status.label,
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: AppTextStyles.label
-                                                        .copyWith(
-                                                            color: status.color,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .w800)),
-                                              ),
-                                            ]),
-                                      ),
-                                      const SizedBox(height: AppSpacing.sm),
-                                      Row(children: [
-                                        Flexible(
-                                          child: Text(
-                                            order.isBatch
-                                                ? 'Đơn gộp $code'
-                                                : 'Đơn $code',
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: AppTextStyles.bodyStrong
-                                                .copyWith(color: c.textPrimary),
-                                          ),
-                                        ),
-                                        if (order.isBatch) ...[
-                                          const SizedBox(width: AppSpacing.sm),
-                                          _OrderPill(
-                                            label: '${order.stops.length} điểm',
-                                            color: c.accent2,
-                                          ),
-                                        ],
-                                      ]),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.sm),
-                                Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text('PHÍ SHIP',
-                                          style: AppTextStyles.caption.copyWith(
-                                              color: c.textTertiary,
-                                              letterSpacing: .4)),
-                                      const SizedBox(height: AppSpacing.xs),
-                                      Text(Fmt.currency(order.shippingFee),
-                                          style: AppTextStyles.metric
-                                              .copyWith(color: c.primary)),
-                                    ]),
-                              ]),
-                          const SizedBox(height: AppSpacing.lg),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(AppSpacing.md),
-                            decoration: BoxDecoration(
-                              color: Colors.white
-                                  .withValues(alpha: dark ? .06 : .55),
-                              borderRadius: BorderRadius.circular(AppRadius.md),
-                              border: Border.all(
-                                  color: Colors.white
-                                      .withValues(alpha: dark ? .12 : .8)),
-                            ),
-                            child: OrderRouteLines(
-                              pickup: order.pickupAddress,
-                              delivery: destination,
+                          Text(
+                            _serviceTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.bodyStrong.copyWith(
+                              color: c.textPrimary,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          if (showDriver) ...[
-                            const SizedBox(height: AppSpacing.md),
-                            OrderDriverRow(driver: order.driver!),
-                          ],
-                          const SizedBox(height: AppSpacing.lg),
-                          if (order.status == 'pending')
-                            _FindingDriverBanner(color: status.color)
-                          else
-                            _OrderProgress(currentStep: _progressStep),
-                          const SizedBox(height: AppSpacing.lg),
-                          Divider(height: 1, color: c.divider),
-                          const SizedBox(height: AppSpacing.md),
-                          Row(children: [
-                            if (order.distanceKm != null) ...[
-                              Icon(Icons.route_rounded,
-                                  size: AppSize.iconSm, color: c.textTertiary),
-                              const SizedBox(width: AppSpacing.xs),
-                              Text('${order.distanceKm!.toStringAsFixed(1)} km',
-                                  style: AppTextStyles.label
-                                      .copyWith(color: c.textSecondary)),
-                            ],
-                            if (order.distanceKm != null &&
-                                order.codAmount != null)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.sm),
-                                child: Text('·',
-                                    style: AppTextStyles.label
-                                        .copyWith(color: c.textTertiary)),
-                              ),
-                            if (order.codAmount != null) ...[
-                              Icon(Icons.payments_outlined,
-                                  size: AppSize.iconSm, color: c.textTertiary),
-                              const SizedBox(width: AppSpacing.xs),
-                              Flexible(
-                                child: Text(
-                                    'Tiền lấy hàng ${Fmt.currency(order.codAmount!)}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: AppTextStyles.label
-                                        .copyWith(color: c.textSecondary)),
-                              ),
-                            ],
-                            const Spacer(),
-                            Text('Xem chi tiết',
-                                style: AppTextStyles.label.copyWith(
-                                    color: c.primary,
-                                    fontWeight: FontWeight.w800)),
-                            const SizedBox(width: AppSpacing.xs),
-                            Icon(Icons.arrow_forward_rounded,
-                                size: AppSize.iconSm, color: c.primary),
-                          ]),
-                        ]),
+                          const SizedBox(height: 3),
+                          Text(
+                            code,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.caption.copyWith(
+                              color: c.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth:
+                            MediaQuery.sizeOf(context).width < 360 ? 108 : 136,
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: status.color.withValues(alpha: .10),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          status.label,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.caption.copyWith(
+                            color: status.color,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 13),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 11,
+                    vertical: 10,
                   ),
-                ]),
-              ),
+                  decoration: BoxDecoration(
+                    color: c.surfaceAlt,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    children: [
+                      _OrderRouteRow(
+                        icon: Icons.radio_button_checked_rounded,
+                        color: serviceColor,
+                        label: 'Điểm lấy',
+                        title: order.storeName?.trim().isNotEmpty == true
+                            ? order.storeName!.trim()
+                            : 'Cửa hàng',
+                        address: order.pickupAddress,
+                      ),
+                      const SizedBox(height: 10),
+                      _OrderRouteRow(
+                        icon: Icons.location_on_rounded,
+                        color: c.danger,
+                        label: order.isBatch ? 'Các điểm giao' : 'Điểm giao',
+                        title: _recipient,
+                        address: _deliveryAddress,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Divider(height: 1, color: c.divider),
+                const SizedBox(height: 8),
+                _OrderCardFooter(
+                  order: order,
+                  color: serviceColor,
+                  onOpen: open,
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
   }
-
-  ({String label, Color color}) _statusMeta(Palette c) =>
-      switch (order.status) {
-        'pending' => (label: 'Đang tìm tài xế', color: c.warning),
-        'assigned' => (label: 'Tài xế đang đến lấy', color: c.info),
-        'processing' => (label: 'Đang trên đường giao', color: c.primary),
-        _ => (label: Fmt.orderStatus(order.status), color: c.textSecondary),
-      };
 }
 
-class _OrderPill extends StatelessWidget {
-  final String label;
-  final Color color;
-
-  const _OrderPill({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: .12),
-          borderRadius: BorderRadius.circular(AppRadius.full),
-        ),
-        child: Text(label,
-            style: AppTextStyles.caption
-                .copyWith(color: color, fontWeight: FontWeight.w800)),
-      );
-}
-
-class _FindingDriverBanner extends StatelessWidget {
-  final Color color;
-  const _FindingDriverBanner({required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: c.warningSoft,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: color.withValues(alpha: .2)),
-      ),
-      child: Row(children: [
-        SizedBox.square(
-          dimension: 16,
-          child: CircularProgressIndicator(strokeWidth: 2, color: color),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: Text('Hệ thống đang kết nối tài xế gần cửa hàng',
-              style: AppTextStyles.label.copyWith(
-                  color: c.textSecondary, fontWeight: FontWeight.w600)),
-        ),
-      ]),
-    );
-  }
-}
-
-class _OrderProgress extends StatelessWidget {
-  final int currentStep;
-  const _OrderProgress({required this.currentStep});
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    const labels = ['Đã nhận', 'Đã lấy hàng', 'Hoàn thành'];
-    const icons = [
-      Icons.check_rounded,
-      Icons.inventory_2_rounded,
-      Icons.flag_rounded,
-    ];
-
-    return Column(children: [
-      Row(children: [
-        for (var i = 0; i < labels.length; i++) ...[
-          _ProgressDot(
-              icon: icons[i],
-              active: i <= currentStep,
-              current: i == currentStep),
-          if (i < labels.length - 1)
-            Expanded(
-              child: Container(
-                height: 2,
-                color: i < currentStep ? c.primary : c.divider,
-              ),
-            ),
-        ],
-      ]),
-      const SizedBox(height: AppSpacing.sm),
-      Row(children: [
-        for (var i = 0; i < labels.length; i++)
-          Expanded(
-            child: Text(labels[i],
-                textAlign: i == 0
-                    ? TextAlign.left
-                    : i == labels.length - 1
-                        ? TextAlign.right
-                        : TextAlign.center,
-                style: AppTextStyles.caption.copyWith(
-                  fontWeight:
-                      i == currentStep ? FontWeight.w800 : FontWeight.w600,
-                  color: i == currentStep ? c.primary : c.textTertiary,
-                )),
-          ),
-      ]),
-    ]);
-  }
-}
-
-class _ProgressDot extends StatelessWidget {
+class _OrderRouteRow extends StatelessWidget {
   final IconData icon;
-  final bool active;
-  final bool current;
+  final Color color;
+  final String label;
+  final String title;
+  final String address;
 
-  const _ProgressDot({
+  const _OrderRouteRow({
     required this.icon,
-    required this.active,
-    required this.current,
+    required this.color,
+    required this.label,
+    required this.title,
+    required this.address,
   });
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return AnimatedContainer(
-      duration: AppDuration.fast,
-      width: current ? 26 : 22,
-      height: current ? 26 : 22,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: active ? c.primary : c.surface,
-        shape: BoxShape.circle,
-        border: Border.all(
-            color: active ? c.primary : c.divider, width: current ? 3 : 2),
-        boxShadow: current && !context.isDark ? AppShadows.soft : null,
-      ),
-      child: Icon(icon,
-          size: current ? 14 : 12,
-          color: active ? Colors.white : c.textTertiary),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: .10),
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Icon(icon, size: 15, color: color),
+        ),
+        const SizedBox(width: 9),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: AppTextStyles.caption.copyWith(
+                  fontSize: 10,
+                  color: c.textTertiary,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.label.copyWith(
+                  color: c.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                address,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.caption.copyWith(color: c.textSecondary),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
+  }
+}
+
+class _OrderCardFooter extends StatelessWidget {
+  final OrderModel order;
+  final Color color;
+  final VoidCallback onOpen;
+
+  const _OrderCardFooter({
+    required this.order,
+    required this.color,
+    required this.onOpen,
+  });
+
+  String get _driverLabel {
+    final name = order.driver?.name.trim() ?? '';
+    if (name.isNotEmpty) return name;
+    return switch (order.status) {
+      'pending' => 'Đang kết nối tài xế',
+      'assigned' => 'Tài xế đã nhận đơn',
+      _ => Fmt.orderStatus(order.status),
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final driver = Row(children: [
+      Icon(Icons.person_rounded, size: 17, color: color),
+      const SizedBox(width: 6),
+      Expanded(
+        child: Text(
+          _driverLabel,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppTextStyles.caption.copyWith(
+            color: c.textPrimary,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    ]);
+    final fee = Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Phí ship',
+          style: AppTextStyles.caption.copyWith(
+            fontSize: 10,
+            color: c.textTertiary,
+          ),
+        ),
+        Text(
+          Fmt.currency(order.shippingFee),
+          maxLines: 1,
+          style: AppTextStyles.label.copyWith(
+            color: c.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+    return LayoutBuilder(builder: (context, constraints) {
+      final compact = constraints.maxWidth < 380 ||
+          MediaQuery.textScalerOf(context).scale(12) > 15;
+      final button = TextButton.icon(
+        onPressed: onOpen,
+        style: TextButton.styleFrom(
+          foregroundColor: color,
+          backgroundColor: color.withValues(alpha: .10),
+          minimumSize: Size(compact ? double.infinity : 0, 40),
+          padding: const EdgeInsets.symmetric(horizontal: 13),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
+        ),
+        iconAlignment: IconAlignment.end,
+        icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+        label: const Text('Xem chi tiết'),
+      );
+
+      if (compact) {
+        return Column(children: [
+          Row(children: [
+            Expanded(child: driver),
+            const SizedBox(width: 8),
+            fee,
+          ]),
+          const SizedBox(height: 9),
+          button,
+        ]);
+      }
+      return Row(children: [
+        Expanded(child: driver),
+        const SizedBox(width: 10),
+        fee,
+        const SizedBox(width: 10),
+        button,
+      ]);
+    });
   }
 }

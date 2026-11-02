@@ -1,5 +1,6 @@
-import '../../core/widgets/app_decor_widgets.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../core/theme/app_theme.dart';
@@ -21,6 +22,7 @@ class _LegalPageScreenState extends ConsumerState<LegalPageScreen> {
 
   String? _content;
   String? _pageTitle;
+  String? _interFontBase64;
   Brightness? _renderedBrightness;
 
   @override
@@ -71,17 +73,24 @@ class _LegalPageScreenState extends ConsumerState<LegalPageScreen> {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${_pageTitle ?? widget.title}</title>
   <style>
+    @font-face {
+      font-family: 'Inter';
+      src: url('data:font/woff2;base64,$_interFontBase64') format('woff2');
+      font-weight: 100 900;
+      font-style: normal;
+      font-display: block;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    body, body * { font-family: 'Inter', sans-serif !important; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Helvetica Neue", sans-serif;
       font-size: 14px;
       line-height: 1.7;
       color: ${_hex(c.textSecondary)};
-      background: ${_hex(c.background)};
+      background: ${_hex(c.surface)};
       padding: 20px 16px 48px;
     }
-    h1 { font-size: 20px; font-weight: 800; margin: 0 0 16px; color: ${_hex(c.textPrimary)}; }
-    h2 { font-size: 16px; font-weight: 800; margin: 24px 0 8px; color: ${_hex(c.textPrimary)}; }
+    h1 { font-size: 20px; font-weight: 700; margin: 0 0 16px; color: ${_hex(c.textPrimary)}; }
+    h2 { font-size: 16px; font-weight: 700; margin: 24px 0 10px; padding: 8px 10px; color: ${_hex(c.textPrimary)}; background: ${_hex(c.primarySoft)}; border-left: 3px solid ${_hex(c.primary)}; border-radius: 8px; }
     h3 { font-size: 14px; font-weight: 700; margin: 16px 0 6px; color: ${_hex(c.textPrimary)}; }
     p  { margin-bottom: 12px; }
     ul, ol { padding-left: 20px; margin-bottom: 12px; }
@@ -107,7 +116,11 @@ class _LegalPageScreenState extends ConsumerState<LegalPageScreen> {
       final page = await ref
           .read(legalRepositoryProvider)
           .fetch(widget.slug, fallbackTitle: widget.title);
+      final font =
+          await rootBundle.load('assets/fonts/inter/InterVariable.woff2');
       if (!mounted) return;
+      _interFontBase64 = base64Encode(
+          font.buffer.asUint8List(font.offsetInBytes, font.lengthInBytes));
       _content = page.html;
       _pageTitle = page.title;
       _render();
@@ -125,39 +138,201 @@ class _LegalPageScreenState extends ConsumerState<LegalPageScreen> {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppPageHeader(title: widget.title),
-      body: _error != null
-          ? Center(
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-              AppIconBadge(
-                  icon: Icons.wifi_off_rounded,
-                  color: c.textSecondary,
-                  size: 64),
-              const SizedBox(height: AppSpacing.lg),
-              Text(_error!,
-                  style:
-                      AppTextStyles.bodyStrong.copyWith(color: c.textPrimary)),
-              const SizedBox(height: AppSpacing.lg),
-              FilledButton.tonal(
-                onPressed: _fetchContent,
-                style: FilledButton.styleFrom(
-                    minimumSize: const Size(140, AppSize.buttonHeight),
-                    backgroundColor: c.primarySoft,
-                    foregroundColor: c.primary),
-                child: const Text('Thử lại'),
-              ),
-            ]))
-          : Stack(children: [
-              WebViewWidget(controller: _controller),
-              if (_loading)
-                ColoredBox(
-                  color: Colors.transparent,
-                  child: Center(
-                      child: CircularProgressIndicator(
-                          color: c.primary, strokeWidth: 2)),
+      backgroundColor: c.background,
+      body: Column(children: [
+        _LegalHeader(title: widget.title),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+          child: _LegalInfoBanner(
+            isPrivacy: widget.slug.contains('privacy'),
+          ),
+        ),
+        Expanded(
+          child: _error != null
+              ? _LegalError(message: _error!, onRetry: _fetchContent)
+              : Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: c.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: c.divider),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Stack(children: [
+                      WebViewWidget(controller: _controller),
+                      if (_loading)
+                        ColoredBox(
+                          color: c.surface,
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircularProgressIndicator(
+                                  color: c.primary,
+                                  strokeWidth: 2,
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Đang tải nội dung...',
+                                  style: AppTextStyles.caption.copyWith(
+                                    color: c.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ]),
+                  ),
                 ),
-            ]),
+        ),
+      ]),
+    );
+  }
+}
+
+class _LegalHeader extends StatelessWidget {
+  final String title;
+  const _LegalHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      width: double.infinity,
+      color: context.isDark ? c.primarySoft : const Color(0xFFFFE9DE),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 16, 14),
+          child: Row(children: [
+            IconButton(
+              tooltip: 'Quay lại',
+              onPressed: () => Navigator.maybePop(context),
+              style: IconButton.styleFrom(
+                backgroundColor: c.surface,
+                foregroundColor: c.textPrimary,
+                fixedSize: const Size.square(42),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.screenTitle.copyWith(
+                      color: c.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Thông tin pháp lý từ Flash Ship',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.caption.copyWith(
+                      color: c.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _LegalInfoBanner extends StatelessWidget {
+  final bool isPrivacy;
+  const _LegalInfoBanner({required this.isPrivacy});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Row(children: [
+      Container(
+        width: 38,
+        height: 38,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: c.primarySoft,
+          borderRadius: BorderRadius.circular(11),
+        ),
+        child: Icon(
+          isPrivacy ? Icons.shield_outlined : Icons.description_outlined,
+          size: 19,
+          color: c.primary,
+        ),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Text(
+          isPrivacy
+              ? 'Cách Flash Ship thu thập và bảo vệ dữ liệu của bạn'
+              : 'Quyền và trách nhiệm khi sử dụng dịch vụ Flash Ship',
+          style: AppTextStyles.caption.copyWith(
+            color: c.textSecondary,
+            height: 1.4,
+          ),
+        ),
+      ),
+    ]);
+  }
+}
+
+class _LegalError extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+  const _LegalError({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 64,
+            height: 64,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: c.surfaceAlt,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child:
+                Icon(Icons.wifi_off_rounded, color: c.textSecondary, size: 29),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: AppTextStyles.bodyStrong.copyWith(color: c.textPrimary),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Vui lòng kiểm tra kết nối và thử lại.',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.caption.copyWith(color: c.textSecondary),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('Thử lại'),
+          ),
+        ]),
+      ),
     );
   }
 }

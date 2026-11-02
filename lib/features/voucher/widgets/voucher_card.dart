@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/formatters.dart';
 import '../voucher_model.dart';
 
 /// Layout thẻ voucher dùng chung — dải trái tô success/discount lớn + "OFF",
@@ -40,136 +41,168 @@ class VoucherCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final dimmed = !eligible;
-    final accent = dimmed ? c.textTertiary : c.success;
+    final accent = dimmed ? c.textTertiary : c.primary;
+    final description = descriptionOverride ??
+        (voucher.description?.trim().isNotEmpty == true
+            ? voucher.description!.trim()
+            : 'Ưu đãi phí giao hàng dành cho cửa hàng');
+    final conditions = [
+      if (voucher.minOrderValue != null)
+        'Đơn từ ${Fmt.currency(voucher.minOrderValue!)}',
+      if (voucher.maxDiscount != null)
+        'Giảm tối đa ${Fmt.currency(voucher.maxDiscount!)}',
+    ].join(' · ');
 
-    Widget content = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Code
-          Row(children: [
+    Widget body = Padding(
+      padding: const EdgeInsets.all(14),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            width: 42,
+            height: 42,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: .10),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              voucher.type == 'percent'
+                  ? Icons.percent_rounded
+                  : Icons.confirmation_number_outlined,
+              size: 21,
+              color: accent,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  voucher.discountLabel.isNotEmpty
+                      ? voucher.discountLabel
+                      : discountText(voucher),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.sectionTitle.copyWith(
+                    color: accent,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.caption.copyWith(
+                    color: c.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ]),
+        if (conditions.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Text(
+            conditions,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.caption.copyWith(color: c.textSecondary),
+          ),
+        ],
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(12, 3, 4, 3),
+          decoration: BoxDecoration(
+            color: c.surfaceAlt,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(children: [
             Expanded(
               child: Text(
                 voucher.code,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.bodyStrong.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: accent,
-                    letterSpacing: 0.5),
+                style: AppTextStyles.label.copyWith(
+                  color: c.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: .5,
+                ),
               ),
             ),
-            if (onTap != null) ...[
-              const SizedBox(width: 5),
-              Icon(Icons.copy_rounded, size: 12, color: accent),
-            ],
+            if (onTap != null)
+              IconButton(
+                tooltip: 'Sao chép mã',
+                onPressed: onTap,
+                style: IconButton.styleFrom(
+                  fixedSize: const Size.square(40),
+                  foregroundColor: accent,
+                  backgroundColor: accent.withValues(alpha: .08),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                icon: const Icon(Icons.copy_rounded, size: 18),
+              ),
           ]),
-          const SizedBox(height: 4),
-          // Mô tả / lý do không đủ điều kiện
-          Text(
-            descriptionOverride ??
-                (voucher.description?.isNotEmpty == true
-                    ? voucher.description!
-                    : voucher.minOrderValue != null
-                        ? 'Đơn từ ${voucher.minOrderValue}đ'
-                        : 'Không giới hạn đơn tối thiểu'),
-            style: TextStyle(fontSize: AppFontSize.xs, color: c.textSecondary),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 10),
+        Divider(height: 1, color: c.divider),
+        const SizedBox(height: 9),
+        Row(children: [
+          Icon(
+            Icons.schedule_rounded,
+            size: 14,
+            color: voucher.isExpired ? c.danger : c.textTertiary,
           ),
-          const SizedBox(height: 5),
-          // HSD + usage
-          Row(children: [
-            if (voucher.expiresAt != null) ...[
-              Icon(Icons.access_time_rounded,
-                  size: 10,
-                  color: voucher.isExpired ? c.danger : c.textTertiary),
-              const SizedBox(width: 3),
-              Text(
-                voucher.isExpired ? 'Hết hạn' : expiryText(voucher),
-                style: TextStyle(
-                    fontSize: AppFontSize.xs,
-                    color: voucher.isExpired ? c.danger : c.textTertiary),
+          const SizedBox(width: 5),
+          Expanded(
+            child: Text(
+              voucher.expiresAt == null
+                  ? 'Không giới hạn thời gian'
+                  : voucher.isExpired
+                      ? 'Đã hết hạn'
+                      : 'HSD: ${expiryText(voucher)}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.caption.copyWith(
+                color: voucher.isExpired ? c.danger : c.textSecondary,
               ),
-            ],
-            if (voucher.usageLimit != null) ...[
-              const Spacer(),
-              Text(
-                '${voucher.usageCount ?? 0}/${voucher.usageLimit}',
-                style:
-                    TextStyle(fontSize: AppFontSize.xs, color: c.textTertiary),
-              ),
-            ],
-          ]),
-        ],
-      ),
+            ),
+          ),
+          if (voucher.usageLimit != null) ...[
+            const SizedBox(width: 8),
+            Text(
+              '${voucher.usageCount ?? 0}/${voucher.usageLimit} lượt',
+              style: AppTextStyles.caption.copyWith(color: c.textSecondary),
+            ),
+          ],
+          if (trailing != null) ...[
+            const SizedBox(width: 8),
+            trailing!,
+          ],
+        ]),
+      ]),
     );
-    if (fadeContent) content = Opacity(opacity: 0.5, child: content);
+    if (fadeContent) body = Opacity(opacity: .58, child: body);
 
-    final card = Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: c.glass,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: c.glassBorder, width: 1.2),
-        boxShadow: context.isDark ? null : AppShadows.soft,
+    final card = Material(
+      color: c.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: c.divider),
       ),
       clipBehavior: Clip.antiAlias,
-      // IntrinsicHeight: Row(crossAxisAlignment: stretch) cần chiều cao xác
-      // định để dải trái giãn đủ cao — an toàn cả khi widget này nằm trong
-      // danh sách dọc (chiều cao item không giới hạn theo mặc định).
-      child: IntrinsicHeight(
-        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          // ── Dải trái ──
-          Container(
-            width: 64,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: dimmed
-                    ? [c.surfaceAlt, c.surfaceAlt]
-                    : [c.success, c.success.withValues(alpha: 0.75)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
+      child: onTap == null
+          ? body
+          : InkWell(
+              onTap: onTap,
+              child: body,
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(discountText(voucher),
-                    style: TextStyle(
-                        fontSize: AppFontSize.lg,
-                        fontWeight: FontWeight.w900,
-                        color: dimmed ? c.textTertiary : Colors.white,
-                        height: 1)),
-                const SizedBox(height: 2),
-                Text('OFF',
-                    style: TextStyle(
-                        fontSize: AppFontSize.tiny,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.5,
-                        color: dimmed
-                            ? c.textTertiary
-                            : Colors.white.withValues(alpha: 0.8))),
-              ],
-            ),
-          ),
-
-          // ── Nội dung ──
-          Expanded(child: content),
-
-          // ── Hành động (vd nút Áp dụng) — luôn hiện rõ, không bị làm mờ ──
-          if (trailing != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 10),
-              child: Center(child: trailing),
-            ),
-        ]),
-      ),
     );
-
-    if (onTap == null) return card;
-    return GestureDetector(onTap: onTap, child: card);
+    return card;
   }
 }

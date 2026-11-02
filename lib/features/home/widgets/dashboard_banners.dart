@@ -141,10 +141,9 @@ class _BannerCard extends StatelessWidget {
         height: 40,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: c.glass,
+          color: c.surface,
           borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: c.glassBorder, width: 1.2),
-          boxShadow: c.cardShadow,
+          border: Border.all(color: c.divider),
         ),
         child: Row(children: [
           Icon(item.icon, color: c.primary, size: 15),
